@@ -187,7 +187,10 @@ table.t{width:100%;border-collapse:collapse}.t td,.t th{padding:.45rem .3rem;bor
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 </style>
-<script>try{var t=JSON.parse(localStorage.getItem('tilyoli:pref')||'{}').theme;var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}</script>
+<script>
+try{var t=JSON.parse(localStorage.getItem('tilyoli:pref')||'{}').theme;var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}
+
+</script>
 </head>
 <body>
 <a class="skip" href="#main">Asosiy mazmunga o'tish</a>
@@ -440,28 +443,64 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
 
   // Matnni tuzilmaga aylantirish; id = daraja.mavzu.indeks (barqaror)
   L.forEach(function (lv, li) {
-    lv.index = li;
     lv.topics.forEach(function (tp, ti) {
-      tp.id = 'L' + li + 'T' + ti;
       tp.words = tp.words.trim().split('\n').map(function (line, wi) {
         var p = line.split('|');
         return { id: li + '.' + ti + '.' + wi, en: p[0].trim(), uz: p[1].split(';').map(function (s) { return s.trim(); }),
-                 emoji: (p[2] || '').trim(), sent: p[3].trim(), sentUz: p[4].trim(), level: li, topic: ti };
+                 emoji: (p[2] || '').trim(), sent: p[3].trim(), sentUz: p[4].trim() };
       });
     });
-    // Tugunlar ketma-ketligi: mavzu darslari, takrorlash, sinov
-    lv.nodes = lv.topics.map(function (tp, ti) { return { id: 'L' + li + 'T' + ti, kind: 'lesson', level: li, topic: ti, title: tp.title, icon: tp.icon }; });
-    lv.nodes.push({ id: 'L' + li + 'R', kind: 'review', level: li, title: 'Takrorlash', icon: 'üîÅ' });
-    lv.nodes.push({ id: 'L' + li + 'X', kind: 'test', level: li, title: 'Sinov', icon: 'üèÜ' });
   });
+  TY.baseLevels = JSON.parse(JSON.stringify(L));   // admin o'zgartirishlari shu asosga qo'llanadi
+  TY.MIN_WORDS = 4;                                  // mavzu darsi bo'lishi uchun kamida shuncha ko'rinadigan so'z
 
-  TY.LEVELS = L;
-  TY.NODES = [];
-  L.forEach(function (lv) { lv.nodes.forEach(function (n) { n.order = TY.NODES.length; TY.NODES.push(n); }); });
-  TY.nodeById = {}; TY.NODES.forEach(function (n) { TY.nodeById[n.id] = n; });
-  TY.wordById = {}; TY.allWords = [];
-  L.forEach(function (lv) { lv.topics.forEach(function (tp) { tp.words.forEach(function (w) { TY.wordById[w.id] = w; TY.allWords.push(w); }); }); });
-})(window.TY = window.TY || {});
+  // Indekslar va tugunlar (LEVELS o'zgarganda qayta chaqiriladi)
+  TY.reindex = function () {
+    var LV = TY.LEVELS;
+    TY.NODES = []; TY.nodeById = {}; TY.wordById = {}; TY.allWords = [];
+    LV.forEach(function (lv, li) {
+      lv.index = li; lv.nodes = [];
+      lv.topics.forEach(function (tp, ti) {
+        tp.id = 'L' + li + 'T' + ti;
+        tp.words.forEach(function (w) { w.level = li; w.topic = ti; if (!w.hidden) { TY.wordById[w.id] = w; TY.allWords.push(w); } });
+        if (tp.words.filter(function (w) { return !w.hidden; }).length >= TY.MIN_WORDS) lv.nodes.push({ id: tp.id, kind: 'lesson', level: li, topic: ti, title: tp.title, icon: tp.icon });
+      });
+      lv.nodes.push({ id: 'L' + li + 'R', kind: 'review', level: li, title: 'Takrorlash', icon: 'üîÅ' });
+      lv.nodes.push({ id: 'L' + li + 'X', kind: 'test', level: li, title: 'Sinov', icon: 'üèÜ' });
+      lv.nodes.forEach(function (n) { n.order = TY.NODES.length; TY.NODES.push(n); TY.nodeById[n.id] = n; });
+    });
+  };
+  TY.LEVELS = JSON.parse(JSON.stringify(L));
+  TY.reindex();
+})(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
+
+</script>
+<script>
+/* Admin tahrirlarini asosiy kursga qo'llash (brauzer va serverda bir xil ishlaydi).
+   rows = { levels:[{idx,title,sub}], topics:[{level,idx,title,icon,tip}], words:[{id,level,topic,en,uz,emoji,sent,sentUz,hidden,pos}], disabled:[tur] }
+   keepHidden=true bo'lsa yashirin so'zlar `hidden` belgisi bilan qoladi (admin ko'rinishi). */
+(function (TY) {
+  TY.disabledKinds = {};
+  TY.applyContent = function (rows, keepHidden) {
+    rows = rows || {};
+    var L = JSON.parse(JSON.stringify(TY.baseLevels));
+    (rows.levels || []).forEach(function (r) { var lv = L[r.idx]; if (lv) { if (r.title) lv.title = r.title; if (r.sub) lv.sub = r.sub; } });
+    (rows.topics || []).slice().sort(function (a, b) { return a.idx - b.idx; }).forEach(function (r) {
+      var lv = L[r.level]; if (!lv) return;
+      if (lv.topics[r.idx]) { var t = lv.topics[r.idx]; if (r.title) t.title = r.title; if (r.icon) t.icon = r.icon; if (r.tip != null) t.tip = r.tip; }
+      else if (r.idx === lv.topics.length) lv.topics.push({ title: r.title, icon: r.icon || 'üìò', tip: r.tip || '', words: [] });
+    });
+    (rows.words || []).slice().sort(function (a, b) { return (a.pos || 0) - (b.pos || 0); }).forEach(function (r) {
+      var lv = L[r.level], tp = lv && lv.topics[r.topic]; if (!tp) return;
+      var w = tp.words.filter(function (x) { return x.id === r.id; })[0];
+      if (w) { w.en = r.en; w.uz = r.uz; w.emoji = r.emoji || ''; w.sent = r.sent || ''; w.sentUz = r.sentUz || ''; w.hidden = !!r.hidden; }
+      else tp.words.push({ id: r.id, en: r.en, uz: r.uz, emoji: r.emoji || '', sent: r.sent || '', sentUz: r.sentUz || '', hidden: !!r.hidden });
+    });
+    if (!keepHidden) L.forEach(function (lv) { lv.topics.forEach(function (tp) { tp.words = tp.words.filter(function (w) { return !w.hidden; }); }); });
+    TY.LEVELS = L; TY.reindex();
+    TY.disabledKinds = {}; (rows.disabled || []).forEach(function (k) { TY.disabledKinds[k] = 1; });
+  };
+})(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
 
 </script>
 <script>
@@ -525,9 +564,41 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
   function saveUsers(u) { Storage.set('users', JSON.stringify(u)); }
   function ukey(name) { return name.trim().toLowerCase(); }
 
+  // ---- Server rejimi: server bor bo'lsa hisoblar va progress serverda (SQLite), aks holda localStorage ----
+  var Server = TY.Server = { on: false, csrf: null, timer: null, announcements: [], registrationOpen: true };
+  function api(method, url, body) {
+    return fetch(url, { method: method, credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': Server.csrf || '' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || ('Server xatosi ' + r.status)); e.status = r.status; throw e; } return j; }); });
+  }
+  TY.api = api;
+  Server.flush = function () {
+    if (!Server.on || !Auth.state || !Server.dirty) return Promise.resolve();
+    Server.dirty = false; clearTimeout(Server.timer);
+    return api('PUT', 'api/state', { state: Auth.state }).catch(function (e) { Server.dirty = true; if ((e.status === 401 || e.status === 403) && TY.onAuthLost) TY.onAuthLost(e); });
+  };
+  Server.event = function (ev) { if (Server.on && Auth.current) api('POST', 'api/event', ev).catch(function () {}); };
+  window.addEventListener('pagehide', function () { Server.flush(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') Server.flush(); });
+  TY.ready = (function () {
+    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(false);
+    return fetch('api/ping', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (p) {
+      if (!p || !p.server) return false;
+      Server.on = true; Server.registrationOpen = p.registrationOpen;
+      return api('GET', 'api/content').then(function (c) { TY.applyContent(c.rows); Server.announcements = c.announcements || []; }).catch(function () {})
+        .then(function () { return api('GET', 'api/me'); }).then(function (me) { Auth.openServer(me.user.name, me.state, me.csrf); }).catch(function () {}).then(function () { return true; });
+    });
+  })();
+
   var Auth = {
     current: null, state: null,
+    openServer: function (name, state, csrf) {
+      Server.csrf = csrf; Auth.current = { name: name }; Auth.key = 'data:' + ukey(name);
+      var s = state;
+      if (!s) { var raw = Storage.get(Auth.key); try { s = raw ? JSON.parse(raw) : null; } catch (e) { s = null; } }  // mavjud lokal progressni yo'qotmaslik
+      Auth.state = s ? migrate(s, Auth.key) : newState(); Server.dirty = true; Game.regen(); Game.rollStreak(); Auth.save();
+    },
     register: function (name, pass) {
+      if (Server.on) return api('POST', 'api/register', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       name = (name || '').trim();
       if (name.length < 2) return Promise.reject(new Error("Ism kamida 2 belgi bo'lsin"));
       if (!pass || pass.length < 4) return Promise.reject(new Error("Parol kamida 4 belgi bo'lsin"));
@@ -535,6 +606,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
       return hash(ukey(name) + ':' + pass).then(function (h) { u[ukey(name)] = { name: name, h: h, created: Date.now() }; saveUsers(u); Auth.open(name); });
     },
     login: function (name, pass) {
+      if (Server.on) return api('POST', 'api/login', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       var u = users()[ukey(name || '')];
       if (!u) return Promise.reject(new Error('Foydalanuvchi topilmadi'));
       return hash(ukey(name) + ':' + pass).then(function (h) { if (h !== u.h) throw new Error("Parol noto'g'ri"); Auth.open(u.name); });
@@ -546,13 +618,19 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
       try { s = raw ? migrate(JSON.parse(raw), key) : newState(); } catch (e) { Storage.set(key + ':corrupt', raw); s = newState(); }
       Auth.state = s; Auth.key = key; Game.regen(); Game.rollStreak(); Auth.save();
     },
-    restore: function () { var k = Storage.get('session'); if (k && users()[k]) { Auth.open(users()[k].name); return true; } return false; },
-    logout: function () { Storage.remove('session'); Auth.current = null; Auth.state = null; },
-    save: function () { if (Auth.state) Storage.set(Auth.key, JSON.stringify(Auth.state)); },
+    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k]) { Auth.open(users()[k].name); return true; } return false; },
+    logout: function () {
+      if (Server.on && Auth.current) { var p = Server.flush(); p = (p || Promise.resolve()).then(function () { return api('POST', 'api/logout').catch(function () {}); }); Auth.pending = p; }
+      Storage.remove('session'); Auth.current = null; Auth.state = null; Server.csrf = null;
+    },
+    save: function () {
+      if (!Auth.state) return; Storage.set(Auth.key, JSON.stringify(Auth.state));
+      if (Server.on && Auth.current) { Server.dirty = true; clearTimeout(Server.timer); Server.timer = setTimeout(Server.flush, 1200); }
+    },
     exportData: function () { return JSON.stringify({ user: Auth.current && Auth.current.name, data: Auth.state }, null, 2); },
     importData: function (text) { var o = JSON.parse(text); if (!o || !o.data || typeof o.data.xp !== 'number') throw new Error("Noto'g'ri fayl"); Auth.state = migrate(o.data, Auth.key); Auth.save(); },
     resetProgress: function () { Auth.state = newState(); Auth.save(); },
-    deleteAccount: function () { var u = users(); delete u[ukey(Auth.current.name)]; saveUsers(u); Storage.remove(Auth.key); Auth.logout(); }
+    deleteAccount: function () { if (Server.on) { api('DELETE', 'api/me').catch(function () {}); Storage.remove(Auth.key); Auth.logout(); return; } var u = users(); delete u[ukey(Auth.current.name)]; saveUsers(u); Storage.remove(Auth.key); Auth.logout(); }
   };
   TY.Auth = Auth;
 
@@ -750,7 +828,8 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
 
   function make(kind, w) { return MAKERS[kind] ? MAKERS[kind](w) : null; }
   function makeAny(w, kinds, avoid) {
-    var order = shuffle(kinds);
+    var on = kinds.filter(function (k) { return !TY.disabledKinds || !TY.disabledKinds[k]; });
+    var order = shuffle(on.length ? on : kinds);
     if (avoid) order.sort(function (a, b) { return (a === avoid) - (b === avoid); });
     for (var i = 0; i < order.length; i++) { var q = make(order[i], w); if (q) { q.kind = order[i]; return q; } }
     return null;
@@ -848,6 +927,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
     } else { TY.Auth.save(); }
     this.tick(); TY.Auth.save();
     var st = TY.Auth.state; st.history.unshift({ ts: Date.now(), mode: m, node: this.node && this.node.id, pct: pct, xp: this.xp, ok: out.passed }); st.history = st.history.slice(0, 50); TY.Auth.save();
+    if (TY.Server) TY.Server.event({ mode: m, node: this.node && this.node.id, pct: pct, xp: this.xp, ok: out.passed });
     out.xp = this.xp; return out;
   };
   TY.Session = Session;
@@ -953,10 +1033,10 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
         '<div class="card"><form class="form" id="af" novalidate><label for="u">Foydalanuvchi nomi</label><input class="inp" id="u" autocomplete="username" required>' +
         '<label for="p">Parol</label><input class="inp" id="p" type="password" autocomplete="' + (mode === 'login' ? 'current-password' : 'new-password') + '" required>' +
         '<p class="err" role="alert" id="err">' + esc(err || '') + '</p><button class="btn block" type="submit">' + (mode === 'login' ? 'Kirish' : 'Ro\'yxatdan o\'tish') + '</button></form></div>' +
-        '<div class="row" style="justify-content:center"><button class="btn ghost small" id="sw">' + (mode === 'login' ? 'Hisobim yo\'q' : 'Hisobim bor') + '</button><button class="btn ghost small" id="gst">Mehmon sifatida</button></div>' +
-        '<p class="mute center" style="margin-top:1rem;font-size:.85rem">Ma\'lumotlar faqat shu qurilma brauzerida saqlanadi (server yo\'q).</p></main>';
+        '<div class="row" style="justify-content:center"><button class="btn ghost small" id="sw">' + (mode === 'login' ? 'Hisobim yo\'q' : 'Hisobim bor') + '</button>' + (TY.Server.on ? '' : '<button class="btn ghost small" id="gst">Mehmon sifatida</button>') + '</div>' +
+        '<p class="mute center" style="margin-top:1rem;font-size:.85rem">' + (TY.Server.on ? 'Hisobingiz va natijalaringiz serverda saqlanadi.' : 'Ma\'lumotlar faqat shu qurilma brauzerida saqlanadi (server yo\'q).') + '</p></main>';
       $('#sw').onclick = function () { mode = mode === 'login' ? 'reg' : 'login'; draw(); };
-      $('#gst').onclick = function () { A.guest(); applyTheme(); location.hash = '#/'; route(); };
+      if ($('#gst')) $('#gst').onclick = function () { A.guest(); applyTheme(); location.hash = '#/'; route(); };
       $('#af').onsubmit = function (e) {
         e.preventDefault();
         var p = (mode === 'login' ? A.login : A.register)($('#u').value, $('#p').value);
@@ -979,7 +1059,8 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
     var hero = cur ? '<section class="card hero"><div><h2>' + (G.learnedCount(s) ? 'Davom etamiz' : 'Boshlaymiz') + '</h2><p>' + esc(TY.LEVELS[cur.level].sub) + ' ¬∑ ' + esc(cur.title) + '</p></div><a class="btn" href="#/lesson/' + cur.id + '">' + cur.icon + ' ' + (s.done[cur.id] ? 'Takrorlash' : 'Boshlash') + '</a></section>'
       : '<section class="card hero"><div><h2>Barcha darslar tugadi!</h2><p>Takrorlash markazida bilimingizni mustahkamlang.</p></div><a class="btn" href="#/review">Takrorlash</a></section>';
     var qs = G.quests(), done = qs.filter(function (q) { return q.cur >= q.goal; }).length;
-    return '<h1>' + hello + '</h1>' + hero +
+    var ann = (TY.Server.announcements || []).map(function (a) { return '<section class="card" style="background:var(--blue-l)"><b>üì£ ' + esc(a.title) + '</b><p style="margin:.3rem 0 0">' + esc(a.body) + '</p></section>'; }).join('');
+    return '<h1>' + hello + '</h1>' + ann + hero +
       '<div class="grid g2"><section class="card row" aria-labelledby="gh"><div><h3 id="gh">Kunlik maqsad</h3><p class="mute">' + Math.floor(d.secs / 60) + ' / ' + s.goalMin + ' daqiqa</p><a href="#/profile">Maqsadni o\'zgartirish</a></div>' + ringSVG(p, 'Kunlik maqsad ' + Math.round(p * 100) + ' foiz') + '</section>' +
       '<section class="card"><h3>Daraja ' + b.lvl + '</h3><div class="bar yellow" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(100 * (s.xp - b.from) / (b.to - b.from)) + '"><i style="width:' + (100 * (s.xp - b.from) / (b.to - b.from)) + '%"></i></div><p class="mute" style="margin-top:.5rem">' + (b.to - s.xp) + ' XP keyingi darajagacha</p></section></div>' +
       '<div class="grid g3"><div class="card stat"><b>üî• ' + G.streakNow() + '</b>kunlik seriya</div><div class="card stat"><b>‚ö° ' + d.xp + '</b>bugungi XP</div><div class="card stat"><b>üìñ ' + G.learnedCount(s) + '</b>o\'rganilgan so\'z</div></div>' +
@@ -1261,7 +1342,8 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati ‚Ä
   matchMedia('(prefers-color-scheme: dark)').addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (st() && st().theme === 'auto') applyTheme(); });
 
   TY._debug = { get session() { return session; }, route: route };
-  route();
+  TY.onAuthLost = function () { toast('Sessiya tugadi yoki hisob bloklandi. Qayta kiring.'); A.logout(); location.hash = '#/'; route(); };
+  TY.ready.then(function () { route(); });
 })(window.TY = window.TY || {});
 
 </script>
