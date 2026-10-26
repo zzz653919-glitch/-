@@ -4,7 +4,7 @@ Windows uchun Python + PySide6 ilovasi. **Buyruqlar faqat ilova oynasi ochiq va 
 bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan belgilangan xavfsiz amallarni bajaradi.
 
 ## Ishga tushirish (Windows)
-1. **Python 3.10–3.13** o'rnating: https://www.python.org/downloads/ (o'rnatishda «Add python.exe to PATH» ni belgilang).
+1. **Python 3.10–3.13** o'rnating (3.14 hali sinalmagan; `run.bat` o'zi 3.13 → 3.10 ni tanlaydi, 3.14 yonida turishi mumkin): https://www.python.org/downloads/ (o'rnatishda «Add python.exe to PATH» ni belgilang).
 2. Loyiha papkasida **`run.bat`** ni ikki marta bosing. Birinchi marta virtual muhit yaratiladi va `requirements.txt`
    o'rnatiladi (internet kerak), keyin oyna ochiladi.
 3. Mikrofon uchun: Windows → Sozlamalar → Maxfiylik → Mikrofon → «Ilovalarga ruxsat berish» yoqilgan bo'lsin.
