@@ -1,6 +1,6 @@
 # ПЯТНИЦА — o'zbek tilidagi xavfsiz ovozli kompyuter yordamchisi
 
-Windows uchun Python + PySide6 dasturi. Ovozli buyruq (Space), matnli chat va **PC Health Monitor** —
+Windows uchun Python + PySide6 ilovasi. **Buyruqlar faqat ilova oynasi ochiq va faol bo'lgandagina qabul qilinadi va bajariladi.** Ovozli buyruq (Space), matnli chat va **PC Health Monitor** —
 bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan belgilangan xavfsiz amallarni bajaradi.
 
 ## Ishga tushirish (Windows)
@@ -11,13 +11,16 @@ bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan
 4. Qo'lda: `python -m venv .venv && .venv\Scripts\pip install -r requirements.txt && .venv\Scripts\python main.py`
 5. Xatolar jurnali: `%APPDATA%\Pyatnitsa\pyatnitsa.log`; sozlamalar: `%APPDATA%\Pyatnitsa\settings.json`.
 
+### Alohida ilova (.exe) yig'ish
+`build.bat` ni ishga tushiring (PyInstaller o'rnatiladi) — natija `dist\Pyatnitsa\Pyatnitsa.exe`. Butun `dist\Pyatnitsa` papkasini istalgan joyga ko'chirib, yorliq yaratish mumkin. (Bu skript Windows'da hali sinalmagan.)
+
 ## Boshqaruv
 | Amal | Usul |
 |---|---|
 | Tinglashni boshlash / to'xtatish | **Space** (oyna faol bo'lganda) yoki «Mikrofonni yoqish» tugmasi |
 | Matnli buyruq | Pastdagi chat: Enter — yuborish, Shift+Enter — yangi qator |
 | Tasdiqlash / bekor qilish | Enter yoki «Ha, bajar» / Esc yoki «Bekor qilish» |
-| Ovoz balandligi | Slayder; Sozlamalar (⚙) — til, mikrofon, ovoz, tarix, ruxsat etilgan dasturlar, global Space |
+| Ovoz balandligi | Slayder; Sozlamalar (⚙) — til, mikrofon, ovoz, tarix, ruxsat etilgan dasturlar |
 
 Oqim: **buyruq (ovoz yoki matn) → ekranda matn → tahlil → tasdiq → bajarish → natija ekranda va ovozda**.
 Ovozli va matnli buyruqlar *aynan bir xil* kod yo'lidan va bir xil xavfsizlik qoidalaridan o'tadi.
@@ -36,7 +39,8 @@ Ovozli va matnli buyruqlar *aynan bir xil* kod yo'lidan va bir xil xavfsizlik qo
 - Internetdan kelgan javoblardan faqat raqamlar o'qiladi; veb-sahifa, fayl yoki tashqi matn yangi ko'rsatma bera olmaydi.
 - Monitoring faqat o'qiydi: sozlamalarni o'zgartirmaydi, fayl o'chirmaydi, dastur yopmaydi, shaxsiy fayllar mazmunini o'qimaydi (jarayonlar uchun faqat nomlari). Administrator talab qiladigan amallar (`sfc`, `chkdsk`, `DISM`) avtomatik bajarilmaydi.
 - Yuqori harorat/yuklanish uchun «ehtimol» tilida tushuntiriladi, aniq tashxis qo'yilmaydi. O'lchab bo'lmagan ko'rsatkich «Ma'lumot mavjud emas» deb ko'rsatiladi.
-- Avtomatik ochilish va global Space — standart holatda **o'chiq**.
+- **Faqat ilovada:** oyna yopiq, kichraytirilgan yoki boshqa oynada bo'lsa, mikrofon ochilmaydi, matn qabul qilinmaydi va kutayotgan tasdiq bajarilmaydi. Global Space tugmasi olib tashlangan.
+- Avtomatik ochilish — standart holatda **o'chiq**.
 
 ## Maxfiylik
 - **Nutqni tanish** Google Web Speech xizmatidan foydalanadi: Space bilan olingan yozuv faqat shu paytda internet orqali yuboriladi.
@@ -58,7 +62,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 86 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 88 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -72,20 +76,21 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - Ovozli javob: `edge-tts` + `QMediaPlayer` ovozi va `pyttsx3` fallback.
 - Chrome/Kalkulyator/Notepad/Explorer ochilishi, Downloads/Desktop/Documents (OneDrive ko'chirilgan papkalar ham) — kodi tayyor, lekin Windows'da bajarilmagan.
 - Haqiqiy internet: cbu.uz kursi va Open-Meteo ob-havosi (sinov muhitida tarmoq bloklangan edi; faqat «internet yo'q» yo'li tekshirildi).
-- Global Space (`keyboard`), avtomatik ochilish (reestr), Windows batareya/PowerShell/nvidia-smi sensorlari, tizim jurnali.
+- Avtomatik ochilish (reestr), `build.bat` bilan .exe yig'ish, Windows batareya/PowerShell/nvidia-smi sensorlari, tizim jurnali.
 - Interfeysning Windows'dagi ko'rinishi (skrinshotlar Linux offscreen'da olingan).
 
 ## Loyiha tuzilishi
 ```
 main.py                  ishga tushirish
 run.bat                  Windows uchun avtomatik o'rnatish va ishga tushirish
+build.bat                Pyatnitsa.exe yig'ish (PyInstaller)
 pyatnitsa/commands.py    matn → xavfsiz buyruq (tahlil, rad etish)
 pyatnitsa/executor.py    ruxsat etilgan amallar ro'yxati va ijrosi
 pyatnitsa/apps.py        ruxsat etilgan dasturlar, Windows qatlami
 pyatnitsa/services.py    kurs va ob-havo (internet)
 pyatnitsa/health.py      PC Health Monitor (faqat o'qish)
 pyatnitsa/controller.py  holat mashinasi (ovoz + matn)
-pyatnitsa/audio.py, tts.py, hotkey.py, settings.py
+pyatnitsa/audio.py, tts.py, settings.py
 pyatnitsa/ui.py, widgets.py  interfeys
 tests/                   avtomatik testlar
 ```

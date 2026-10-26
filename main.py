@@ -28,7 +28,6 @@ def main() -> int:
     from pyatnitsa import health
     from pyatnitsa.controller import Controller
     from pyatnitsa.executor import Executor
-    from pyatnitsa.hotkey import GlobalHotkey
     from pyatnitsa.tts import Speaker
     from pyatnitsa.ui import STYLE, MainWindow
 
@@ -37,13 +36,7 @@ def main() -> int:
     monitor = health.HealthMonitor()
     speaker = Speaker(settings)
     ctrl = Controller(settings, Executor(settings, monitor=monitor), speaker)
-    hotkey = GlobalHotkey()
-    win = MainWindow(settings, ctrl, monitor, hotkey, speaker)
-    if settings.global_space:
-        ok, err = hotkey.set_enabled(True)
-        if not ok:
-            settings.global_space = False
-            win.add_message("system", err)
+    win = MainWindow(settings, ctrl, monitor, speaker)
     win.show()
     return app.exec()
 

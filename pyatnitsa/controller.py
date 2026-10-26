@@ -36,6 +36,7 @@ class Controller(QObject):
         self._recorder_factory = recorder_factory or (lambda: audio.Recorder(settings.microphone))
         self._transcribe = transcribe or audio.transcribe
         self.state = IDLE
+        self.is_active = lambda: True      # ilova oynasi ochiq va faolmi (UI o'rnatadi)
         self._recorder = None
         self._pending: commands.Command | None = None
         self._limit = QTimer(self, singleShot=True, interval=audio.MAX_SECONDS * 1000)
@@ -64,10 +65,17 @@ class Controller(QObject):
         return self.state in (CHECKING, RUNNING)
 
     # ------------------------------------------------------------ mikrofon
+    def _guard(self) -> bool:
+        """Buyruqlar faqat ilova oynasi ochiq va faol bo'lgandagina qabul qilinadi/bajariladi."""
+        if self.is_active():
+            return True
+        self.message.emit("system", "Ilova oynasi faol emas, shuning uchun buyruq qabul qilinmadi. Ilovaga qaytib, qayta urinib ko'ring.")
+        return False
+
     def toggle_listening(self) -> None:
         if self.state == LISTENING:
             self._stop_listening()
-        elif not self.busy:
+        elif not self.busy and self._guard():
             if self.state == CONFIRM:
                 self.cancel(silent=True)
             self._start_listening()
@@ -132,7 +140,7 @@ class Controller(QObject):
     # ------------------------------------------------------------ matn (ikkala manba uchun umumiy)
     def submit_text(self, text: str) -> None:
         text = text.strip()
-        if not text or self.state == LISTENING or self.busy:
+        if not text or self.state == LISTENING or self.busy or not self._guard():
             return
         if self.state == CONFIRM:
             self.cancel(silent=True)
@@ -154,6 +162,9 @@ class Controller(QObject):
 
     def confirm(self) -> None:
         if self.state == CONFIRM and self._pending:
+            if not self._guard():
+                self.cancel(silent=True)
+                return
             cmd, self._pending = self._pending, None
             self._run(cmd)
 

@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QApplication
 
 from pyatnitsa import controller as C, health
 from pyatnitsa.executor import Executor
-from pyatnitsa.hotkey import GlobalHotkey
 from pyatnitsa.settings import Settings
 from pyatnitsa.ui import STYLE, MainWindow
 from test_controller import FakeRecorder, FakeSpeaker
@@ -22,7 +21,7 @@ def win():
     mon = health.HealthMonitor()
     plat = FakePlatform()
     ctrl = C.Controller(st, Executor(st, plat, mon), FakeSpeaker(), FakeRecorder, lambda r, l: "Hozirgi vaqtni ayt")
-    w = MainWindow(st, ctrl, mon, GlobalHotkey(), ctrl.speaker)
+    w = MainWindow(st, ctrl, mon, ctrl.speaker)
     w.show(); w.activateWindow(); app.processEvents()
     yield w, ctrl
     app.removeEventFilter(w); mon.stop(); ctrl.shutdown(); w.close_for_test = True

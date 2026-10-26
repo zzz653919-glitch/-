@@ -210,11 +210,10 @@ class SettingsDialog(QDialog):
         self.tts.setCurrentIndex(max(0, self.tts.findData(settings.tts_engine)))
         self.confirm = QCheckBox("Har bir buyruqdan oldin tasdiq so'rash (tavsiya etiladi)"); self.confirm.setChecked(settings.confirm_commands)
         self.auto = QCheckBox("Windows ishga tushganda avtomatik ochish"); self.auto.setChecked(settings.autostart)
-        self.glob = QCheckBox("Global Space (boshqa oynada ham ishlaydi — ehtiyotkorlik bilan)"); self.glob.setChecked(settings.global_space)
         self.city = QLineEdit(settings.city)
         form.addRow("Ovoz tanish tili:", self.lang); form.addRow("Mikrofon:", self.mic); form.addRow("", self.voice)
         form.addRow("Ovoz mexanizmi:", self.tts); form.addRow("Ob-havo shahri:", self.city)
-        form.addRow("", self.confirm); form.addRow("", self.auto); form.addRow("", self.glob)
+        form.addRow("", self.confirm); form.addRow("", self.auto)
         self.apps = QListWidget(); self.apps.setMaximumHeight(190)
         for spec in apps.APPS.values():
             it = QListWidgetItem(spec.title); it.setData(Qt.UserRole, spec.id)
@@ -232,7 +231,7 @@ class SettingsDialog(QDialog):
         s = self.s
         s.stt_language, s.microphone = self.lang.currentData(), self.mic.currentData()
         s.voice_enabled, s.tts_engine = self.voice.isChecked(), self.tts.currentData()
-        s.confirm_commands, s.autostart, s.global_space = self.confirm.isChecked(), self.auto.isChecked(), self.glob.isChecked()
+        s.confirm_commands, s.autostart = self.confirm.isChecked(), self.auto.isChecked()
         s.city = self.city.text().strip()[:80] or "Tashkent"
         s.allowed_apps = {self.apps.item(i).data(Qt.UserRole): self.apps.item(i).checkState() == Qt.Checked
                           for i in range(self.apps.count())}
@@ -240,9 +239,10 @@ class SettingsDialog(QDialog):
 
 # ====================================================================== Asosiy oyna
 class MainWindow(QMainWindow):
-    def __init__(self, settings: Settings, ctrl: C.Controller, monitor: health.HealthMonitor, hotkey, speaker):
+    def __init__(self, settings: Settings, ctrl: C.Controller, monitor: health.HealthMonitor, speaker):
         super().__init__()
-        self.settings, self.ctrl, self.hotkey, self.speaker = settings, ctrl, hotkey, speaker
+        self.settings, self.ctrl, self.speaker = settings, ctrl, speaker
+        ctrl.is_active = lambda: self.isVisible() and not self.isMinimized() and self.isActiveWindow()
         self.log: list[tuple[str, str]] = []
         self.setWindowTitle(APP_NAME); self.resize(1120, 800); self.setMinimumSize(900, 680)
         root = QWidget(); root.setObjectName("root"); self.setCentralWidget(root)
@@ -268,7 +268,6 @@ class MainWindow(QMainWindow):
         ctrl.stateChanged.connect(self._on_state); ctrl.message.connect(self.add_message)
         ctrl.level.connect(self.orb.set_level); ctrl.confirmChanged.connect(self._on_confirm)
         speaker.note.connect(lambda m: self.add_message("system", m))
-        hotkey.pressed.connect(self._global_space)
         QApplication.instance().installEventFilter(self)
         self.show_page(0); self._on_state(C.IDLE, C.LABELS[C.IDLE])
         self.add_message("assistant", "Salom! Men ПЯТНИЦА. Space bosib gapiring yoki pastdagi maydonga buyruq yozing. "
@@ -374,19 +373,12 @@ class MainWindow(QMainWindow):
                 self.ctrl.cancel(); return True
         return super().eventFilter(obj, ev)
 
-    def _global_space(self) -> None:
-        if QApplication.activeWindow() is None:     # oyna faol bo'lsa, o'z tugma boshqaruvi ishlaydi
-            self.ctrl.toggle_listening()
-
     # ---- sozlamalar
     def open_settings(self) -> None:
         dlg = SettingsDialog(self.settings, self.clear_history, self)
         if dlg.exec() != QDialog.Accepted:
             return
         dlg.apply()
-        ok, err = self.hotkey.set_enabled(self.settings.global_space)
-        if not ok:
-            self.settings.global_space = False; self.add_message("system", err)
         ok, err = set_autostart(self.settings.autostart)
         if not ok:
             self.settings.autostart = False; self.add_message("system", err)
@@ -397,7 +389,7 @@ class MainWindow(QMainWindow):
         try:
             QApplication.instance().removeEventFilter(self)
             self.ctrl.shutdown(); self.health_page.monitor.stop(); self.speaker.close()
-            self.hotkey.set_enabled(False); self.settings.save()
+            self.settings.save()
         finally:
             super().closeEvent(e)
             QApplication.instance().quit()

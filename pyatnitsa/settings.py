@@ -39,7 +39,6 @@ class Settings:
     volume: float = 0.8
     confirm_commands: bool = True          # har bir buyruq bajarilishidan oldin tasdiq
     autostart: bool = False                # standart: o'chiq
-    global_space: bool = False             # standart: o'chiq
     city: str = "Tashkent"
     allowed_apps: dict[str, bool] = field(default_factory=dict)
 

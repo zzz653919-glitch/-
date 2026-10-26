@@ -121,3 +121,20 @@ def test_microphone_failure_reported(app):
     msgs = []; c.message.connect(lambda r, t: msgs.append(t))
     c.toggle_listening()
     assert c.state == C.IDLE and "Mikrofon" in msgs[-1]
+
+
+def test_nothing_happens_when_app_is_not_active(app):
+    c, plat = make(app)
+    c.is_active = lambda: False
+    c.toggle_listening()
+    assert c.state == C.IDLE and not FakeRecorder.instances
+    c.submit_text("Chrome'ni och")
+    assert c.state == C.IDLE and plat.calls == []
+
+
+def test_confirm_refused_if_app_loses_focus(app):
+    c, plat = make(app)
+    c.submit_text("Chrome'ni och"); assert c.state == C.CONFIRM
+    c.is_active = lambda: False
+    c.confirm()
+    assert c.state == C.IDLE and plat.calls == []
