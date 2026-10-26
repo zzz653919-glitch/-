@@ -13,10 +13,10 @@ import re
 import threading
 import unicodedata
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from . import audio
-from .audio import AudioError, NotUnderstood, Quality, VoiceError
+from .audio import AudioError, NotUnderstood, VoiceError
 
 log = logging.getLogger("pyatnitsa.voice")
 

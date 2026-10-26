@@ -370,10 +370,9 @@ class MainWindow(QMainWindow):
             key = ev.key()
             fw = QApplication.focusWidget()
             if isinstance(fw, ChatInput):
-                typing, own = True, True                      # ChatInput Space ni o'zi hal qiladi (bo'sh maydonda — mikrofon)
+                typing = True                                   # ChatInput Space ni o'zi hal qiladi (bo'sh maydonda — mikrofon)
             else:
                 typing = isinstance(fw, (QLineEdit, QTextEdit, QComboBox, QSpinBox)) or (isinstance(fw, QPlainTextEdit) and not fw.isReadOnly())
-                own = False
             if key == Qt.Key_Space and not typing and not isinstance(fw, QPushButton):
                 if not ev.isAutoRepeat():
                     self.ctrl.toggle_listening()

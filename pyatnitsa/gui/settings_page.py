@@ -13,7 +13,6 @@ from .. import ai_chat, apps, audio, credentials, stt, voice_test
 from ..i18n import T, app_title, has
 from ..settings import STT_LANGUAGES, TTS_ENGINES, Settings
 from .pages import page_header
-from .theme import C
 
 
 class SettingsPage(QWidget):

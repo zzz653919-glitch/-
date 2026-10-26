@@ -286,3 +286,30 @@ def test_history_records_answered_and_failed_requests(app, tmp_path):
     c.submit_text("Python nima?"); wait(lambda: c.state == C.IDLE)
     c.submit_text("Java nima?"); wait(lambda: c.state == C.DONE)
     assert [r["outcome"] for r in rec] == ["answered", "ai_failed"]
+
+
+# --- topshiriq spetsifikatsiyasidagi aniq gaplar (regressiya) ---
+
+@pytest.mark.parametrize("q", ["Salom, yaxshimisan?", "Python nima?", "Nega osmon ko‘k?", "Menga ingliz tilini o‘rganishda yordam ber.",
+                               "Привет, как дела?", "Что такое Python?", "Why is the sky blue?", "Help me learn English."])
+def test_spec_conversation_questions_reach_the_ai_and_never_run_anything(app, tmp_path, q):
+    c, plat, client, ev, *_ = make(app, tmp_path)
+    c.submit_text(q); wait(lambda: c.state == C.IDLE)
+    assert len(client.calls) == 1 and client.calls[0][0][-1] == {"role": "user", "content": q}
+    assert plat.calls == [] and ev[-1][0] == "end"
+
+
+@pytest.mark.parametrize("q", ["Oldingi savolimni davom ettir.", "Continue my previous question."])
+def test_spec_continue_request_sends_the_whole_previous_context(app, tmp_path, q):
+    c, plat, client, *_ = make(app, tmp_path, [("ok", ["Python — dasturlash tili."]), ("ok", ["Davom etaman."])])
+    c.submit_text("Python nima?"); wait(lambda: c.state == C.IDLE)
+    c.submit_text(q); wait(lambda: c.state == C.IDLE)
+    sent = [m["content"] for m in client.calls[1][0]]
+    assert sent == ["Python nima?", "Python — dasturlash tili.", q] and plat.calls == []
+
+
+@pytest.mark.parametrize("q", ["Google Chrome och.", "Открой Google Chrome.", "Open Google Chrome.", "Kalkulyatorni och.", "Notepadni och."])
+def test_spec_open_commands_are_commands_not_ai_questions(app, tmp_path, q):
+    c, plat, client, *_ = make(app, tmp_path)
+    c.submit_text(q); wait(lambda: len(plat.calls) >= 1 or c.state == C.IDLE)
+    assert client.calls == []

@@ -154,7 +154,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 391 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 406 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.

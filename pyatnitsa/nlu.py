@@ -373,7 +373,6 @@ def _health(cl: Clause, lang: str, verbs: set[str], qwords: set[str], fz: float)
     c = cl.concepts
     action_word = bool(verbs & {"SHOW", "CHECK"} or qwords or "HOW" in c)
     base = 0.6 + (0.3 if action_word else 0.0) - fz
-    order: list[str] = []
     if "REPORT" in c and (verbs & {"CREATE", "SHOW", "CHECK"} or c & {"PC", "STATE", "DIAG"}):
         return [Cand(0.92 - fz, [mk("health_report", lang)], "health")]
     if "ADMIN" in c:

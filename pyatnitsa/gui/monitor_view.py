@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import html
 import threading
-import time
 
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QProgressBar, QVBoxLayout, QWidget

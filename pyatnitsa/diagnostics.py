@@ -71,7 +71,7 @@ def check_network(s: health.Snapshot, connect: Callable = socket.create_connecti
 
 
 def check_application(settings_path: Path | None = None, data_dir: Path | None = None) -> Check:
-    from .settings import Settings, data_dir as default_dir
+    from .settings import data_dir as default_dir
     d = data_dir or default_dir()
     try:
         with tempfile.NamedTemporaryFile(dir=d, delete=True):

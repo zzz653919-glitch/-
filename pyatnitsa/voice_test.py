@@ -1,7 +1,6 @@
 """Settings ichidagi mikrofon testi: yozadi, sifatni o'lchaydi, tanigan matnni va tushunilgan amalni KO'RSATADI — hech narsa bajarmaydi."""
 from __future__ import annotations
 
-import copy
 import threading
 import time
 from dataclasses import dataclass, field
