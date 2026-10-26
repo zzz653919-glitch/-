@@ -35,10 +35,17 @@
   var LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M16 20h32M32 20v28" stroke="#fff" stroke-width="9" stroke-linecap="round"/></svg>';
   var session = null, cleanupLesson = null;
 
+  function Storage_noauto() { try { return !!localStorage.getItem('tilyoli:noauto'); } catch (e) { return false; } }
   function route() {
     var h = location.hash || '#/', parts = h.slice(2).split('/'), name = parts[0] || 'home';
     closeModal();
-    if (!A.state) { if (!A.restore()) { renderAuth(); return; } applyTheme(); }
+    if (!A.state) {
+      if (!A.restore()) {
+        // Serversiz rejimda sayt kirishsiz, darhol ochiladi (avtomatik «Mehmon»); chiqish bosilsa kirish oynasi chiqadi
+        if (!TY.Server.on && !Storage_noauto()) A.guest(); else { renderAuth(); return; }
+      }
+      applyTheme();
+    }
     G.regen();
     if (name === 'lesson' || name === 'practice') { startRoute(name, parts[1]); return; }
     stopLesson();

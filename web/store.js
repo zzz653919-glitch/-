@@ -111,7 +111,7 @@
     },
     guest: function () { var u = users(); if (!u['mehmon']) { u['mehmon'] = { name: 'Mehmon', h: null, created: Date.now() }; saveUsers(u); } Auth.open('Mehmon'); },
     open: function (name) {
-      Storage.set('session', ukey(name)); Auth.current = users()[ukey(name)];
+      Storage.remove('noauto'); Storage.set('session', ukey(name)); Auth.current = users()[ukey(name)];
       var key = 'data:' + ukey(name), raw = Storage.get(key), s;
       try { s = raw ? migrate(JSON.parse(raw), key) : newState(); } catch (e) { Storage.set(key + ':corrupt', raw); s = newState(); }
       Auth.state = s; Auth.key = key; Game.regen(); Game.rollStreak(); Auth.save();
@@ -119,7 +119,7 @@
     restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k] && !users()[k].disabled) { Auth.open(users()[k].name); return true; } return false; },
     logout: function () {
       if (Server.on && Auth.current) { var p = Server.flush(); p = (p || Promise.resolve()).then(function () { return api('POST', 'api/logout').catch(function () {}); }); Auth.pending = p; }
-      Storage.remove('session'); Auth.current = null; Auth.state = null; Server.csrf = null;
+      Storage.remove('session'); Storage.set('noauto', '1'); Auth.current = null; Auth.state = null; Server.csrf = null;
     },
     save: function () {
       if (!Auth.state) return; Storage.set(Auth.key, JSON.stringify(Auth.state));

@@ -9,8 +9,9 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); 
     const errs = []; const ctx = await browser.newContext({ viewport: vp }); const page = await ctx.newPage();
     page.on('pageerror', (e) => errs.push(String(e.stack).split('\n').slice(0, 3).join(' | '))); page.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
     let dialogs = 0; page.on('dialog', (d) => { dialogs++; d.dismiss(); });
-    // o'quvchi: ro'yxat + dars
-    await page.goto(URL_); await page.waitForSelector('#af'); await page.click('#sw'); await page.fill('#u', 'Dilnoza'); await page.fill('#p', 'parol123'); await page.click('button[type=submit]'); await page.waitForSelector('.hero');
+    // sayt kirishsiz darhol ochiladi (avtomatik Mehmon)
+    await page.goto(URL_); await page.waitForSelector('.hero'); ok(/Mehmon/.test(await page.textContent('h1')), `[${name}] fayl ochilishi bilan tayyor sayt chiqdi`);
+    await page.evaluate(() => { TY.Auth.logout(); }); await page.reload(); await page.waitForSelector('#af'); await page.click('#sw'); await page.fill('#u', 'Dilnoza'); await page.fill('#p', 'parol123'); await page.click('button[type=submit]'); await page.waitForSelector('.hero');
     await page.goto(URL_ + '#/learn'); await page.reload(); await page.waitForSelector('.node.cur'); await page.locator('.node.cur').first().click(); await page.click('#go'); await page.click('[data-act="begin"]');
     let g = 0;
     while (await page.locator('#lesson .l-body.center').count() === 0 && g++ < 80) {
@@ -28,7 +29,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); 
     ok(/Birinchi kirish/.test(await page.textContent('#main')), `[${name}] admin: birinchi kirish ko'rsatmasi`);
     await page.fill('#n', 'boss'); await page.fill('#p', 'qisqa'); await page.click('button[type=submit]'); await page.waitForSelector('#le:not(:empty)'); ok(/10 belgi/.test(await page.textContent('#le')), `[${name}] zaif parol rad etildi`);
     await page.fill('#p', 'Parol12345x'); await page.click('button[type=submit]'); await page.waitForSelector('.kpi');
-    ok(await page.locator('.kpi', { hasText: "Ro'yxatdan o'tganlar" }).locator('b').textContent() === '1', `[${name}] boshqaruv paneli: 1 ta foydalanuvchi (haqiqiy ma'lumot)`);
+    ok(await page.locator('.kpi', { hasText: "Ro'yxatdan o'tganlar" }).locator('b').textContent() === '2', `[${name}] boshqaruv paneli: 2 ta foydalanuvchi (Mehmon + Dilnoza) (haqiqiy ma'lumot)`);
     await page.waitForSelector('svg[role=img]'); await page.screenshot({ path: `/tmp/single-${name}-dash.png` });
     await page.goto(URL_ + '?admin#/users'); await page.reload(); await page.waitForSelector('table'); ok(await page.locator('td a', { hasText: 'Dilnoza' }).count() === 1, `[${name}] foydalanuvchi ro'yxatda`);
     await page.locator('a', { hasText: 'Dilnoza' }).click(); await page.waitForSelector('text=Tugallangan darslar'); ok(await page.locator('td', { hasText: 'Salomlashish' }).count() >= 1, `[${name}] profil: tugallangan dars`);
@@ -48,7 +49,7 @@ let fails = 0; const ok = (c, m) => { console.log((c ? 'ok   ' : 'FAIL ') + m); 
     await page.screenshot({ path: `/tmp/single-${name}-audit.png` });
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `[${name}] gorizontal aylantirish yo'q`);
     // saytga qaytish: bloklangan o'quvchi kira olmaydi, yangi so'z va e'lon ko'rinadi
-    await page.goto(URL_); await page.waitForSelector('#af'); await page.fill('#u', 'Dilnoza'); await page.fill('#p', 'parol123'); await page.click('button[type=submit]'); await page.waitForSelector('#af .err:not(:empty), #err:not(:empty)');
+    await page.evaluate(() => localStorage.setItem('tilyoli:noauto', '1')); await page.goto(URL_); await page.waitForSelector('#af'); await page.fill('#u', 'Dilnoza'); await page.fill('#p', 'parol123'); await page.click('button[type=submit]'); await page.waitForSelector('#af .err:not(:empty), #err:not(:empty)');
     ok(/bloklangan/.test(await page.textContent('#err')), `[${name}] bloklangan o'quvchi kira olmaydi`);
     await page.goto(URL_ + '?admin#/users'); await page.reload(); await page.waitForSelector('table'); await page.locator('a', { hasText: 'Dilnoza' }).click(); await page.waitForSelector('#st'); await page.click('#st'); await page.waitForSelector('text=Bloklash');
     await page.goto(URL_); await page.waitForSelector('.hero');
