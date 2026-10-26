@@ -83,7 +83,14 @@ class Platform:
         return next((c for c in cands if c.is_file()), None)
 
     def start_exe(self, path: Path) -> None:
-        subprocess.Popen([str(path)], shell=False, close_fds=True)   # argumentlarsiz, shell'siz
+        """Argumentsiz, shell'siz ishga tushiradi; jarayon darhol xato bilan tugasa OSError ko'taradi."""
+        proc = subprocess.Popen([str(path)], shell=False, close_fds=True)
+        try:
+            code = proc.wait(timeout=0.6)
+        except subprocess.TimeoutExpired:
+            return                                   # ishlab turibdi — yaxshi
+        if code != 0:
+            raise OSError(f"jarayon {code} kodi bilan tugadi")
 
     def open_folder(self, path: Path) -> None:
         os.startfile(str(path))    # type: ignore[attr-defined]  # faqat Windows

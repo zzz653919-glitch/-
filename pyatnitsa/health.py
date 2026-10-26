@@ -20,6 +20,8 @@ from typing import Callable
 
 import psutil
 
+from .i18n import T
+
 log = logging.getLogger(__name__)
 NA = "Ma'lumot mavjud emas"
 HISTORY_LEN = 120
@@ -96,12 +98,12 @@ def gb(n: float) -> str:
     return f"{n / 1024**3:.1f} GB"
 
 
-def fmt_uptime(secs: float) -> str:
+def fmt_uptime(secs: float, lang: str = "uz") -> str:
     s = int(secs)
     d, s = divmod(s, 86400)
     h, s = divmod(s, 3600)
     m = s // 60
-    parts = ([f"{d} kun"] if d else []) + ([f"{h} soat"] if h else []) + [f"{m} daqiqa"]
+    parts = ([f"{d} {T('u.d', lang)}"] if d else []) + ([f"{h} {T('u.h', lang)}"] if h else []) + [f"{m} {T('u.m', lang)}"]
     return " ".join(parts)
 
 
@@ -187,9 +189,8 @@ def read_cpu_temp() -> tuple[float | None, str]:
                     return max(vals), ""
             except (ValueError, TypeError):
                 pass
-        return None, ("Windows protsessor haroratini standart holatda bermaydi. "
-                      "LibreHardwareMonitor ishga tushirilsa, o'qish mumkin.")
-    return None, "Bu tizimda protsessor harorati sensori topilmadi."
+        return None, "temp.note.win"
+    return None, "temp.note.other"
 
 
 def _nvidia_smi() -> str | None:
@@ -283,7 +284,7 @@ class HealthMonitor:
                 freq_mhz = freq.current if freq and freq.current else None
             except Exception:  # noqa: BLE001
                 freq_mhz = None
-            temp, note = self._temp.get(force_slow) or (None, "Ma'lumot olinmadi.")
+            temp, note = self._temp.get(force_slow) or (None, "temp.note.fail")
             rb = wb = None
             try:
                 io, now = psutil.disk_io_counters(), time.monotonic()
@@ -393,51 +394,51 @@ class HealthMonitor:
 
 
 # ------------------------------------------------------------------ baholash
-def assess(s: Snapshot) -> dict[str, Assessment]:
+def assess(s: Snapshot, lang: str = "uz") -> dict[str, Assessment]:
     r: dict[str, Assessment] = {k: Assessment() for k in ("cpu", "ram", "disk", "gpu", "battery")}
     c = r["cpu"]
     if s.cpu_percent >= 90:
-        c.raise_to("high", f"CPU {s.cpu_percent:.0f}% band. Bu bir lahzalik bo'lishi yoki fonda og'ir dastur ishlayotganini bildirishi mumkin.")
+        c.raise_to("high", T("r.cpu_high", lang, p=s.cpu_percent))
     elif s.cpu_percent >= 70:
-        c.raise_to("warn", f"CPU {s.cpu_percent:.0f}% band — odatdagidan yuqori.")
+        c.raise_to("warn", T("r.cpu_warn", lang, p=s.cpu_percent))
     if s.cpu_temp is not None:
         if s.cpu_temp >= 90:
-            c.raise_to("high", f"Protsessor harorati {s.cpu_temp:.0f}°C. Sovutish tizimi yoki yuklanish bilan bog'liq bo'lishi mumkin (aniq sabab noma'lum).")
+            c.raise_to("high", T("r.cput_high", lang, x=s.cpu_temp))
         elif s.cpu_temp >= 80:
-            c.raise_to("warn", f"Protsessor harorati {s.cpu_temp:.0f}°C — yuqoriroq.")
+            c.raise_to("warn", T("r.cput_warn", lang, x=s.cpu_temp))
     m = r["ram"]
     if s.ram_percent >= 90:
-        m.raise_to("high", f"RAM {s.ram_percent:.0f}% band, bo'sh joyi {gb(s.ram_available)}. Ochiq dasturlar ko'pligi sabab bo'lishi mumkin.")
+        m.raise_to("high", T("r.ram_high", lang, p=s.ram_percent, free=gb(s.ram_available)))
     elif s.ram_percent >= 75:
-        m.raise_to("warn", f"RAM {s.ram_percent:.0f}% band.")
+        m.raise_to("warn", T("r.ram_warn", lang, p=s.ram_percent))
     d = r["disk"]
     if not s.disks:
         d.level = "na"
     for disk in s.disks:
         if disk.percent >= 95 or disk.free < 5 * 1024**3:
-            d.raise_to("high", f"{disk.mount} diskida bo'sh joy juda kam: {gb(disk.free)} ({100 - disk.percent:.0f}%).")
+            d.raise_to("high", T("r.disk_high", lang, m=disk.mount, free=gb(disk.free), pct=100 - disk.percent))
         elif disk.percent >= 85 or disk.free < 15 * 1024**3:
-            d.raise_to("warn", f"{disk.mount} diskida bo'sh joy kamayib bormoqda: {gb(disk.free)}.")
+            d.raise_to("warn", T("r.disk_warn", lang, m=disk.mount, free=gb(disk.free)))
     g = r["gpu"]
     if s.gpus is None or not any(x.util is not None or x.temp is not None for x in s.gpus):
         g.level = "na"
     else:
         for x in s.gpus:
             if x.temp is not None and x.temp >= 85:
-                g.raise_to("high", f"Videokarta harorati {x.temp:.0f}°C.")
+                g.raise_to("high", T("r.gpu_t_high", lang, x=x.temp))
             elif x.temp is not None and x.temp >= 75:
-                g.raise_to("warn", f"Videokarta harorati {x.temp:.0f}°C — yuqoriroq.")
+                g.raise_to("warn", T("r.gpu_t_warn", lang, x=x.temp))
             if x.util is not None and x.util >= 95:
-                g.raise_to("high", f"Videokarta {x.util:.0f}% yuklangan.")
+                g.raise_to("high", T("r.gpu_u", lang, x=x.util))
             if x.mem_used_mb and x.mem_total_mb and x.mem_used_mb / x.mem_total_mb >= 0.9:
-                g.raise_to("warn", "Videokarta xotirasi 90% dan ko'p band.")
+                g.raise_to("warn", T("r.gpu_m", lang))
     b = r["battery"]
     if s.battery is None:
         b.level = "na"
     elif s.battery.plugged is False and s.battery.percent <= 10:
-        b.raise_to("high", f"Batareya {s.battery.percent:.0f}% va quvvat olmayapti.")
+        b.raise_to("high", T("r.batt_high", lang, p=s.battery.percent))
     elif s.battery.plugged is False and s.battery.percent <= 20:
-        b.raise_to("warn", f"Batareya {s.battery.percent:.0f}% — tez orada zaryadlash kerak.")
+        b.raise_to("warn", T("r.batt_warn", lang, p=s.battery.percent))
     return r
 
 
@@ -446,111 +447,115 @@ def overall(a: dict[str, Assessment]) -> str:
     return "high" if "high" in levels else "warn" if "warn" in levels else "good"
 
 
-# ------------------------------------------------------------------ matnli hisobotlar
-def _batt_text(s: Snapshot) -> str:
+# ------------------------------------------------------------------ matnli hisobotlar (uz / ru / en)
+def _batt_text(s: Snapshot, lang: str = "uz") -> str:
     if s.battery is None:
-        return "Batareya mavjud emas."
-    state = {True: "quvvat olmoqda", False: "quvvat olmayapti", None: "quvvat holati noma'lum"}[s.battery.plugged]
-    left = f", taxminan {fmt_uptime(s.battery.secs_left)} qoldi" if s.battery.secs_left and not s.battery.plugged else ""
-    return f"Batareya {s.battery.percent:.0f}%, {state}{left}."
+        return T("batt.none", lang)
+    state = T({True: "batt.on", False: "batt.off", None: "batt.unk"}[s.battery.plugged], lang)
+    left = T("batt.left", lang, t=fmt_uptime(s.battery.secs_left, lang)) if s.battery.secs_left and not s.battery.plugged else ""
+    return T("batt.line", lang, p=s.battery.percent, state=state, left=left)
 
 
-def _gpu_text(s: Snapshot) -> str:
+def _gpu_text(s: Snapshot, lang: str = "uz") -> str:
+    na = T("na", lang)
     if not s.gpus:
-        return f"Videokarta: {NA}."
+        return T("gpu.none", lang, na=na)
     lines = []
     for g in s.gpus:
-        parts = [g.name]
-        parts.append(f"yuklanish {g.util:.0f}%" if g.util is not None else f"yuklanish: {NA}")
-        parts.append(f"harorat {g.temp:.0f}°C" if g.temp is not None else f"harorat: {NA}")
-        parts.append(f"xotira {g.mem_used_mb:.0f}/{g.mem_total_mb:.0f} MB" if g.mem_used_mb is not None and g.mem_total_mb
-                     else f"xotira: {NA}")
-        lines.append("Videokarta: " + ", ".join(parts) + ".")
+        parts = [g.name,
+                 T("gpu.util", lang, x=g.util) if g.util is not None else T("gpu.util_no", lang, na=na),
+                 T("gpu.temp", lang, x=g.temp) if g.temp is not None else T("gpu.temp_no", lang, na=na),
+                 T("gpu.mem", lang, u=g.mem_used_mb, t=g.mem_total_mb) if g.mem_used_mb is not None and g.mem_total_mb
+                 else T("gpu.mem_no", lang, na=na)]
+        lines.append(T("gpu.line", lang, parts=", ".join(parts)))
     return "\n".join(lines)
 
 
-def cpu_text(s: Snapshot) -> str:
-    t = f", harorati {s.cpu_temp:.0f}°C" if s.cpu_temp is not None else f". Harorat: {NA}"
-    return f"CPU {s.cpu_percent:.0f}% ishlayapti{t}."
+def cpu_text(s: Snapshot, lang: str = "uz") -> str:
+    na = T("na", lang)
+    t = T("cpu.t_yes", lang, x=s.cpu_temp) if s.cpu_temp is not None else T("cpu.t_no", lang, na=na)
+    return T("cpu.line", lang, p=s.cpu_percent, t=t)
 
 
-def ram_text(s: Snapshot) -> str:
-    return (f"RAM {s.ram_percent:.0f}% band: jami {gb(s.ram_total)}, ishlatilgan {gb(s.ram_used)}, "
-            f"bo'sh {gb(s.ram_available)}.")
+def ram_text(s: Snapshot, lang: str = "uz") -> str:
+    return T("ram.line", lang, p=s.ram_percent, total=gb(s.ram_total), used=gb(s.ram_used), free=gb(s.ram_available))
 
 
-def disk_text(s: Snapshot) -> str:
+def disk_text(s: Snapshot, lang: str = "uz") -> str:
     if not s.disks:
-        return f"Disk: {NA}."
-    return "\n".join(f"Disk {d.mount}: jami {gb(d.total)}, ishlatilgan {gb(d.used)} ({d.percent:.0f}%), "
-                     f"bo'sh {gb(d.free)}." for d in s.disks)
+        return T("disk.none", lang, na=T("na", lang))
+    return "\n".join(T("disk.line", lang, m=d.mount, total=gb(d.total), used=gb(d.used), p=d.percent, free=gb(d.free)) for d in s.disks)
 
 
-def temps_text(s: Snapshot) -> str:
-    cpu = f"Protsessor harorati {s.cpu_temp:.0f}°C." if s.cpu_temp is not None else f"Protsessor harorati: {NA}. {s.cpu_temp_note}"
-    gpu = "Videokarta harorati: " + (
-        ", ".join(f"{g.name} {g.temp:.0f}°C" for g in (s.gpus or []) if g.temp is not None) or NA) + "."
-    return f"{cpu}\n{gpu}"
+def temps_text(s: Snapshot, lang: str = "uz") -> str:
+    na = T("na", lang)
+    cpu = (T("temp.cpu_yes", lang, x=s.cpu_temp) if s.cpu_temp is not None
+           else T("temp.cpu_no", lang, na=na, note=T(s.cpu_temp_note, lang)))
+    v = ", ".join(f"{g.name} {g.temp:.0f}°C" for g in (s.gpus or []) if g.temp is not None) or na
+    return f"{cpu}\n{T('temp.gpu', lang, v=v)}"
 
 
-def status_text(s: Snapshot) -> str:
-    a = assess(s)
-    head = f"CPU {s.cpu_percent:.0f}% ishlayapti, RAM {s.ram_percent:.0f}% band"
+def status_text(s: Snapshot, lang: str = "uz") -> str:
+    a = assess(s, lang)
+    head = T("status.head", lang, cpu=s.cpu_percent, ram=s.ram_percent)
     if s.disks:
         low = min(s.disks, key=lambda d: d.free)
-        head += f". Eng kam bo'sh joyli disk ({low.mount}): {gb(low.free)} bo'sh"
-    head += f". Umumiy holat: {LEVELS[overall(a)]}."
+        head += T("status.disk", lang, m=low.mount, free=gb(low.free))
+    head += T("status.tail", lang, lvl=T(f"lvl.{overall(a)}", lang))
     reasons = [x for v in a.values() for x in v.reasons]
     return head + ("\n" + "\n".join("• " + x for x in reasons) if reasons else "")
 
 
-def full_report(s: Snapshot) -> str:
-    a = assess(s)
+def uptime_text(s: Snapshot, lang: str = "uz") -> str:
+    return T("uptime.line", lang, t=fmt_uptime(s.uptime_s, lang))
+
+
+def full_report(s: Snapshot, lang: str = "uz") -> str:
+    a = assess(s, lang)
+    na = T("na", lang)
+    lvl = lambda k: T(f"lvl.{a[k].level}", lang) if a[k].level != "na" else na  # noqa: E731
     when = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(s.taken))
-    lines = [f"Kompyuter holati hisoboti — {when}", f"Tizim: {s.os_name}; ishlagan vaqt: {fmt_uptime(s.uptime_s)}",
-             f"Umumiy holat: {LEVELS[overall(a)]}", "",
-             f"[CPU — {a['cpu'].label}] {cpu_text(s)}"
-             + (f" Yadrolar: {s.cpu_count}." if s.cpu_count else ""),
-             f"[RAM — {a['ram'].label}] {ram_text(s)}",
-             f"[Disk — {a['disk'].label}]", disk_text(s)]
+    lines = [T("rep.title", lang, when=when), T("rep.sys", lang, os=s.os_name, up=fmt_uptime(s.uptime_s, lang)),
+             T("rep.overall", lang, lvl=T(f"lvl.{overall(a)}", lang)), "",
+             f"[CPU — {lvl('cpu')}] {cpu_text(s, lang)}" + (T("cpu.cores", lang, n=s.cpu_count) if s.cpu_count else ""),
+             f"[RAM — {lvl('ram')}] {ram_text(s, lang)}",
+             f"[Disk — {lvl('disk')}]", disk_text(s, lang)]
     if s.disk_read_bps is not None and s.disk_write_bps is not None:
-        lines.append(f"Disk tezligi: o'qish {s.disk_read_bps / 1e6:.1f} MB/s, yozish {s.disk_write_bps / 1e6:.1f} MB/s.")
-    lines += [f"[GPU — {a['gpu'].label}]", _gpu_text(s), f"[Batareya — {a['battery'].label}] {_batt_text(s)}"]
+        lines.append(T("disk.io", lang, r=s.disk_read_bps / 1e6, w=s.disk_write_bps / 1e6))
+    lines += [f"[GPU — {lvl('gpu')}]", _gpu_text(s, lang), f"[{ {'uz': 'Batareya', 'ru': 'Батарея', 'en': 'Battery'}[lang] } — {lvl('battery')}] {_batt_text(s, lang)}"]
     if s.cpu_temp is None:
-        lines.append(f"Eslatma: {s.cpu_temp_note}")
+        lines.append(T("rep.note", lang, note=T(s.cpu_temp_note, lang)))
     if s.events is None:
-        lines.append(f"Oxirgi tizim xatolari: {NA}.")
+        lines.append(T("rep.events_na", lang, na=na))
     elif not s.events:
-        lines.append("Oxirgi 24 soatda tizim jurnalida jiddiy xatolar topilmadi.")
+        lines.append(T("rep.events_none", lang))
     else:
-        lines.append("Oxirgi 24 soatdagi tizim xatolari (manba, ID):")
+        lines.append(T("rep.events_head", lang))
         lines += [f"  {e.get('t')}  {e.get('src')}  #{e.get('id')}" for e in s.events]
     reasons = [x for v in a.values() for x in v.reasons]
     if reasons:
-        lines += ["", "Diqqat talab qiladigan jihatlar (ehtimoliy sabablar, tashxis emas):"] + ["• " + x for x in reasons]
-    lines.append("\nBu hisobot faqat o'lchangan qiymatlarga asoslangan; hech narsa o'zgartirilmadi.")
+        lines += ["", T("rep.issues", lang)] + ["• " + x for x in reasons]
+    lines.append("\n" + T("rep.foot", lang))
     return "\n".join(lines)
 
 
-def advice(s: Snapshot, top_mem: list[tuple[str, int]], top_cpu: list[tuple[str, float]]) -> str:
+def advice(s: Snapshot, top_mem: list[tuple[str, int]], top_cpu: list[tuple[str, float]], lang: str = "uz") -> str:
     """«Tezlashtir» so'rovi: faqat tahlil va tavsiyalar, hech qanday amal bajarilmaydi."""
-    a = assess(s)
-    out = [status_text(s), "", "Tavsiyalar (ularni o'zingiz bajarasiz — men hech narsani o'zgartirmadim):"]
+    a = assess(s, lang)
+    out = [status_text(s, lang), "", T("adv.head", lang)]
     tips = []
     if s.ram_percent >= 75 and top_mem:
-        tips.append(f"RAM band: eng ko'p xotira ishlatayotganlar — " + ", ".join(f"{n} ({gb(m)})" for n, m in top_mem[:3])
-                    + ". Keraksiz dastur/brauzer yorliqlarini yopish yordam berishi mumkin.")
+        tips.append(T("adv.ram", lang, items=", ".join(f"{n} ({gb(m)})" for n, m in top_mem[:3])))
     if s.cpu_percent >= 70 and top_cpu:
-        tips.append("CPU band: " + ", ".join(f"{n} ({p:.0f}%)" for n, p in top_cpu[:3]) + " ko'proq ishlatmoqda.")
+        tips.append(T("adv.cpu", lang, items=", ".join(f"{n} ({p:.0f}%)" for n, p in top_cpu[:3])))
     if a["disk"].level in ("warn", "high"):
-        tips.append("Disk to'lib bormoqda: Windows «Xotira» sozlamalari (Storage Sense) yoki Downloads papkasini ko'rib chiqing.")
+        tips.append(T("adv.disk", lang))
     if s.uptime_s > 7 * 86400:
-        tips.append(f"Kompyuter {fmt_uptime(s.uptime_s)} dan beri o'chirilmagan; qayta yoqish ba'zan yordam beradi.")
+        tips.append(T("adv.up", lang, t=fmt_uptime(s.uptime_s, lang)))
     if not tips:
-        tips.append("O'lchovlarga ko'ra jiddiy muammo ko'rinmayapti; maxsus tezlashtirish talab qilinmaydi.")
+        tips.append(T("adv.ok", lang))
     out += ["• " + t for t in tips]
-    out.append("Tizimga ta'sir qiladigan har qanday amal (dastur yopish, fayl tozalash) uchun avval sizdan alohida rozilik so'raladi; "
-               "hozirgi versiyada bunday avtomatik amallar yo'q.")
+    out.append(T("adv.foot", lang))
     return "\n".join(out)
 
 
