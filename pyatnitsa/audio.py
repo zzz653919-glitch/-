@@ -104,19 +104,53 @@ class Recorder:
         return Recording(data, self._rate)
 
 
-def transcribe(rec: Recording, language: str) -> str:
-    """Google Web Speech orqali matnga aylantiradi (audio faqat shu paytda internetga yuboriladi)."""
+@dataclass
+class Heard:
+    text: str
+    lang: str          # uz-UZ | ru-RU | en-US
+    conf: float        # 0..1 (Google bergan bo'lsa; aks holda taxminiy 0.5)
+
+
+AUTO_LANGS = ["uz-UZ", "ru-RU", "en-US"]
+
+
+def _recognize_one(rec: Recording, lang: str) -> list[Heard]:
+    import speech_recognition as sr
+    recognizer = sr.Recognizer()
+    recognizer.operation_timeout = 12
+    data = recognizer.recognize_google(sr.AudioData(rec.data, rec.rate, 2), language=lang, show_all=True)
+    out: list[Heard] = []
+    for alt in (data.get("alternative", []) if isinstance(data, dict) else [])[:3]:
+        text = str(alt.get("transcript", "")).strip()
+        if text:
+            out.append(Heard(text, lang, float(alt.get("confidence", 0.5))))
+    return out
+
+
+def transcribe(rec: Recording, language: str = "auto") -> list[Heard]:
+    """Google Web Speech (bir so'rovda bitta til). «auto» rejimida uch tilda parallel taniladi va nomzodlar qaytariladi;
+    eng mosini tanlashni boshqaruvchi buyruq tushunish natijasiga qarab hal qiladi. Audio faqat shu paytda internetga yuboriladi."""
     if rec.seconds < MIN_SECONDS:
         raise NotUnderstood("Yozuv juda qisqa.")
     try:
         import speech_recognition as sr
     except Exception as e:  # noqa: BLE001
         raise AudioError("SpeechRecognition kutubxonasi topilmadi.") from e
-    recognizer = sr.Recognizer()
-    recognizer.operation_timeout = 12
-    try:
-        return recognizer.recognize_google(sr.AudioData(rec.data, rec.rate, 2), language=language).strip()
-    except sr.UnknownValueError as e:
-        raise NotUnderstood("Nutq tanilmadi.") from e
-    except sr.RequestError as e:
-        raise AudioError("Nutqni tanish xizmatiga ulanib bo'lmadi. Internetni tekshiring.") from e
+    langs = AUTO_LANGS if language == "auto" else [language]
+    results: list[Heard] = []
+    net_errors = 0
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=len(langs)) as pool:
+        futures = [pool.submit(_recognize_one, rec, l) for l in langs]
+        for f in futures:
+            try:
+                results += f.result()
+            except sr.RequestError:
+                net_errors += 1
+            except Exception:  # noqa: BLE001
+                log.exception("Nutqni tanishda kutilmagan xato")
+    if not results:
+        if net_errors == len(langs):
+            raise AudioError("Nutqni tanish xizmatiga ulanib bo'lmadi. Internetni tekshiring.")
+        raise NotUnderstood("Nutq tanilmadi.")
+    return results

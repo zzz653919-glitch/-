@@ -19,7 +19,7 @@ class FakeSpeaker(QObject):
     note = Signal(str)
 
     def __init__(self): super().__init__(); self.said = []
-    def say(self, t): self.said.append(t)
+    def say(self, t, lang="uz"): self.said.append(t); self.langs = getattr(self, 'langs', []) + [lang]
     def stop(self): pass
     def close(self): pass
     def set_volume(self, v): pass
@@ -110,7 +110,7 @@ def test_no_confirm_mode(app):
 def test_new_text_replaces_pending_confirmation(app):
     c, plat = make(app)
     c.submit_text("Chrome'ni och"); c.submit_text("Hozirgi vaqtni ayt")
-    assert c.state == C.CONFIRM and c._pending.action == "time" and plat.calls == []
+    assert c.state == C.CONFIRM and c._pending[0].action == "time" and plat.calls == []
 
 
 def test_microphone_failure_reported(app):

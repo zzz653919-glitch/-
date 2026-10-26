@@ -13,7 +13,7 @@ from . import APP_ID
 
 log = logging.getLogger(__name__)
 
-STT_LANGUAGES = [("O'zbekcha", "uz-UZ"), ("Русский", "ru-RU"), ("English", "en-US")]
+STT_LANGUAGES = [("Avto (o'zbek + rus + ingliz)", "auto"), ("O'zbekcha", "uz-UZ"), ("Русский", "ru-RU"), ("English", "en-US")]
 TTS_ENGINES = [("Avto (internet ovozi, keyin tizim ovozi)", "auto"),
                ("Faqat tizim ovozi (oflayn)", "system")]
 
@@ -32,7 +32,7 @@ def data_dir() -> Path:
 
 @dataclass
 class Settings:
-    stt_language: str = "uz-UZ"
+    stt_language: str = "auto"
     microphone: str | None = None          # qurilma nomi; None = tizim standarti
     voice_enabled: bool = True
     tts_engine: str = "auto"
@@ -83,7 +83,7 @@ class Settings:
         if s.tts_engine not in {v for _, v in TTS_ENGINES}:
             s.tts_engine = "auto"
         if s.stt_language not in {v for _, v in STT_LANGUAGES}:
-            s.stt_language = "uz-UZ"
+            s.stt_language = "auto"
         s.city = s.city.strip()[:80] or "Tashkent"
         return s
 

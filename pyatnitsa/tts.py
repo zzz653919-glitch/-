@@ -10,10 +10,10 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QUrl, Signal
 
+from .i18n import VOICES
 from .settings import Settings
 
 log = logging.getLogger(__name__)
-EDGE_VOICE = "uz-UZ-MadinaNeural"
 
 
 class Speaker(QObject):
@@ -46,28 +46,28 @@ class Speaker(QObject):
         if self._player:
             self._player.stop()
 
-    def say(self, text: str) -> None:
+    def say(self, text: str, lang: str = "uz") -> None:
         if not self.settings.voice_enabled or not text.strip():
             return
         self.stop()
-        threading.Thread(target=self._work, args=(text[:600], self._gen), daemon=True).start()
+        threading.Thread(target=self._work, args=(text[:600], self._gen, lang), daemon=True).start()
 
     # ---- fon oqimi
-    def _work(self, text: str, gen: int) -> None:
+    def _work(self, text: str, gen: int, lang: str = "uz") -> None:
         if self.settings.tts_engine == "auto" and self._player:
             try:
                 import edge_tts
                 path = self._tmp / f"s{gen}.mp3"
-                asyncio.run(edge_tts.Communicate(text, EDGE_VOICE).save(str(path)))
+                asyncio.run(edge_tts.Communicate(text, VOICES.get(lang, VOICES["uz"])).save(str(path)))
                 self._ready.emit(str(path), gen)
                 return
             except Exception as e:  # noqa: BLE001
                 log.warning("edge-tts ishlamadi (%s), tizim ovoziga o'tildi", e)
         if gen != self._gen:
             return
-        self._system_voice(text)
+        self._system_voice(text, lang)
 
-    def _system_voice(self, text: str) -> None:
+    def _system_voice(self, text: str, lang: str = "uz") -> None:
         try:
             try:
                 import pythoncom
@@ -76,12 +76,12 @@ class Speaker(QObject):
                 pass
             import pyttsx3
             engine = pyttsx3.init()
+            hints = {"uz": ("uz", "uzbek"), "ru": ("ru-", "russian", "irina", "pavel"), "en": ("en-", "english", "zira", "david")}[lang]
             uz = next((v for v in engine.getProperty("voices")
-                       if "uz" in (str(getattr(v, "id", "")) + str(getattr(v, "languages", ""))).lower()
-                       or "uzbek" in str(v.name).lower()), None)
+                       if any(h in (str(getattr(v, "id", "")) + str(getattr(v, "languages", "")) + str(v.name)).lower() for h in hints)), None)
             if uz:
                 engine.setProperty("voice", uz.id)
-            elif not self._noted:
+            elif lang == "uz" and not self._noted:
                 self._noted = True
                 self.note.emit("Tizimda o'zbek ovozi topilmadi — javoblar standart ovozda o'qiladi (talaffuz to'g'ri bo'lmasligi mumkin). "
                                "Internet bo'lsa, «Avto» ovoz rejimi o'zbekcha ovozdan foydalanadi.")

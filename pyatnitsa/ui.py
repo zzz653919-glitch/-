@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDialog, QDia
                                QTextBrowser, QTextEdit, QVBoxLayout, QWidget)
 
 from . import APP_NAME, apps, audio, controller as C, health
+from .i18n import T
 from .settings import STT_LANGUAGES, TTS_ENGINES, Settings, set_autostart
 from .widgets import ChatInput, OrbWidget, Sparkline
 
@@ -144,7 +145,7 @@ class HealthPage(QWidget):
         self.cpu_sub.setText(f"Harorat: {temp} · Yadrolar: {s.cpu_count or '—'}{freq}")
         self.cpu_graph.set_values(self.monitor.cpu_history, GRAPH_COLOR[a["cpu"].level]); self.cpu_why.setText(self._why(a["cpu"]))
         if s.cpu_temp is None:
-            self.cpu_sub.setToolTip(s.cpu_temp_note)
+            self.cpu_sub.setToolTip(T(s.cpu_temp_note, 'uz'))
         # RAM
         self.ram_big.setText(f"{s.ram_percent:.0f}%"); self.ram_chip.setText(chip_html(a["ram"].level))
         self.ram_sub.setText(f"Jami {health.gb(s.ram_total)} · ishlatilgan {health.gb(s.ram_used)} · bo'sh {health.gb(s.ram_available)}")
