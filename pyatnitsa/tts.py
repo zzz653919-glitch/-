@@ -10,7 +10,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QUrl, Signal
 
-from .i18n import VOICES
+from .i18n import voice_name
 from .settings import Settings
 
 log = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class Speaker(QObject):
             try:
                 import edge_tts
                 path = self._tmp / f"s{gen}.mp3"
-                asyncio.run(edge_tts.Communicate(text, VOICES.get(lang, VOICES["uz"])).save(str(path)))
+                asyncio.run(edge_tts.Communicate(text, voice_name(self.settings.voice_gender, lang)).save(str(path)))
                 self._ready.emit(str(path), gen)
                 return
             except Exception as e:  # noqa: BLE001
@@ -77,8 +77,11 @@ class Speaker(QObject):
             import pyttsx3
             engine = pyttsx3.init()
             hints = {"uz": ("uz", "uzbek"), "ru": ("ru-", "russian", "irina", "pavel"), "en": ("en-", "english", "zira", "david")}[lang]
-            uz = next((v for v in engine.getProperty("voices")
-                       if any(h in (str(getattr(v, "id", "")) + str(getattr(v, "languages", "")) + str(v.name)).lower() for h in hints)), None)
+            male = {"ru": ("pavel",), "en": ("david", "mark")}.get(lang, ())
+            found = [v for v in engine.getProperty("voices")
+                     if any(h in (str(getattr(v, "id", "")) + str(getattr(v, "languages", "")) + str(v.name)).lower() for h in hints)]
+            pick = [v for v in found if any(m in str(v.name).lower() for m in male)] if self.settings.voice_gender == "male" else []
+            uz = (pick or found or [None])[0]
             if uz:
                 engine.setProperty("voice", uz.id)
             elif lang == "uz" and not self._noted:

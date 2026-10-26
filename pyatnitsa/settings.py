@@ -35,6 +35,7 @@ class Settings:
     stt_language: str = "auto"
     microphone: str | None = None          # qurilma nomi; None = tizim standarti
     voice_enabled: bool = True
+    voice_gender: str = "male"             # male | female
     tts_engine: str = "auto"
     volume: float = 0.8
     confirm_commands: bool = True          # har bir buyruq bajarilishidan oldin tasdiq
@@ -80,6 +81,8 @@ class Settings:
             if ok:
                 setattr(s, key, val)
         s.volume = min(1.0, max(0.0, s.volume))
+        if s.voice_gender not in ("male", "female"):
+            s.voice_gender = "male"
         if s.tts_engine not in {v for _, v in TTS_ENGINES}:
             s.tts_engine = "auto"
         if s.stt_language not in {v for _, v in STT_LANGUAGES}:

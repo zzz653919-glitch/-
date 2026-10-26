@@ -207,13 +207,15 @@ class SettingsDialog(QDialog):
             self.mic.addItem(name, name)
         self.mic.setCurrentIndex(max(0, self.mic.findData(settings.microphone)))
         self.voice = QCheckBox("Ovozli javobni yoqish"); self.voice.setChecked(settings.voice_enabled)
+        self.gender = QComboBox(); self.gender.addItem("Erkak ovozi", "male"); self.gender.addItem("Ayol ovozi", "female")
+        self.gender.setCurrentIndex(max(0, self.gender.findData(settings.voice_gender)))
         self.tts = QComboBox(); [self.tts.addItem(n, v) for n, v in TTS_ENGINES]
         self.tts.setCurrentIndex(max(0, self.tts.findData(settings.tts_engine)))
         self.confirm = QCheckBox("Har bir buyruqdan oldin tasdiq so'rash (tavsiya etiladi)"); self.confirm.setChecked(settings.confirm_commands)
         self.auto = QCheckBox("Windows ishga tushganda avtomatik ochish"); self.auto.setChecked(settings.autostart)
         self.city = QLineEdit(settings.city)
         form.addRow("Ovoz tanish tili:", self.lang); form.addRow("Mikrofon:", self.mic); form.addRow("", self.voice)
-        form.addRow("Ovoz mexanizmi:", self.tts); form.addRow("Ob-havo shahri:", self.city)
+        form.addRow("Ovoz jinsi:", self.gender); form.addRow("Ovoz mexanizmi:", self.tts); form.addRow("Ob-havo shahri:", self.city)
         form.addRow("", self.confirm); form.addRow("", self.auto)
         self.apps = QListWidget(); self.apps.setMaximumHeight(190)
         for spec in apps.APPS.values():
@@ -232,6 +234,7 @@ class SettingsDialog(QDialog):
         s = self.s
         s.stt_language, s.microphone = self.lang.currentData(), self.mic.currentData()
         s.voice_enabled, s.tts_engine = self.voice.isChecked(), self.tts.currentData()
+        s.voice_gender = self.gender.currentData()
         s.confirm_commands, s.autostart = self.confirm.isChecked(), self.auto.isChecked()
         s.city = self.city.text().strip()[:80] or "Tashkent"
         s.allowed_apps = {self.apps.item(i).data(Qt.UserRole): self.apps.item(i).checkState() == Qt.Checked

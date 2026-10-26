@@ -2,7 +2,14 @@
 from __future__ import annotations
 
 LANGS = ("uz", "ru", "en")
-VOICES = {"uz": "uz-UZ-MadinaNeural", "ru": "ru-RU-SvetlanaNeural", "en": "en-US-JennyNeural"}
+VOICES = {   # (gender, til) -> edge-tts ovozi
+    ("male", "uz"): "uz-UZ-SardorNeural", ("male", "ru"): "ru-RU-DmitryNeural", ("male", "en"): "en-US-GuyNeural",
+    ("female", "uz"): "uz-UZ-MadinaNeural", ("female", "ru"): "ru-RU-SvetlanaNeural", ("female", "en"): "en-US-JennyNeural",
+}
+
+
+def voice_name(gender: str, lang: str) -> str:
+    return VOICES.get((gender, lang)) or VOICES[("male", "uz")]
 
 _S: dict[str, tuple[str, str, str]] = {   # kalit: (uz, ru, en)
     # ---- umumiy
