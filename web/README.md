@@ -13,6 +13,7 @@ node server/server.js                                 # http://localhost:8080  �
 - Birinchi administratorni **faqat shu CLI** yaratadi — ochiq standart akkaunt yo'q. Boshqa adminlarni Super Admin panel orqali qo'shadi.
 - Parolni unutsangiz: `node server/cli.js reset-password <ism>`; ro'yxat: `list-admins`.
 - Sozlamalar (muhit o'zgaruvchilari): `PORT` (8080), `HOST` (127.0.0.1), `TILYOLI_DB` (baza fayli, standart `web/server/data/tilyoli.db`), `COOKIE_SECURE=1` (HTTPS ortida majburiy), `TRUST_PROXY=1` (reverse-proxy ortida haqiqiy IP uchun).
+- **Bitta fayl (server kerak emas):** `tilyoli.html` ni brauzerda oching — sayt; `tilyoli.html?admin` (yoki Profil → «Admin panel») — **lokal admin panel**. Birinchi kirishda kiritgan ism va parolingiz (kamida 10 belgi, harf+raqam) administrator bo'ladi. Admin faqat **shu brauzerdagi** o'quvchilar, so'zlar va statistikani boshqaradi (boshqa qurilmadagilarni ko'ra olmaydi), bitta administrator, rollar yo'q. Himoya faqat brauzer darajasida, haqiqiy xavfsizlik emas. Qayta yig'ish: `python3 build-single.py`.
 - **Serversiz rejim:** `index.html` yoki bitta faylli `tilyoli.html` (`python3 build-single.py`) ni ochsangiz ilova eskicha ishlaydi (hisoblar va progress faqat shu brauzerda); admin panel bunda ishlamaydi. Server rejimida brauzerdagi eski lokal progress, o'sha ism bilan birinchi kirishda serverga ko'chiriladi.
 
 ## Admin panel (`/admin`)
@@ -50,6 +51,7 @@ Asosiy kurs `data.js` da; admin o'zgartirishlari bazada **ustiga qo'llanadi** (`
 node logic.test.js          # o'yin mantig'i (15)
 node --no-warnings server.test.js   # API, rollar, xavfsizlik (19)
 node admin-e2e.js           # brauzer: o'quvchi + admin, desktop va mobil (Playwright kerak)
+node single-e2e.js          # bitta fayl (tilyoli.html) + lokal admin, file:// orqali
 node e2e.js                 # serversiz rejim brauzer testi (python3 -m http.server 8080 bilan)
 ```
 

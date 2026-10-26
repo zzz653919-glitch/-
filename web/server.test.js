@@ -184,7 +184,7 @@ let n = 0; const t = async (name, fn) => { await fn(); n++; console.log('ok  ' +
   });
   await t('statik fayllar: faqat ruxsat etilganlari', async () => {
     for (const p of ['/server/server.js', '/server/data/tilyoli.db', '/../server/db.js', '/%2e%2e/server/db.js', '/README.md', '/logic.test.js', '/server.test.js']) assert.equal((await fetch(base + p)).status, 404, p);
-    for (const p of ['/', '/admin', '/ui.js', '/admin/admin.js', '/content.js']) assert.equal((await fetch(base + p)).status, 200, p);
+    for (const p of ['/', '/admin', '/ui.js', '/admin/admin.js', '/content.js', '/localapi.js']) assert.equal((await fetch(base + p)).status, 200, p);
   });
   await t('chiqish sessiyani bekor qiladi; juda katta so\'rov rad etiladi', async () => {
     assert.equal((await ali.req('POST', '/api/admin/logout')).status, 200); assert.equal((await ali.req('GET', '/api/admin/users')).status, 401);

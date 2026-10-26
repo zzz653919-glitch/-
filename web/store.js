@@ -74,9 +74,10 @@
   window.addEventListener('pagehide', function () { Server.flush(); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') Server.flush(); });
   TY.ready = (function () {
-    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(false);
+    var local = function (on) { if (!on && TY.localRows) { TY.applyContent(TY.localRows()); Server.announcements = TY.localAnnouncements(); } return on; };
+    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(local(false));
     return fetch('api/ping', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (p) {
-      if (!p || !p.server) return false;
+      if (!p || !p.server) return local(false);
       Server.on = true; Server.registrationOpen = p.registrationOpen;
       return api('GET', 'api/content').then(function (c) { TY.applyContent(c.rows); Server.announcements = c.announcements || []; }).catch(function () {})
         .then(function () { return api('GET', 'api/me'); }).then(function (me) { Auth.openServer(me.user.name, me.state, me.csrf); }).catch(function () {}).then(function () { return true; });
@@ -96,6 +97,8 @@
       name = (name || '').trim();
       if (name.length < 2) return Promise.reject(new Error("Ism kamida 2 belgi bo'lsin"));
       if (!pass || pass.length < 4) return Promise.reject(new Error("Parol kamida 4 belgi bo'lsin"));
+      var lset = null; try { lset = JSON.parse(Storage.get('local-settings') || 'null'); } catch (e) {}
+      if (lset && lset.registrationOpen === false) return Promise.reject(new Error("Ro'yxatdan o'tish vaqtincha yopiq"));
       var u = users(); if (u[ukey(name)]) return Promise.reject(new Error('Bu ism band'));
       return hash(ukey(name) + ':' + pass).then(function (h) { u[ukey(name)] = { name: name, h: h, created: Date.now() }; saveUsers(u); Auth.open(name); });
     },
@@ -103,6 +106,7 @@
       if (Server.on) return api('POST', 'api/login', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       var u = users()[ukey(name || '')];
       if (!u) return Promise.reject(new Error('Foydalanuvchi topilmadi'));
+      if (u.disabled) return Promise.reject(new Error('Hisob bloklangan. Administratorga murojaat qiling.'));
       return hash(ukey(name) + ':' + pass).then(function (h) { if (h !== u.h) throw new Error("Parol noto'g'ri"); Auth.open(u.name); });
     },
     guest: function () { var u = users(); if (!u['mehmon']) { u['mehmon'] = { name: 'Mehmon', h: null, created: Date.now() }; saveUsers(u); } Auth.open('Mehmon'); },
@@ -112,7 +116,7 @@
       try { s = raw ? migrate(JSON.parse(raw), key) : newState(); } catch (e) { Storage.set(key + ':corrupt', raw); s = newState(); }
       Auth.state = s; Auth.key = key; Game.regen(); Game.rollStreak(); Auth.save();
     },
-    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k]) { Auth.open(users()[k].name); return true; } return false; },
+    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k] && !users()[k].disabled) { Auth.open(users()[k].name); return true; } return false; },
     logout: function () {
       if (Server.on && Auth.current) { var p = Server.flush(); p = (p || Promise.resolve()).then(function () { return api('POST', 'api/logout').catch(function () {}); }); Auth.pending = p; }
       Storage.remove('session'); Auth.current = null; Auth.state = null; Server.csrf = null;

@@ -212,7 +212,7 @@
       '<section class="card"><h3>Ko\'rinish</h3>' + seg('theme', [['auto', 'Avto'], ['light', '☀️ Yorug\''], ['dark', '🌙 Qorong\'i']], s.theme) + '</section>' +
       '<section class="card"><h3>Ovoz</h3><div class="seg"><button data-act="tog" data-k="sound" aria-pressed="' + s.sound + '">🔔 Effektlar: ' + (s.sound ? 'yoqiq' : 'o\'chiq') + '</button><button data-act="tog" data-k="speech" aria-pressed="' + s.speech + '">🔊 Talaffuz: ' + (s.speech ? 'yoqiq' : 'o\'chiq') + '</button></div>' + (TY.canSpeak() ? '' : '<p class="mute">Bu brauzerda talaffuz (TTS) yo\'q — eshitish mashqlari o\'tkazib yuboriladi.</p>') + '</section>' +
       '<section class="card"><h3>Ma\'lumotlar</h3><p class="mute">Barcha natijalar shu brauzerda (localStorage) saqlanadi. Boshqa qurilmaga ko\'chirish uchun eksport qiling.</p><div class="seg"><button data-act="export">⬇️ Eksport</button><label class="btn ghost small" style="cursor:pointer">⬆️ Import<input type="file" accept="application/json" id="imp" hidden></label><button data-act="reset">♻️ Progressni tozalash</button></div></section>' +
-      '<section class="card"><div class="seg"><button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
+      '<section class="card"><div class="seg">' + (TY.Server.on ? '<a class="btn ghost small" href="/admin">🛠️ Admin panel</a>' : (window.TY_SINGLE ? '<a class="btn ghost small" href="?admin">🛠️ Admin panel</a>' : '')) + '<button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
   }
 
   // ---- Dars oynasi ----

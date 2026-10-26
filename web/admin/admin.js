@@ -5,6 +5,7 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var root = $('#root'), dlg = $('#dlg');
   var me = null, csrf = null, hbTimer = null;
+  var LOCAL = !!(window.TY && window.TY.LOCAL_ADMIN), HOME = LOCAL ? location.pathname : '/';
   var ACH = { first: 'Birinchi qadam', xp100: '100 XP', xp500: '500 XP', xp2000: '2000 XP', streak3: '3 kunlik seriya', streak7: '7 kunlik seriya', streak30: '30 kunlik seriya', perfect: 'Mukammal dars', correct100: "100 ta to'g'ri javob", words50: "50 ta so'z", words100: "100 ta so'z", goal: 'Kunlik maqsad', test: 'Sinovdan o\'tdi', A1: 'A1 tugadi', IELTS: "IELTS yo'li", fixer: 'Xatolar ustasi' };
   var ROLE = { super_admin: 'Super Admin', admin: 'Admin', editor: 'Editor' };
   var KIND = { mc_en_uz: 'Tarjima tanlash (en→uz)', mc_uz_en: "O'zbekchadan inglizchani topish", picture: 'Rasm bo\'yicha topish', type_en_uz: 'Tarjimani yozish', type_uz_en: 'Inglizchasini yozish', scramble: "Harflardan so'z tuzish", cloze: "Bo'sh joyni to'ldirish", build: 'Gap tuzish', listen: 'Eshitib yozish' };
@@ -16,7 +17,7 @@
   function can(p) { return me && me.perms.indexOf(p) >= 0; }
   function toast(m, err) { var d = document.createElement('div'); d.className = 'toast' + (err ? ' err' : ''); d.textContent = m; $('#toasts').appendChild(d); setTimeout(function () { d.remove(); }, 3500); }
   function api(method, url, body) {
-    return fetch(url, { method: method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf || '' }, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+    return (window.TY && window.TY.localFetch || fetch)(url, { method: method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf || '' }, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (j) {
         if (!r.ok) { var e = new Error(j.error || 'Xato ' + r.status); e.status = r.status; e.data = j; if (r.status === 401 && me) { me = null; renderLogin('Sessiya tugadi, qayta kiring'); } throw e; }
         return j;
@@ -38,7 +39,7 @@
   // ---- Kirish ----
   function renderLogin(msg) {
     clearInterval(hbTimer);
-    root.innerHTML = '<main class="login" id="main"><div class="brand" style="color:var(--ink)"><span class="logo">T</span>Til Yo\'li · Admin</div><div class="card"><h1>Administrator kirishi</h1><form id="lf" novalidate><label for="n">Foydalanuvchi nomi</label><input id="n" autocomplete="username" style="width:100%" required><label for="p">Parol</label><input id="p" type="password" autocomplete="current-password" style="width:100%" required><p class="err" role="alert" id="le">' + esc(msg || '') + '</p><button class="btn p" style="width:100%;justify-content:center" type="submit">Kirish</button></form></div><p class="mute">Faqat vakolatli administratorlar uchun. Barcha kirishlar qayd etiladi.</p></main>';
+    root.innerHTML = '<main class="login" id="main"><div class="brand" style="color:var(--ink)"><span class="logo">T</span>Til Yo\'li · Admin</div><div class="card"><h1>Administrator kirishi</h1><form id="lf" novalidate><label for="n">Foydalanuvchi nomi</label><input id="n" autocomplete="username" style="width:100%" required><label for="p">Parol</label><input id="p" type="password" autocomplete="current-password" style="width:100%" required><p class="err" role="alert" id="le">' + esc(msg || '') + '</p><button class="btn p" style="width:100%;justify-content:center" type="submit">Kirish</button></form></div><p class="mute">' + (LOCAL ? (window.TY.localSetupNeeded() ? "Birinchi kirish: kiritgan ismingiz va parolingiz (kamida 10 belgi, harf va raqam) administrator bo'ladi." : "Lokal rejim: ma'lumotlar faqat shu brauzerda.") : 'Faqat vakolatli administratorlar uchun. Barcha kirishlar qayd etiladi.') + ' <a href="' + HOME + '">← Saytga qaytish</a></p></main>';
     $('#n').focus();
     $('#lf').onsubmit = function (e) {
       e.preventDefault(); var b = $('button', e.target); b.disabled = true;
@@ -51,12 +52,13 @@
   function parseHash() { var h = (location.hash || '#/').slice(2), qi = h.indexOf('?'), q = {}; if (qi >= 0) { new URLSearchParams(h.slice(qi + 1)).forEach(function (v, k) { q[k] = v; }); h = h.slice(0, qi); } var p = h.split('/'); return { name: p[0] || 'dashboard', arg: p[1], q: q }; }
   function shell() {
     var r = parseHash(), nav = NAV.filter(function (n) { return can(n[3]); }).map(function (n) { return '<a href="#/' + (n[0] === 'dashboard' ? '' : n[0]) + '"' + (r.name === n[0] || (r.name === '' && n[0] === 'dashboard') ? ' aria-current="page"' : '') + '><span aria-hidden="true">' + ICON[n[0]] + '</span>' + n[2] + '</a>'; }).join('');
-    root.innerHTML = '<div class="shell"><aside class="side" id="side"><div class="brand"><span class="logo">T</span>Til Yo\'li Admin</div><nav class="nav" aria-label="Admin menyusi">' + nav + '</nav></aside><div><header class="top"><button class="btn menu" id="mn" aria-label="Menyu">☰</button><input type="search" id="gs" placeholder="' + (can('users') ? 'Foydalanuvchi qidirish…' : "So'z qidirish…") + '" aria-label="Qidiruv"><span class="sp"></span><div class="bell"><button class="btn" id="bl" aria-label="Bildirishnomalar">🔔<span class="n" id="bn" hidden></span></button><div class="pop" id="bp" hidden></div></div><button class="btn" id="th" aria-label="Mavzuni almashtirish">◐</button><span class="mute">' + esc(me.name) + ' <span class="tag">' + ROLE[me.role] + '</span></span><button class="btn" id="lo">Chiqish</button></header><main class="main" id="main" tabindex="-1"><div class="spin">Yuklanmoqda…</div></main></div></div>';
+    root.innerHTML = '<div class="shell"><aside class="side" id="side"><div class="brand"><span class="logo">T</span>Til Yo\'li Admin</div><nav class="nav" aria-label="Admin menyusi">' + nav + '</nav></aside><div><header class="top"><button class="btn menu" id="mn" aria-label="Menyu">☰</button><input type="search" id="gs" placeholder="' + (can('users') ? 'Foydalanuvchi qidirish…' : "So'z qidirish…") + '" aria-label="Qidiruv"><span class="sp"></span><a class="btn" href="' + HOME + '">← Sayt</a><div class="bell"><button class="btn" id="bl" aria-label="Bildirishnomalar">🔔<span class="n" id="bn" hidden></span></button><div class="pop" id="bp" hidden></div></div><button class="btn" id="th" aria-label="Mavzuni almashtirish">◐</button><span class="mute">' + esc(me.name) + ' <span class="tag">' + ROLE[me.role] + '</span></span><button class="btn" id="lo">Chiqish</button></header><main class="main" id="main" tabindex="-1"><div class="spin">Yuklanmoqda…</div></main></div></div>';
     $('#mn').onclick = function () { $('#side').classList.toggle('open'); };
     $('#side').onclick = function (e) { if (e.target.closest('a')) $('#side').classList.remove('open'); };
     $('#lo').onclick = function () { api('POST', '/api/admin/logout').catch(function () {}).then(function () { me = null; csrf = null; renderLogin(); }); };
     $('#th').onclick = function () { var d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; try { localStorage.setItem('tilyoli:pref', JSON.stringify({ theme: d })); } catch (e) {} };
     $('#gs').onkeydown = function (e) { if (e.key === 'Enter') { var v = encodeURIComponent(e.target.value.trim()); location.hash = can('users') ? '#/users?q=' + v : '#/content?q=' + v; } };
+    document.onclick = function (e) { var l = LOCAL && e.target.closest && e.target.closest('a[href$="export/users.csv"]'); if (l) { e.preventDefault(); api('GET', '/api/admin/export/users.csv').catch(function () {}); var b = new Blob(['\ufeff' + window.TY.localCsv()], { type: 'text/csv' }), x = document.createElement('a'); x.href = URL.createObjectURL(b); x.download = 'users.csv'; x.click(); } };
     $('#bl').onclick = function () { var p = $('#bp'); p.hidden = !p.hidden; };
     loadNotifs();
   }

@@ -20,7 +20,7 @@ const PERMS = {
   admin: ['dashboard', 'content', 'exercises', 'users', 'stats', 'announcements', 'audit'],
   super_admin: ['dashboard', 'content', 'exercises', 'users', 'stats', 'announcements', 'audit', 'admins', 'settings']
 };
-const STATIC = new Set(['index.html', 'app.css', 'theme.js', 'data.js', 'content.js', 'store.js', 'engine.js', 'ui.js', 'admin/admin.html', 'admin/admin.css', 'admin/admin.js']);
+const STATIC = new Set(['index.html', 'app.css', 'theme.js', 'data.js', 'content.js', 'localapi.js', 'store.js', 'engine.js', 'ui.js', 'admin/admin.html', 'admin/admin.css', 'admin/admin.js']);
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8' };
 
 function createApp(dbFile) {

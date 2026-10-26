@@ -188,17 +188,83 @@ table.t{width:100%;border-collapse:collapse}.t td,.t th{padding:.45rem .3rem;bor
 
 </style>
 <script>
+if(!window.__adm){
 try{var t=JSON.parse(localStorage.getItem('tilyoli:pref')||'{}').theme;var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}
 
+}
 </script>
 </head>
 <body>
+<script id="admin-bundle" type="text/plain"><!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Til Yo'li — Admin panel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%2322c55e'/%3E%3Cpath d='M18 22h28M32 22v24' stroke='white' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#1d2733;--mute:#66758a;--line:#e1e8e4;--side:#12261c;--side-ink:#cfe3d6;
+--g:#16a34a;--gl:#dcfce7;--b:#2563eb;--bl:#dbeafe;--y:#eab308;--yl:#fef9c3;--r:#dc2626;--rl:#fee2e2;--font:"Segoe UI",system-ui,-apple-system,Arial,sans-serif}
+:root[data-theme=dark]{--bg:#0d1511;--card:#16211b;--ink:#e8f0ea;--mute:#8fa398;--line:#263629;--side:#09110d;--gl:#10321d;--bl:#13264a;--yl:#3a3208;--rl:#3d1717}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font)}
+h1{font-size:1.5rem;margin:0 0 1rem}h2{font-size:1.1rem;margin:0 0 .6rem}h3{font-size:1rem;margin:0 0 .4rem}
+a{color:var(--b)}button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--b);outline-offset:2px}[hidden]{display:none!important}
+.skip{position:absolute;left:-999px}.skip:focus{left:8px;top:8px;background:#000;color:#fff;padding:.5rem 1rem;z-index:99}
+.mute{color:var(--mute)}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.btn{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--line);background:var(--card);padding:.45rem .9rem;border-radius:10px;cursor:pointer;font-weight:600;text-decoration:none;color:var(--ink);min-height:38px}
+.btn:hover{border-color:var(--b)}.btn.p{background:var(--g);border-color:var(--g);color:#fff}.btn.d{background:var(--r);border-color:var(--r);color:#fff}.btn.s{min-height:30px;padding:.15rem .6rem;font-size:.85rem}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem}
+.grid{display:grid;gap:1rem}.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.kpi b{display:block;font-size:1.7rem;line-height:1.2}.kpi span{color:var(--mute);font-size:.85rem}
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.side{background:var(--side);color:var(--side-ink);padding:1rem .7rem;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;gap:.6rem;align-items:center;font-weight:800;font-size:1.15rem;color:#fff;padding:.3rem .6rem 1rem}
+.logo{width:34px;height:34px;border-radius:10px;background:#22c55e;display:grid;place-items:center;color:#fff;font-weight:900}
+.nav a{display:flex;gap:.7rem;padding:.55rem .7rem;border-radius:10px;color:var(--side-ink);text-decoration:none;font-weight:600}
+.nav a:hover{background:rgba(255,255,255,.08)}.nav a[aria-current=page]{background:#22c55e;color:#06210f}
+.top{display:flex;gap:.7rem;align-items:center;padding:.7rem 1.2rem;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+.top{flex-wrap:wrap}.top .sp{flex:1}.top input[type=search]{max-width:340px;width:100%}
+.main{padding:1.2rem;max-width:1200px}
+input,select,textarea{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:.5rem .7rem;min-height:38px;max-width:100%}
+textarea{width:100%;min-height:140px;font-family:ui-monospace,Menlo,Consolas,monospace}
+label{display:block;font-weight:600;margin:.7rem 0 .2rem}.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}.row.sb{justify-content:space-between}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mute);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}tr:hover td{background:color-mix(in srgb,var(--bg) 60%,transparent)}
+.tag{display:inline-block;padding:.05rem .55rem;border-radius:99px;font-size:.78rem;font-weight:700;background:var(--bl);color:var(--b)}
+.tag.g{background:var(--gl);color:var(--g)}.tag.r{background:var(--rl);color:var(--r)}.tag.y{background:var(--yl);color:#a16207}
+.err{color:var(--r);min-height:1.4em;font-weight:600}.empty{padding:2rem;text-align:center;color:var(--mute)}
+.spin{padding:2rem;text-align:center;color:var(--mute)}
+#dlg{position:fixed;inset:0;background:rgba(5,15,10,.6);display:grid;place-items:center;z-index:50;padding:1rem}
+.box{background:var(--card);border-radius:16px;padding:1.2rem;width:100%;max-width:560px;max-height:90vh;overflow:auto;border:1px solid var(--line)}
+#toasts{position:fixed;right:1rem;bottom:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:80}
+.toast{background:var(--ink);color:var(--bg);padding:.6rem 1rem;border-radius:10px;font-weight:600}.toast.err{background:var(--r);color:#fff}
+.bars{display:flex;align-items:flex-end;gap:3px;height:140px}.bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.bars i{display:block;background:var(--b);border-radius:4px 4px 0 0;min-height:2px}.bars i.g{background:var(--g)}
+.legend{display:flex;gap:1rem;font-size:.85rem;color:var(--mute);margin-top:.3rem;flex-wrap:wrap}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.3rem}
+.hbar{background:var(--line);border-radius:99px;height:10px;overflow:hidden}.hbar i{display:block;height:100%;background:var(--g)}
+.login{max-width:400px;margin:8vh auto;padding:1rem}.bell{position:relative}.bell .n{position:absolute;top:-4px;right:-4px;background:var(--r);color:#fff;border-radius:99px;font-size:.7rem;padding:0 .35rem}
+.pop{position:absolute;right:0;top:46px;width:min(340px,92vw);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6rem;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+.pop p{margin:.3rem 0;padding:.3rem .4rem;border-radius:8px}
+.menu{display:none}
+@media(max-width:860px){.top .mute{display:none}.top input[type=search]{min-width:0;flex:1 1 120px}.shell{display:block}.side{position:fixed;left:0;top:0;bottom:0;width:250px;z-index:30;transform:translateX(-100%);transition:transform .2s}
+.side.open{transform:none}.menu{display:inline-flex}.main{padding:.8rem}.top{padding:.6rem .8rem}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+</style>
+<script>
+try{var t=JSON.parse(localStorage.getItem('tilyoli:pref')||'{}').theme;var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light';}catch(e){}
+
+<\/script>
+</head>
+<body>
 <a class="skip" href="#main">Asosiy mazmunga o'tish</a>
-<div id="app"></div>
-<div id="lesson" hidden></div>
-<div id="modal" hidden></div>
+<div id="root"></div>
+<div id="dlg" hidden></div>
 <div id="toasts" aria-live="polite"></div>
-<noscript><p style="padding:2rem">Bu sayt ishlashi uchun JavaScript kerak.</p></noscript>
+<noscript><p style="padding:2rem">Admin panel uchun JavaScript kerak.</p></noscript>
 <script>
 /* Kurs ma'lumotlari. So'z qatori: inglizcha|tarjimalar(;)|emoji|inglizcha gap|o'zbekcha gap
    MUHIM: so'zlarning tartibini o'zgartirmang — progress so'z identifikatoriga (daraja.mavzu.indeks) bog'langan. Yangi so'zlarni oxiriga qo'shing. */
@@ -474,7 +540,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   TY.reindex();
 })(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
 
-</script>
+<\/script>
 <script>
 /* Admin tahrirlarini asosiy kursga qo'llash (brauzer va serverda bir xil ishlaydi).
    rows = { levels:[{idx,title,sub}], topics:[{level,idx,title,icon,tip}], words:[{id,level,topic,en,uz,emoji,sent,sentUz,hidden,pos}], disabled:[tur] }
@@ -502,8 +568,1054 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   };
 })(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
 
+<\/script>
+<script>
+/* Lokal admin rejimi: server yo'q (bitta fayl / file://) bo'lganda /api/admin/* so'rovlarini brauzer ichida (localStorage) bajaradi.
+   Bu serverdagi mantiqning qisqartirilgan nusxasi. Xavfsizlik FAQAT shu brauzer darajasida (haqiqiy himoya emas). */
+(function (TY) {
+  'use strict';
+  var P = 'tilyoli:', DAY = 864e5, MIN_WORDS = TY.MIN_WORDS || 4;
+  var KINDS = ['mc_en_uz', 'mc_uz_en', 'picture', 'type_en_uz', 'type_uz_en', 'scramble', 'cloze', 'build', 'listen'];
+  var EASY = ['mc_en_uz', 'mc_uz_en', 'picture'], HARD = ['type_en_uz', 'type_uz_en', 'scramble', 'cloze', 'build', 'listen'];
+  function ls(k, d) { try { var v = localStorage.getItem(P + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function sv(k, v) { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch (e) {} }
+  function rm(k) { try { localStorage.removeItem(P + k); } catch (e) {} }
+  var now = Date.now;
+  function HttpErr(status, msg, extra) { var e = new Error(msg); e.status = status; e.extra = extra; return e; }
+  var bad = function (m) { return HttpErr(400, m); };
+
+  // ---- Ma'lumot qatlami ----
+  function content() { var c = ls('local-content', null) || {}; c.levels = c.levels || []; c.topics = c.topics || []; c.words = c.words || []; c.disabled = c.disabled || []; c.announcements = c.announcements || []; c.seq = c.seq || 0; return c; }
+  function saveContent(c) { sv('local-content', c); }
+  TY.localRows = function () { var c = content(); return { levels: c.levels, topics: c.topics, words: c.words, disabled: c.disabled }; };
+  TY.localAnnouncements = function () { return content().announcements.filter(function (a) { return a.active; }).slice(-5).reverse(); };
+  function audit(action, target, ok, detail) { var a = ls('local-audit', []); a.unshift({ id: now(), ts: now(), user_name: (ls('local-admin', {}) || {}).name, action: action, target: target == null ? null : String(target), ok: ok === false ? 0 : 1, detail: detail || null }); sv('local-audit', a.slice(0, 500)); }
+  function learners() {
+    var u = ls('users', {}), out = [];
+    Object.keys(u).forEach(function (k, i) {
+      var st = ls('data:' + k, null) || null, last = 0;
+      if (st) { (st.history || []).forEach(function (h) { last = Math.max(last, h.ts); }); Object.keys(st.days || {}).forEach(function (d) { var t = new Date(d + 'T12:00:00').getTime(); if (st.days[d].secs || st.days[d].xp) last = Math.max(last, t); }); }
+      out.push({ id: i + 1, key: k, name: u[k].name, status: u[k].disabled ? 'disabled' : 'active', created_at: u[k].created, last_seen: last || null, state: st, xp: st ? st.xp : 0, streak: TY.Game ? 0 : 0, lessons: st ? Object.keys(st.done || {}).length : 0, words_learned: st ? Object.keys(st.words || {}).filter(function (w) { return st.words[w].c > 0; }).length : 0 });
+      out[out.length - 1].streak = st ? (st.streak || 0) : 0;
+    });
+    return out;
+  }
+  function events() { var ev = []; learners().forEach(function (u) { if (u.state) (u.state.history || []).forEach(function (h) { ev.push({ ts: h.ts, mode: h.mode, node: h.node, pct: h.pct, xp: h.xp, ok: h.ok ? 1 : 0, uid: u.id, name: u.name }); }); }); return ev.sort(function (a, b) { return b.ts - a.ts; }); }
+  function merged(keep) { var c = content(); TY.applyContent({ levels: c.levels, topics: c.topics, words: c.words, disabled: c.disabled }, keep); return TY.LEVELS; }
+  function dayKey(ts) { var d = new Date(ts); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
+
+  // ---- Tekshiruv ----
+  function str(v, max, label, req) {
+    if (v == null || v === '') { if (req) throw bad(label + ' kiritilishi shart'); return ''; }
+    if (typeof v !== 'string') throw bad(label + " noto'g'ri turda");
+    v = v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim(); if (req && !v) throw bad(label + ' kiritilishi shart');
+    if (v.length > max) throw bad(label + ' juda uzun (maks. ' + max + ')'); return v;
+  }
+  function validWord(b) {
+    var en = str(b.en, 40, "Inglizcha so'z", true);
+    if (!/^[A-Za-z][A-Za-z '\-.]*$/.test(en)) throw bad("Inglizcha so'zda faqat lotin harflari, bo'shliq, ' - . bo'lishi mumkin");
+    var uz = (Array.isArray(b.uz) ? b.uz : String(b.uz || '').split(';')).map(function (x) { return str(x, 60, 'Tarjima'); }).filter(Boolean);
+    if (!uz.length) throw bad('Kamida bitta tarjima kerak'); if (uz.length > 8) throw bad('Tarjimalar 8 tadan oshmasin');
+    var sent = str(b.sent, 160, 'Misol gap'), sentUz = str(b.sentUz, 160, 'Gap tarjimasi');
+    if (sent && !new RegExp('\\b' + en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(sent)) throw bad("Misol gapda so'zning o'zi bo'lishi kerak (bo'sh joyni to'ldirish mashqi uchun)");
+    if (sent && !sentUz) throw bad('Misol gap tarjimasini kiriting');
+    return { en: en, uz: uz, emoji: str(b.emoji, 8, 'Emoji'), sent: sent, sentUz: sentUz };
+  }
+  function intIn(v, min, max, label) { v = Number(v); if (!Number.isInteger(v) || v < min || v > max) throw bad(label + " noto'g'ri"); return v; }
+  function dupOf(level, en, exceptId) { var L = merged(true), k = en.toLowerCase(), r = null; L[level].topics.forEach(function (tp) { tp.words.forEach(function (w) { if (!r && w.id !== exceptId && w.en.toLowerCase() === k) r = { id: w.id, topic: tp.title, hidden: !!w.hidden }; }); }); return r; }
+  function findWord(id) { var L = merged(true), f = null; L.forEach(function (lv, li) { lv.topics.forEach(function (tp, ti) { tp.words.forEach(function (w) { if (w.id === id) f = { li: li, ti: ti, w: w, tp: tp }; }); }); }); return f; }
+  function upsert(c, id, level, topic, v, base, hidden) {
+    var r = c.words.filter(function (x) { return x.id === id; })[0];
+    if (r) { r.en = v.en; r.uz = v.uz; r.emoji = v.emoji; r.sent = v.sent; r.sentUz = v.sentUz; r.hidden = hidden ? 1 : 0; }
+    else c.words.push({ id: id, level: level, topic: topic, en: v.en, uz: v.uz, emoji: v.emoji, sent: v.sent, sentUz: v.sentUz, hidden: hidden ? 1 : 0, base: base ? 1 : 0, pos: ++c.seq });
+  }
+  function newId(c, level, topic) { var k = c.words.filter(function (x) { return !x.base; }).length + 1, id; do { id = level + '.' + topic + '.a' + (k++); } while (c.words.some(function (x) { return x.id === id; })); return id; }
+
+  // ---- Admin sessiyasi ----
+  function hash(s) {
+    if (window.crypto && crypto.subtle && window.TextEncoder) return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); });
+    var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return Promise.resolve('x' + (h >>> 0).toString(16));
+  }
+  function pwProblem(p) { if (typeof p !== 'string' || p.length < 10) return "Parol kamida 10 belgidan iborat bo'lsin"; if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) return "Parolda harf va raqam bo'lsin"; return null; }
+  function session() { try { return sessionStorage.getItem(P + 'local-admin-session') === '1'; } catch (e) { return false; } }
+  function setSession(v) { try { v ? sessionStorage.setItem(P + 'local-admin-session', '1') : sessionStorage.removeItem(P + 'local-admin-session'); } catch (e) {} }
+  var ADMIN = function () { var a = ls('local-admin', null); return { name: a ? a.name : 'Admin', role: 'super_admin', perms: ['dashboard', 'content', 'exercises', 'users', 'stats', 'announcements', 'audit', 'admins', 'settings'] }; };
+  var CSRF = 'local';
+
+  // ---- Statistika ----
+  function dashboard(days) {
+    var L = merged(false), us = learners(), t = now(), ev = events(), out = {};
+    var lessonNodes = TY.NODES.filter(function (n) { return n.kind === 'lesson'; }).length;
+    out.content = { levels: L.length, lessons: lessonNodes, tests: L.length, exercises: KINDS.length + 1, words: TY.allWords.length, hiddenWords: content().words.filter(function (w) { return w.hidden; }).length, edits: content().words.length };
+    var act = function (d) { return us.filter(function (u) { return u.last_seen && u.last_seen >= t - d * DAY; }).length; };
+    var doneSum = us.reduce(function (a, u) { return a + u.lessons; }, 0);
+    out.users = { total: us.length, active7: act(7), active30: act(30), new7: us.filter(function (u) { return u.created_at >= t - 7 * DAY; }).length, disabled: us.filter(function (u) { return u.status === 'disabled'; }).length };
+    out.learning = { lessonsCompleted: ev.filter(function (e) { return e.ok; }).length, avgProgress: us.length ? Math.round(1000 * doneSum / (us.length * TY.NODES.length)) / 10 : 0, totalXp: us.reduce(function (a, u) { return a + u.xp; }, 0) };
+    var title = function (id) { var n = TY.nodeById[id]; return n ? L[n.level].id + ' · ' + n.title : id; };
+    var byNode = {}; ev.forEach(function (e) { if (!e.node) return; var b = byNode[e.node] || (byNode[e.node] = { n: 0, s: 0 }); b.n++; b.s += e.pct; });
+    out.popularLessons = Object.keys(byNode).sort(function (a, b) { return byNode[b].n - byNode[a].n; }).slice(0, 5).map(function (k) { return { node: k, title: title(k), count: byNode[k].n }; });
+    out.hardLessons = Object.keys(byNode).filter(function (k) { return byNode[k].n >= 3; }).sort(function (a, b) { return byNode[a].s / byNode[a].n - byNode[b].s / byNode[b].n; }).slice(0, 5).map(function (k) { return { node: k, title: title(k), attempts: byNode[k].n, avgScore: Math.round(byNode[k].s / byNode[k].n) }; });
+    var ws = {}; us.forEach(function (u) { if (u.state) Object.keys(u.state.words || {}).forEach(function (id) { var a = ws[id] || (ws[id] = { c: 0, w: 0 }); a.c += u.state.words[id].c || 0; a.w += u.state.words[id].w || 0; }); });
+    out.hardWords = Object.keys(ws).filter(function (id) { return TY.wordById[id] && ws[id].c + ws[id].w >= 5; }).map(function (id) { return { id: id, en: TY.wordById[id].en, uz: TY.wordById[id].uz[0], attempts: ws[id].c + ws[id].w, wrongRate: Math.round(100 * ws[id].w / (ws[id].c + ws[id].w)) }; }).sort(function (a, b) { return b.wrongRate - a.wrongRate; }).slice(0, 8);
+    out.recentUsers = us.slice().sort(function (a, b) { return b.created_at - a.created_at; }).slice(0, 8).map(function (u) { return { id: u.id, name: u.name, created_at: u.created_at, xp: u.xp }; });
+    out.recentActivity = ev.slice(0, 10).map(function (e) { return { ts: e.ts, mode: e.mode, node: e.node, pct: e.pct, xp: e.xp, ok: e.ok, name: e.name, uid: e.uid, title: e.node ? title(e.node) : ({ practice: 'Aralash mashq', mistakes: "Xato so'zlar" }[e.mode] || e.mode) }; });
+    var s = {}, start = t - (days - 1) * DAY, i; for (i = 0; i < days; i++) s[dayKey(start + i * DAY)] = { date: dayKey(start + i * DAY), registrations: 0, active: 0, lessons: 0, xp: 0, _u: {} };
+    us.forEach(function (u) { var k = dayKey(u.created_at); if (s[k]) s[k].registrations++; });
+    ev.forEach(function (e) { var k = dayKey(e.ts); if (s[k]) { s[k].xp += e.xp; if (e.ok) s[k].lessons++; s[k]._u[e.uid] = 1; } });
+    out.series = Object.keys(s).map(function (k) { s[k].active = Object.keys(s[k]._u).length; delete s[k]._u; return s[k]; });
+    out.levelDistribution = L.map(function (lv) { return { level: lv.id, users: 0 }; });
+    us.forEach(function (u) { if (!u.state) return; var d = u.state.done || {}, top = 0, any = false; Object.keys(d).forEach(function (id) { var m = /^L(\d)/.exec(id); if (m) { top = Math.max(top, +m[1]); any = true; } }); if (any && out.levelDistribution[top]) out.levelDistribution[top].users++; });
+    out.role = 'super_admin'; return out;
+  }
+
+  // ---- Marshrutlar ----
+  var R = [];
+  function r(method, re, fn, open) { R.push({ method: method, re: new RegExp('^' + re.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), fn: fn, open: open }); }
+  r('POST', '/api/admin/login', function (c) {
+    var name = str(c.body.name, 24, 'Ism', true), pass = String(c.body.pass || ''), a = ls('local-admin', null), lock = ls('local-lock', { n: 0, t: 0 });
+    if (lock.n >= 5 && now() - lock.t < 15 * 6e4) throw HttpErr(429, "Urinishlar ko'p. 15 daqiqadan keyin qayta urining.");
+    if (!a) { var p = pwProblem(pass); if (p) throw bad(p); return hash(name.toLowerCase() + ':' + pass).then(function (h) { sv('local-admin', { name: name, h: h }); setSession(true); audit('admin.setup', name, true); return { admin: ADMIN(), csrf: CSRF }; }); }
+    return hash(name.toLowerCase() + ':' + pass).then(function (h) {
+      if (name.toLowerCase() !== a.name.toLowerCase() || h !== a.h) { lock = { n: (lock.n || 0) + 1, t: now() }; sv('local-lock', lock); audit('admin.login', name, false); throw HttpErr(401, "Ism yoki parol noto'g'ri"); }
+      rm('local-lock'); setSession(true); audit('admin.login', name, true); return { admin: ADMIN(), csrf: CSRF };
+    });
+  }, true);
+  r('POST', '/api/admin/logout', function () { setSession(false); return {}; });
+  r('GET', '/api/admin/me', function () { return { admin: ADMIN(), csrf: CSRF }; });
+  r('GET', '/api/admin/dashboard', function (c) { return dashboard(intIn(c.q.days || 30, 7, 90, 'days')); });
+  r('GET', '/api/admin/notifications', function () {
+    var us = learners(), l = [], t = now(), n = us.filter(function (u) { return u.created_at >= t - DAY; }).length;
+    if (n) l.push({ type: 'info', text: "Oxirgi 24 soatda " + n + " ta yangi foydalanuvchi", ts: t });
+    var d = us.filter(function (u) { return u.status === 'disabled'; }).length; if (d) l.push({ type: 'info', text: d + ' ta bloklangan hisob', ts: t });
+    ls('local-audit', []).filter(function (a) { return !a.ok; }).slice(0, 5).forEach(function (a) { l.push({ type: 'err', text: 'Muvaffaqiyatsiz: ' + a.action + ' ' + (a.target || ''), ts: a.ts }); });
+    return { items: l };
+  });
+  r('GET', '/api/admin/users', function (c) {
+    var page = intIn(c.q.page || 1, 1, 10000, 'page'), size = 20, q = String(c.q.q || '').toLowerCase().slice(0, 40), us = learners().filter(function (u) { return u.name.toLowerCase().indexOf(q) >= 0 && (!c.q.status || u.status === c.q.status); });
+    var cmp = { name: function (a, b) { return a.name.localeCompare(b.name); }, xp: function (a, b) { return b.xp - a.xp; }, seen: function (a, b) { return (b.last_seen || 0) - (a.last_seen || 0); } }[c.q.sort] || function (a, b) { return b.created_at - a.created_at; };
+    us.sort(cmp); var total = us.length;
+    return { rows: us.slice((page - 1) * size, page * size).map(function (u) { return { id: u.id, name: u.name, status: u.status, created_at: u.created_at, last_seen: u.last_seen, xp: u.xp, streak: u.streak, lessons: u.lessons, words_learned: u.words_learned }; }), total: total, page: page, pages: Math.max(1, Math.ceil(total / size)) };
+  });
+  function userBy(id) { id = intIn(id, 1, 1e9, 'id'); var u = learners().filter(function (x) { return x.id === id; })[0]; if (!u) throw HttpErr(404, 'Foydalanuvchi topilmadi'); return u; }
+  r('GET', '/api/admin/users/:id', function (c) {
+    var u = userBy(c.params.id), s = u.state || {}; var L = merged(false);
+    var done = Object.keys(s.done || {}).map(function (id) { return { id: id, title: TY.nodeById[id] ? L[TY.nodeById[id].level].id + ' · ' + TY.nodeById[id].title : id, best: s.done[id].best }; });
+    var hard = Object.keys(s.words || {}).filter(function (id) { return TY.wordById[id] && s.words[id].w > 0; }).map(function (id) { return { en: TY.wordById[id].en, uz: TY.wordById[id].uz[0], wrong: s.words[id].w, right: s.words[id].c }; }).sort(function (a, b) { return b.wrong - a.wrong; }).slice(0, 10);
+    return { user: { id: u.id, name: u.name, status: u.status, created_at: u.created_at, last_seen: u.last_seen, xp: u.xp, streak: u.streak, lessons: u.lessons, words_learned: u.words_learned },
+      progress: { hearts: s.hearts, bestStreak: s.bestStreak, goalMin: s.goalMin, achievements: Object.keys(s.ach || {}), mistakes: Object.keys(s.mistakes || {}).length, done: done, percent: Math.round(100 * done.length / TY.NODES.length) },
+      days: Object.keys(s.days || {}).sort().slice(-14).map(function (d) { return Object.assign({ date: d }, s.days[d]); }), hardWords: hard, events: events().filter(function (e) { return e.uid === u.id; }).slice(0, 15) };
+  });
+  r('POST', '/api/admin/users/:id/status', function (c) { var u = userBy(c.params.id); if (['active', 'disabled'].indexOf(c.body.status) < 0) throw bad('status'); var us = ls('users', {}); us[u.key].disabled = c.body.status === 'disabled'; sv('users', us); audit('user.' + c.body.status, u.name, true); return {}; });
+  r('POST', '/api/admin/users/:id/reset-progress', function (c) { var u = userBy(c.params.id); rm('data:' + u.key); audit('user.reset-progress', u.name, true); return {}; });
+  r('DELETE', '/api/admin/users/:id', function (c) { var u = userBy(c.params.id), us = ls('users', {}); delete us[u.key]; sv('users', us); rm('data:' + u.key); audit('user.delete', u.name, true); return {}; });
+  r('GET', '/api/admin/export/users.csv', function () { audit('export.users', '', true); return { csv: TY.localCsv() }; });
+  TY.localCsv = function () {
+    var cell = function (v) { var s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }, iso = function (t) { return t ? new Date(t).toISOString() : ''; };
+    return ['id,name,status,created,last_seen,xp,streak,lessons,words_learned'].concat(learners().map(function (u) { return [u.id, u.name, u.status, iso(u.created_at), iso(u.last_seen), u.xp, u.streak, u.lessons, u.words_learned].map(cell).join(','); })).join('\n');
+  };
+  r('GET', '/api/admin/content', function () {
+    var L = merged(true), c = content(), ed = {}; c.words.forEach(function (w) { ed[w.id] = 1; });
+    return { levels: L.map(function (lv, li) { return { idx: li, id: lv.id, title: lv.title, sub: lv.sub, color: lv.color, topics: lv.topics.map(function (tp, ti) { var vis = tp.words.filter(function (w) { return !w.hidden; }).length; return { idx: ti, title: tp.title, icon: tp.icon, tip: tp.tip, visible: vis, published: vis >= MIN_WORDS, words: tp.words.map(function (w) { return Object.assign({}, w, { edited: !!ed[w.id], custom: /\.a\d+$/.test(w.id) }); }) }; }) }; }), disabled: c.disabled, kinds: KINDS, minWords: MIN_WORDS };
+  });
+  function topicOf(level, topic) { var L = merged(true), lv = L[intIn(level, 0, L.length - 1, 'Daraja')]; return { lv: lv, tp: lv.topics[intIn(topic, 0, lv.topics.length - 1, 'Mavzu')] }; }
+  r('POST', '/api/admin/words', function (c) {
+    topicOf(c.body.level, c.body.topic); var level = +c.body.level, topic = +c.body.topic, v = validWord(c.body), d = dupOf(level, v.en);
+    if (d && !c.body.allowDuplicate) throw HttpErr(409, '«' + v.en + "» bu darajada allaqachon bor (" + d.topic + "). Baribir qo'shish uchun tasdiqlang.", { duplicate: d });
+    var cc = content(), id = newId(cc, level, topic); upsert(cc, id, level, topic, v, false, false); saveContent(cc); audit('word.create', id + ' ' + v.en, true); return { id: id };
+  });
+  r('PUT', '/api/admin/words/:id', function (c) {
+    var f = findWord(decodeURIComponent(c.params.id)); if (!f) throw HttpErr(404, "So'z topilmadi");
+    var v = validWord(c.body), hidden = !!c.body.hidden;
+    if (hidden && !f.w.hidden && f.tp.words.filter(function (w) { return !w.hidden; }).length - 1 < MIN_WORDS) throw HttpErr(409, 'Mavzuda kamida ' + MIN_WORDS + " ta ko'rinadigan so'z qolishi kerak");
+    var d = dupOf(f.li, v.en, f.w.id); if (d && !c.body.allowDuplicate && v.en.toLowerCase() !== f.w.en.toLowerCase()) throw HttpErr(409, '«' + v.en + '» allaqachon bor', { duplicate: d });
+    var cc = content(), row = cc.words.filter(function (x) { return x.id === f.w.id; })[0]; upsert(cc, f.w.id, f.li, f.ti, v, row ? row.base : 1, hidden); saveContent(cc);
+    audit(hidden !== !!f.w.hidden ? (hidden ? 'word.hide' : 'word.restore') : 'word.update', f.w.id + ' ' + v.en, true); return {};
+  });
+  r('DELETE', '/api/admin/words/:id', function (c) {
+    var f = findWord(decodeURIComponent(c.params.id)); if (!f) throw HttpErr(404, "So'z topilmadi");
+    if (!f.w.hidden && f.tp.words.filter(function (w) { return !w.hidden; }).length - 1 < MIN_WORDS) throw HttpErr(409, 'Mavzuda kamida ' + MIN_WORDS + " ta ko'rinadigan so'z qolishi kerak");
+    var cc = content(), row = cc.words.filter(function (x) { return x.id === f.w.id; })[0];
+    if (row && !row.base) { cc.words = cc.words.filter(function (x) { return x.id !== f.w.id; }); saveContent(cc); audit('word.delete', f.w.id, true); return { deleted: true }; }
+    upsert(cc, f.w.id, f.li, f.ti, f.w, true, true); saveContent(cc); audit('word.hide', f.w.id + ' ' + f.w.en, true); return { hidden: true };
+  });
+  r('POST', '/api/admin/import', function (c) {
+    topicOf(c.body.level, c.body.topic); var level = +c.body.level, topic = +c.body.topic, rows = c.body.rows;
+    if (!Array.isArray(rows) || !rows.length) throw bad("Qatorlar yo'q"); if (rows.length > 500) throw bad("Bir martada 500 tadan ko'p qator mumkin emas");
+    var mode = ['report', 'skip', 'allow'].indexOf(c.body.duplicates) >= 0 ? c.body.duplicates : 'report', dry = !!c.body.dryRun, res = { added: [], duplicates: [], invalid: [] }, seen = {}, apply = [];
+    rows.forEach(function (rw, i) {
+      try {
+        var v = validWord({ en: rw[0], uz: String(rw[1] || '').split(/[;,]/), emoji: rw[2], sent: rw[3], sentUz: rw[4] }), key = v.en.toLowerCase(), d = dupOf(level, v.en) || (seen[key] ? { topic: 'importdagi takror' } : null); seen[key] = 1;
+        if (d) { res.duplicates.push({ row: i + 1, en: v.en, where: d.topic }); if (mode !== 'allow') return; }
+        apply.push(v); res.added.push({ row: i + 1, en: v.en });
+      } catch (e) { res.invalid.push({ row: i + 1, en: String(rw[0] || ''), error: e.message }); }
+    });
+    if (dry || (mode === 'report' && res.duplicates.length)) { res.applied = false; return res; }
+    var cc = content(); apply.forEach(function (v) { upsert(cc, newId(cc, level, topic), level, topic, v, false, false); }); saveContent(cc);
+    res.applied = true; audit('word.import', 'L' + level + 'T' + topic + ' +' + apply.length, true); return res;
+  });
+  r('POST', '/api/admin/topics', function (c) {
+    var L = merged(true), level = intIn(c.body.level, 0, L.length - 1, 'Daraja'), idx = L[level].topics.length; if (idx >= 12) throw bad("Bir darajada 12 tadan ko'p mavzu mumkin emas");
+    var cc = content(); cc.topics.push({ level: level, idx: idx, title: str(c.body.title, 40, 'Mavzu nomi', true), icon: str(c.body.icon, 8, 'Belgi') || '📘', tip: str(c.body.tip, 400, 'Tushuntirish') }); saveContent(cc); audit('topic.create', 'L' + level + 'T' + idx, true); return { idx: idx };
+  });
+  r('PUT', '/api/admin/topics/:level/:idx', function (c) {
+    topicOf(c.params.level, c.params.idx); var cc = content(), l = +c.params.level, i = +c.params.idx, row = cc.topics.filter(function (x) { return x.level === l && x.idx === i; })[0], v = { level: l, idx: i, title: str(c.body.title, 40, 'Mavzu nomi', true), icon: str(c.body.icon, 8, 'Belgi') || '📘', tip: str(c.body.tip, 400, 'Tushuntirish') };
+    if (row) Object.assign(row, v); else cc.topics.push(v); saveContent(cc); audit('topic.update', 'L' + l + 'T' + i, true); return {};
+  });
+  r('PUT', '/api/admin/levels/:idx', function (c) {
+    var L = merged(true), idx = intIn(c.params.idx, 0, L.length - 1, 'Daraja'), cc = content(), v = { idx: idx, title: str(c.body.title, 40, 'Nom', true), sub: str(c.body.sub, 60, 'Tavsif', true) }, row = cc.levels.filter(function (x) { return x.idx === idx; })[0];
+    if (row) Object.assign(row, v); else cc.levels.push(v); saveContent(cc); audit('level.update', idx, true); return {};
+  });
+  r('PUT', '/api/admin/exercises', function (c) {
+    var d = c.body.disabled; if (!Array.isArray(d) || d.some(function (k) { return KINDS.indexOf(k) < 0; })) throw bad("Mashq turi noto'g'ri");
+    if (EASY.every(function (k) { return d.indexOf(k) >= 0; }) || HARD.every(function (k) { return d.indexOf(k) >= 0; })) throw bad("Yengil va murakkab guruhlarning har birida kamida bitta mashq turi yoqiq bo'lsin");
+    var cc = content(); cc.disabled = d.filter(function (k, i) { return d.indexOf(k) === i; }); saveContent(cc); audit('exercises.update', d.join(',') || '-', true); return {};
+  });
+  r('GET', '/api/admin/achievements', function () { var counts = {}, us = learners().filter(function (u) { return u.state; }); us.forEach(function (u) { Object.keys(u.state.ach || {}).forEach(function (k) { counts[k] = (counts[k] || 0) + 1; }); }); return { counts: counts, users: us.length }; });
+  r('GET', '/api/admin/announcements', function () { return { rows: content().announcements.slice().reverse() }; });
+  r('POST', '/api/admin/announcements', function (c) { var cc = content(), a = { id: ++cc.seq, title: str(c.body.title, 80, 'Sarlavha', true), body: str(c.body.body, 500, 'Matn', true), active: c.body.active === false ? 0 : 1, created: now(), author: ADMIN().name }; cc.announcements.push(a); saveContent(cc); audit('announcement.create', a.id, true); return { id: a.id }; });
+  r('PUT', '/api/admin/announcements/:id', function (c) { var cc = content(), a = cc.announcements.filter(function (x) { return x.id == c.params.id; })[0]; if (!a) throw HttpErr(404, 'Topilmadi'); a.title = str(c.body.title, 80, 'Sarlavha', true); a.body = str(c.body.body, 500, 'Matn', true); a.active = c.body.active ? 1 : 0; saveContent(cc); audit('announcement.update', a.id, true); return {}; });
+  r('DELETE', '/api/admin/announcements/:id', function (c) { var cc = content(); cc.announcements = cc.announcements.filter(function (x) { return x.id != c.params.id; }); saveContent(cc); audit('announcement.delete', c.params.id, true); return {}; });
+  r('GET', '/api/admin/audit', function (c) { var page = intIn(c.q.page || 1, 1, 10000, 'page'), a = ls('local-audit', []); return { rows: a.slice((page - 1) * 30, page * 30), total: a.length, page: page, pages: Math.max(1, Math.ceil(a.length / 30)) }; });
+  r('GET', '/api/admin/settings', function () { return { registrationOpen: ls('local-settings', { registrationOpen: true }).registrationOpen !== false }; });
+  r('PUT', '/api/admin/settings', function (c) { sv('local-settings', { registrationOpen: !!c.body.registrationOpen }); audit('settings.update', 'registrationOpen=' + !!c.body.registrationOpen, true); return {}; });
+  r('GET', '/api/admin/admins', function () { var a = ls('local-admin', {}); return { rows: [{ id: 1, name: a.name || 'Admin', role: 'super_admin', status: 'active', created_at: null, last_seen: now() }] }; });
+  r('POST', '/api/admin/admins', function () { throw bad("Lokal rejimda faqat bitta administrator bo'ladi. Ko'p administrator va rollar uchun server rejimidan foydalaning."); });
+  r('PUT', '/api/admin/admins/:id', function (c) {
+    if (!c.body.pass) throw bad("Lokal rejimda faqat parolni almashtirish mumkin"); var p = pwProblem(c.body.pass); if (p) throw bad(p);
+    var a = ls('local-admin', {}); return hash(a.name.toLowerCase() + ':' + c.body.pass).then(function (h) { a.h = h; sv('local-admin', a); audit('admin.update', a.name + ' +parol', true); return {}; });
+  });
+
+  // fetch o'rnini bosuvchi (Response'ga o'xshash obyekt qaytaradi)
+  function resp(status, j) { return { ok: status < 400, status: status, json: function () { return Promise.resolve(j); }, text: function () { return Promise.resolve(JSON.stringify(j)); } }; }
+  TY.localFetch = function (url, o) {
+    o = o || {}; var u = new URL(url, 'http://x'), path = u.pathname, method = (o.method || 'GET').toUpperCase(), q = {}; u.searchParams.forEach(function (v, k) { q[k] = v; });
+    var body = {}; try { body = o.body ? JSON.parse(o.body) : {}; } catch (e) {}
+    for (var i = 0; i < R.length; i++) {
+      var m = R[i].method === method && R[i].re.exec(path); if (!m) continue;
+      if (!R[i].open && !session()) return Promise.resolve(resp(401, { error: 'Kirish talab qilinadi' }));
+      try { return Promise.resolve(R[i].fn({ params: Object.assign({}, m.groups), q: q, body: body })).then(function (j) { return resp(200, j || {}); }, function (e) { return resp(e.status || 500, Object.assign({ error: e.message }, e.extra || {})); }); }
+      catch (e) { return Promise.resolve(resp(e.status || 500, Object.assign({ error: e.message }, e.extra || {}))); }
+    }
+    return Promise.resolve(resp(404, { error: 'API topilmadi' }));
+  };
+  TY.localSetupNeeded = function () { return !ls('local-admin', null); };
+  TY.LOCAL_ADMIN = true;
+})(window.TY = window.TY || {});
+
+<\/script>
+<script>
+/* Admin panel (frontend). Barcha ma'lumotlar /api/admin/* dan keladi; ruxsatlar serverda tekshiriladi,
+   bu yerda faqat menyu va tugmalar ruxsatga qarab ko'rsatiladi. Har bir matn esc() bilan qochiriladi (XSS). */
+(function () {
+  'use strict';
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var root = $('#root'), dlg = $('#dlg');
+  var me = null, csrf = null, hbTimer = null;
+  var LOCAL = !!(window.TY && window.TY.LOCAL_ADMIN), HOME = LOCAL ? location.pathname : '/';
+  var ACH = { first: 'Birinchi qadam', xp100: '100 XP', xp500: '500 XP', xp2000: '2000 XP', streak3: '3 kunlik seriya', streak7: '7 kunlik seriya', streak30: '30 kunlik seriya', perfect: 'Mukammal dars', correct100: "100 ta to'g'ri javob", words50: "50 ta so'z", words100: "100 ta so'z", goal: 'Kunlik maqsad', test: 'Sinovdan o\'tdi', A1: 'A1 tugadi', IELTS: "IELTS yo'li", fixer: 'Xatolar ustasi' };
+  var ROLE = { super_admin: 'Super Admin', admin: 'Admin', editor: 'Editor' };
+  var KIND = { mc_en_uz: 'Tarjima tanlash (en→uz)', mc_uz_en: "O'zbekchadan inglizchani topish", picture: 'Rasm bo\'yicha topish', type_en_uz: 'Tarjimani yozish', type_uz_en: 'Inglizchasini yozish', scramble: "Harflardan so'z tuzish", cloze: "Bo'sh joyni to'ldirish", build: 'Gap tuzish', listen: 'Eshitib yozish' };
+  var NAV = [['dashboard', '', 'Bosh panel', 'dashboard'], ['users', 'users', 'Foydalanuvchilar', 'users'], ['content', 'content', 'Kurs mazmuni', 'content'], ['exercises', 'exercises', 'Mashqlar', 'exercises'], ['achievements', 'ach', 'Yutuqlar', 'stats'], ['stats', 'stats', 'Statistika', 'stats'], ['announcements', 'ann', "E'lonlar", 'announcements'], ['audit', 'audit', 'Audit jurnali', 'audit'], ['settings', 'settings', 'Sozlamalar', 'settings']];
+  var ICON = { dashboard: '▦', users: '👥', content: '📚', exercises: '🧩', achievements: '🏅', stats: '📈', announcements: '📣', audit: '🧾', settings: '⚙️' };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fdate(t) { return t ? new Date(t).toLocaleString('uz', { dateStyle: 'short', timeStyle: 'short' }) : '—'; }
+  function can(p) { return me && me.perms.indexOf(p) >= 0; }
+  function toast(m, err) { var d = document.createElement('div'); d.className = 'toast' + (err ? ' err' : ''); d.textContent = m; $('#toasts').appendChild(d); setTimeout(function () { d.remove(); }, 3500); }
+  function api(method, url, body) {
+    return (window.TY && window.TY.localFetch || fetch)(url, { method: method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf || '' }, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) { var e = new Error(j.error || 'Xato ' + r.status); e.status = r.status; e.data = j; if (r.status === 401 && me) { me = null; renderLogin('Sessiya tugadi, qayta kiring'); } throw e; }
+        return j;
+      });
+    });
+  }
+  function modal(html) { dlg.hidden = false; dlg.innerHTML = '<div class="box" role="dialog" aria-modal="true">' + html + '</div>'; var f = $('input,select,textarea,button', dlg); if (f) f.focus(); }
+  function closeModal() { dlg.hidden = true; dlg.innerHTML = ''; }
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+  function confirmBox(text, label, danger) {
+    return new Promise(function (res) {
+      modal('<h2>Tasdiqlang</h2><p>' + esc(text) + '</p><div class="row"><button class="btn ' + (danger ? 'd' : 'p') + '" id="cy">' + esc(label || 'Ha') + '</button><button class="btn" id="cn">Bekor qilish</button></div>');
+      $('#cy').onclick = function () { closeModal(); res(true); }; $('#cn').onclick = function () { closeModal(); res(false); };
+    });
+  }
+  function fail(e) { toast(e.message, true); }
+
+  // ---- Kirish ----
+  function renderLogin(msg) {
+    clearInterval(hbTimer);
+    root.innerHTML = '<main class="login" id="main"><div class="brand" style="color:var(--ink)"><span class="logo">T</span>Til Yo\'li · Admin</div><div class="card"><h1>Administrator kirishi</h1><form id="lf" novalidate><label for="n">Foydalanuvchi nomi</label><input id="n" autocomplete="username" style="width:100%" required><label for="p">Parol</label><input id="p" type="password" autocomplete="current-password" style="width:100%" required><p class="err" role="alert" id="le">' + esc(msg || '') + '</p><button class="btn p" style="width:100%;justify-content:center" type="submit">Kirish</button></form></div><p class="mute">' + (LOCAL ? (window.TY.localSetupNeeded() ? "Birinchi kirish: kiritgan ismingiz va parolingiz (kamida 10 belgi, harf va raqam) administrator bo'ladi." : "Lokal rejim: ma'lumotlar faqat shu brauzerda.") : 'Faqat vakolatli administratorlar uchun. Barcha kirishlar qayd etiladi.') + ' <a href="' + HOME + '">← Saytga qaytish</a></p></main>';
+    $('#n').focus();
+    $('#lf').onsubmit = function (e) {
+      e.preventDefault(); var b = $('button', e.target); b.disabled = true;
+      api('POST', '/api/admin/login', { name: $('#n').value, pass: $('#p').value }).then(function (r) { me = r.admin; csrf = r.csrf; location.hash = '#/'; start(); }).catch(function (er) { $('#le').textContent = er.message; b.disabled = false; });
+    };
+  }
+
+  // ---- Qobiq ----
+  var cur = { name: '', q: {} };
+  function parseHash() { var h = (location.hash || '#/').slice(2), qi = h.indexOf('?'), q = {}; if (qi >= 0) { new URLSearchParams(h.slice(qi + 1)).forEach(function (v, k) { q[k] = v; }); h = h.slice(0, qi); } var p = h.split('/'); return { name: p[0] || 'dashboard', arg: p[1], q: q }; }
+  function shell() {
+    var r = parseHash(), nav = NAV.filter(function (n) { return can(n[3]); }).map(function (n) { return '<a href="#/' + (n[0] === 'dashboard' ? '' : n[0]) + '"' + (r.name === n[0] || (r.name === '' && n[0] === 'dashboard') ? ' aria-current="page"' : '') + '><span aria-hidden="true">' + ICON[n[0]] + '</span>' + n[2] + '</a>'; }).join('');
+    root.innerHTML = '<div class="shell"><aside class="side" id="side"><div class="brand"><span class="logo">T</span>Til Yo\'li Admin</div><nav class="nav" aria-label="Admin menyusi">' + nav + '</nav></aside><div><header class="top"><button class="btn menu" id="mn" aria-label="Menyu">☰</button><input type="search" id="gs" placeholder="' + (can('users') ? 'Foydalanuvchi qidirish…' : "So'z qidirish…") + '" aria-label="Qidiruv"><span class="sp"></span><a class="btn" href="' + HOME + '">← Sayt</a><div class="bell"><button class="btn" id="bl" aria-label="Bildirishnomalar">🔔<span class="n" id="bn" hidden></span></button><div class="pop" id="bp" hidden></div></div><button class="btn" id="th" aria-label="Mavzuni almashtirish">◐</button><span class="mute">' + esc(me.name) + ' <span class="tag">' + ROLE[me.role] + '</span></span><button class="btn" id="lo">Chiqish</button></header><main class="main" id="main" tabindex="-1"><div class="spin">Yuklanmoqda…</div></main></div></div>';
+    $('#mn').onclick = function () { $('#side').classList.toggle('open'); };
+    $('#side').onclick = function (e) { if (e.target.closest('a')) $('#side').classList.remove('open'); };
+    $('#lo').onclick = function () { api('POST', '/api/admin/logout').catch(function () {}).then(function () { me = null; csrf = null; renderLogin(); }); };
+    $('#th').onclick = function () { var d = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = d; try { localStorage.setItem('tilyoli:pref', JSON.stringify({ theme: d })); } catch (e) {} };
+    $('#gs').onkeydown = function (e) { if (e.key === 'Enter') { var v = encodeURIComponent(e.target.value.trim()); location.hash = can('users') ? '#/users?q=' + v : '#/content?q=' + v; } };
+    document.onclick = function (e) { var l = LOCAL && e.target.closest && e.target.closest('a[href$="export/users.csv"]'); if (l) { e.preventDefault(); api('GET', '/api/admin/export/users.csv').catch(function () {}); var b = new Blob(['\ufeff' + window.TY.localCsv()], { type: 'text/csv' }), x = document.createElement('a'); x.href = URL.createObjectURL(b); x.download = 'users.csv'; x.click(); } };
+    $('#bl').onclick = function () { var p = $('#bp'); p.hidden = !p.hidden; };
+    loadNotifs();
+  }
+  function loadNotifs() {
+    api('GET', '/api/admin/notifications').then(function (r) {
+      $('#bn').hidden = !r.items.length; $('#bn').textContent = r.items.length;
+      $('#bp').innerHTML = r.items.length ? r.items.map(function (i) { return '<p><span class="tag ' + (i.type === 'err' ? 'r' : i.type === 'warn' ? 'y' : '') + '">' + (i.type === 'err' ? 'Xato' : i.type === 'warn' ? 'Ogohlantirish' : 'Ma\'lumot') + '</span> ' + esc(i.text) + '</p>'; }).join('') : '<p class="mute">Yangi bildirishnoma yo\'q</p>';
+    }).catch(function () {});
+  }
+  function page(html) { var m = $('#main'); m.innerHTML = html; }
+
+  // ---- Grafiklar (SVG) ----
+  function lineChart(data, keys, colors) {
+    var W = 640, H = 170, P = 24, mx = Math.max(1, Math.max.apply(null, data.map(function (d) { return Math.max.apply(null, keys.map(function (k) { return d[k]; })); })));
+    var x = function (i) { return P + i * (W - 2 * P) / Math.max(1, data.length - 1); }, y = function (v) { return H - P - v * (H - 2 * P) / mx; };
+    var lines = keys.map(function (k, ki) { return '<polyline fill="none" stroke="' + colors[ki] + '" stroke-width="2.5" stroke-linejoin="round" points="' + data.map(function (d, i) { return x(i) + ',' + y(d[k]); }).join(' ') + '"/>'; }).join('');
+    var grid = [0, .5, 1].map(function (f) { return '<line x1="' + P + '" x2="' + (W - P) + '" y1="' + y(mx * f) + '" y2="' + y(mx * f) + '" stroke="var(--line)"/><text x="2" y="' + (y(mx * f) + 4) + '" font-size="10" fill="var(--mute)">' + Math.round(mx * f) + '</text>'; }).join('');
+    var lab = '<text x="' + P + '" y="' + (H - 6) + '" font-size="10" fill="var(--mute)">' + esc(data[0].date.slice(5)) + '</text><text x="' + (W - P) + '" y="' + (H - 6) + '" font-size="10" text-anchor="end" fill="var(--mute)">' + esc(data[data.length - 1].date.slice(5)) + '</text>';
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" aria-label="Grafik">' + grid + lines + lab + '</svg>';
+  }
+  function legend(items) { return '<div class="legend">' + items.map(function (i) { return '<span><span class="dot" style="background:' + i[1] + '"></span>' + esc(i[0]) + '</span>'; }).join('') + '</div>'; }
+  function table(head, rows, empty) { return rows.length ? '<div class="tw"><table><thead><tr>' + head.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' : '<div class="empty">' + esc(empty || "Ma'lumot yo'q") + '</div>'; }
+  function pager(r, base) {
+    if (r.pages <= 1) return ''; var q = function (p) { var o = Object.assign({}, cur.q, { page: p }); return '#/' + base + '?' + new URLSearchParams(o).toString(); };
+    return '<div class="row" style="margin-top:.8rem"><a class="btn s' + (r.page <= 1 ? '" aria-disabled="true" style="pointer-events:none;opacity:.5' : '') + '" href="' + q(r.page - 1) + '">← Oldingi</a><span class="mute">' + r.page + ' / ' + r.pages + ' (' + r.total + ')</span><a class="btn s" href="' + q(r.page + 1) + '"' + (r.page >= r.pages ? ' aria-disabled="true" style="pointer-events:none;opacity:.5"' : '') + '>Keyingi →</a></div>';
+  }
+
+  // ---- Sahifalar ----
+  var V = {};
+  V.dashboard = function (r) {
+    var days = +(r.q.days || 30);
+    api('GET', '/api/admin/dashboard?days=' + days).then(function (d) {
+      var c = d.content, k = function (v, l) { return '<div class="card kpi"><b>' + esc(v) + '</b><span>' + esc(l) + '</span></div>'; };
+      var h = '<h1>Bosh panel</h1><div class="grid g4">' + k(c.levels, 'Darajalar') + k(c.lessons + c.tests, 'Darslar va sinovlar') + k(c.exercises, 'Mashq turlari') + k(c.words, "Lug'at so'zlari") + '</div>';
+      if (d.users) {
+        h += '<div class="grid g4">' + k(d.users.total, "Ro'yxatdan o'tganlar") + k(d.users.active7, 'Faol (7 kun)') + k(d.users.active30, 'Faol (30 kun)') + k(d.learning.lessonsCompleted, 'Tugatilgan mashg\'ulotlar') + k(d.learning.avgProgress + '%', "O'rtacha progress") + k(d.learning.totalXp, 'Jami XP') + k(d.users.new7, 'Yangi (7 kun)') + k(d.users.disabled, 'Bloklangan') + '</div>';
+        h += '<div class="row" style="margin-bottom:.6rem"><span class="mute">Davr:</span>' + [7, 30, 90].map(function (n) { return '<a class="btn s' + (n === days ? ' p' : '') + '" href="#/?days=' + n + '">' + n + ' kun</a>'; }).join('') + '</div>';
+        h += '<div class="grid g2"><div class="card"><h2>Foydalanuvchilar o\'sishi va faolligi</h2>' + lineChart(d.series, ['registrations', 'active'], ['#2563eb', '#16a34a']) + legend([["Yangi ro'yxatdan o'tganlar", '#2563eb'], ['Faol foydalanuvchilar', '#16a34a']]) + '</div>' +
+          '<div class="card"><h2>Darslar va XP</h2>' + lineChart(d.series, ['lessons', 'xp'], ['#eab308', '#9333ea']) + legend([['Tugatilgan mashg\'ulotlar', '#eab308'], ['XP', '#9333ea']]) + '</div></div>';
+        var mxu = Math.max(1, Math.max.apply(null, d.levelDistribution.map(function (x) { return x.users; })));
+        h += '<div class="grid g2"><div class="card"><h2>Foydalanuvchilar eng yuqori darajasi</h2>' + d.levelDistribution.map(function (x) { return '<div class="row sb"><span>' + esc(x.level) + '</span><span>' + x.users + '</span></div><div class="hbar"><i style="width:' + 100 * x.users / mxu + '%"></i></div>'; }).join('') + '</div>' +
+          '<div class="card"><h2>Mashhur darslar</h2>' + table(['Dars', 'Urinish'], d.popularLessons.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + x.count + '</td></tr>'; }), "Hali urinishlar yo'q") + '</div></div>';
+        h += '<div class="grid g2"><div class="card"><h2>Eng qiyin darslar</h2>' + table(['Dars', "O'rtacha natija", 'Urinish'], d.hardLessons.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + x.avgScore + '%</td><td>' + x.attempts + '</td></tr>'; }), 'Yetarli ma\'lumot yo\'q (kamida 3 urinish)') + '</div>' +
+          '<div class="card"><h2>Eng qiyin so\'zlar</h2>' + table(["So'z", 'Tarjima', 'Xato %', 'Javob'], d.hardWords.map(function (x) { return '<tr><td>' + esc(x.en) + '</td><td>' + esc(x.uz) + '</td><td>' + x.wrongRate + '%</td><td>' + x.attempts + '</td></tr>'; }), "Yetarli ma'lumot yo'q (kamida 5 javob)") + '</div></div>';
+        h += '<div class="grid g2"><div class="card"><h2>Yangi foydalanuvchilar</h2>' + table(['Ism', 'Sana', 'XP'], d.recentUsers.map(function (u) { return '<tr><td><a href="#/users/' + u.id + '">' + esc(u.name) + '</a></td><td>' + fdate(u.created_at) + '</td><td>' + u.xp + '</td></tr>'; }), "Hali foydalanuvchi yo'q") + '</div>' +
+          '<div class="card"><h2>So\'nggi faollik</h2>' + table(['Kim', 'Nima', 'Natija', 'Vaqt'], d.recentActivity.map(function (e) { return '<tr><td><a href="#/users/' + e.uid + '">' + esc(e.name) + '</a></td><td>' + esc(e.title) + '</td><td>' + e.pct + '%' + (e.ok ? '' : ' <span class="tag r">o\'tmadi</span>') + '</td><td>' + fdate(e.ts) + '</td></tr>'; }), "Hali faollik yo'q") + '</div></div>';
+      } else h += '<p class="mute">Foydalanuvchi statistikasi sizning rolingiz uchun ochiq emas.</p>';
+      page(h);
+    }).catch(function (e) { page('<p class="err">' + esc(e.message) + '</p>'); });
+  };
+
+  V.users = function (r) {
+    if (r.arg) return userProfile(r.arg);
+    var qs = new URLSearchParams(cur.q).toString();
+    api('GET', '/api/admin/users?' + qs).then(function (d) {
+      var q = cur.q;
+      page('<h1>Foydalanuvchilar</h1><form class="row card" id="uf"><input name="q" placeholder="Ism bo\'yicha qidirish" value="' + esc(q.q || '') + '" aria-label="Qidirish"><select name="status" aria-label="Holat"><option value="">Barcha holatlar</option><option value="active"' + (q.status === 'active' ? ' selected' : '') + '>Faol</option><option value="disabled"' + (q.status === 'disabled' ? ' selected' : '') + '>Bloklangan</option></select><select name="sort" aria-label="Saralash">' + [['created', "Ro'yxatdan o'tgan sana"], ['xp', 'XP'], ['seen', 'Oxirgi faollik'], ['name', 'Ism']].map(function (o) { return '<option value="' + o[0] + '"' + (q.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select><button class="btn p">Qidirish</button><a class="btn" href="/api/admin/export/users.csv">⬇️ CSV</a></form>' +
+        '<div class="card">' + table(['Ism', 'Holat', 'XP', 'Seriya', 'Darslar', "So'zlar", "Ro'yxatdan o'tgan", 'Oxirgi faollik'], d.rows.map(function (u) { return '<tr><td><a href="#/users/' + u.id + '">' + esc(u.name) + '</a></td><td><span class="tag ' + (u.status === 'active' ? 'g' : 'r') + '">' + (u.status === 'active' ? 'Faol' : 'Bloklangan') + '</span></td><td>' + u.xp + '</td><td>' + u.streak + '</td><td>' + u.lessons + '</td><td>' + u.words_learned + '</td><td>' + fdate(u.created_at) + '</td><td>' + fdate(u.last_seen) + '</td></tr>'; }), 'Foydalanuvchilar topilmadi') + pager(d, 'users') + '</div>');
+      $('#uf').onsubmit = function (e) { e.preventDefault(); var o = {}; new FormData(e.target).forEach(function (v, k) { if (v) o[k] = v; }); location.hash = '#/users?' + new URLSearchParams(o).toString(); };
+    }).catch(function (e) { page('<p class="err">' + esc(e.message) + '</p>'); });
+  };
+  function userProfile(id) {
+    api('GET', '/api/admin/users/' + encodeURIComponent(id)).then(function (d) {
+      var u = d.user, p = d.progress;
+      page('<p><a href="#/users">← Foydalanuvchilar</a></p><h1>' + esc(u.name) + ' <span class="tag ' + (u.status === 'active' ? 'g' : 'r') + '">' + (u.status === 'active' ? 'Faol' : 'Bloklangan') + '</span></h1>' +
+        '<div class="grid g4"><div class="card kpi"><b>' + u.xp + '</b><span>XP</span></div><div class="card kpi"><b>' + u.streak + '</b><span>Seriya (eng yaxshi ' + (p.bestStreak || 0) + ')</span></div><div class="card kpi"><b>' + p.percent + '%</b><span>Kurs progressi</span></div><div class="card kpi"><b>' + (p.hearts == null ? '—' : p.hearts) + '</b><span>Yurakchalar</span></div></div>' +
+        '<div class="card row"><span class="mute">Ro\'yxatdan o\'tgan: ' + fdate(u.created_at) + ' · Oxirgi faollik: ' + fdate(u.last_seen) + ' · Xato so\'zlar: ' + p.mistakes + ' · Kunlik maqsad: ' + (p.goalMin || '—') + ' daq</span><span class="sp" style="flex:1"></span><button class="btn" id="st">' + (u.status === 'active' ? 'Bloklash' : 'Blokdan chiqarish') + '</button><button class="btn" id="rp">Progressni tozalash</button>' + (me.role === 'super_admin' ? '<button class="btn d" id="dl">Hisobni o\'chirish</button>' : '') + '</div>' +
+        '<div class="grid g2"><div class="card"><h2>Tugallangan darslar</h2>' + table(['Dars', 'Eng yaxshi'], d.progress.done.map(function (x) { return '<tr><td>' + esc(x.title) + '</td><td>' + x.best + '%</td></tr>'; }), 'Hali dars tugatilmagan') + '</div>' +
+        '<div class="card"><h2>Qiyin so\'zlar</h2>' + table(["So'z", 'Tarjima', 'Xato', "To'g'ri"], d.hardWords.map(function (x) { return '<tr><td>' + esc(x.en) + '</td><td>' + esc(x.uz) + '</td><td>' + x.wrong + '</td><td>' + x.right + '</td></tr>'; }), "Xatolar yo'q") + '</div></div>' +
+        '<div class="grid g2"><div class="card"><h2>Kunlik faollik (14 kun)</h2>' + table(['Sana', 'XP', 'Daq', "To'g'ri", 'Xato'], d.days.map(function (x) { return '<tr><td>' + esc(x.date) + '</td><td>' + x.xp + '</td><td>' + Math.round(x.secs / 60) + '</td><td>' + x.correct + '</td><td>' + x.wrong + '</td></tr>'; }), "Ma'lumot yo'q") + '</div>' +
+        '<div class="card"><h2>So\'nggi natijalar</h2>' + table(['Vaqt', 'Rejim', 'Natija', 'XP'], d.events.map(function (x) { return '<tr><td>' + fdate(x.ts) + '</td><td>' + esc(x.node || x.mode) + '</td><td>' + x.pct + '%</td><td>' + x.xp + '</td></tr>'; }), "Ma'lumot yo'q") + '</div></div>' +
+        '<div class="card"><h2>Yutuqlar (' + p.achievements.length + ')</h2>' + (p.achievements.map(function (a) { return '<span class="tag y" style="margin:.15rem">' + esc(ACH[a] || a) + '</span>'; }).join('') || '<span class="mute">Yo\'q</span>') + '</div>');
+      $('#st').onclick = function () { api('POST', '/api/admin/users/' + id + '/status', { status: u.status === 'active' ? 'disabled' : 'active' }).then(function () { toast('Saqlandi'); route(); }).catch(fail); };
+      $('#rp').onclick = function () { confirmBox("Foydalanuvchining barcha progressi (XP, seriya, darslar) o'chadi. Davom etasizmi?", 'Tozalash', true).then(function (y) { if (y) api('POST', '/api/admin/users/' + id + '/reset-progress').then(function () { toast('Progress tozalandi'); route(); }).catch(fail); }); };
+      if ($('#dl')) $('#dl').onclick = function () { confirmBox("Hisob butunlay o'chiriladi. Bu amalni qaytarib bo'lmaydi.", "O'chirish", true).then(function (y) { if (y) api('DELETE', '/api/admin/users/' + id).then(function () { toast("O'chirildi"); location.hash = '#/users'; }).catch(fail); }); };
+    }).catch(function (e) { page('<p class="err">' + esc(e.message) + '</p>'); });
+  }
+
+  // Kurs mazmuni
+  var contentLevel = 0;
+  V.content = function (r) {
+    api('GET', '/api/admin/content').then(function (d) {
+      if (r.q.level != null) contentLevel = Math.min(+r.q.level || 0, d.levels.length - 1);
+      var lv = d.levels[contentLevel], f = (r.q.q || '').toLowerCase();
+      var tabs = d.levels.map(function (l) { return '<a class="btn s' + (l.idx === contentLevel ? ' p' : '') + '" href="#/content?level=' + l.idx + (f ? '&q=' + encodeURIComponent(f) : '') + '">' + esc(l.id) + '</a>'; }).join(' ');
+      var h = '<h1>Kurs mazmuni</h1><div class="row sb card"><div class="row">' + tabs + '</div><input type="search" id="wf" placeholder="So\'z qidirish…" value="' + esc(r.q.q || '') + '" aria-label="So\'z qidirish"></div>' +
+        '<div class="row sb"><h2>' + esc(lv.title) + ' <span class="mute">· ' + esc(lv.sub) + '</span></h2><div class="row"><button class="btn s" id="el">Darajani tahrirlash</button><button class="btn s" id="nt">+ Yangi mavzu</button></div></div>';
+      lv.topics.forEach(function (tp) {
+        var words = tp.words.filter(function (w) { return !f || w.en.toLowerCase().indexOf(f) >= 0 || w.uz.join(' ').toLowerCase().indexOf(f) >= 0; });
+        if (f && !words.length) return;
+        h += '<div class="card"><div class="row sb"><h3>' + esc(tp.icon) + ' ' + esc(tp.title) + ' <span class="tag ' + (tp.published ? 'g' : 'y') + '">' + (tp.published ? 'Nashr etilgan' : 'Nashr etilmagan (kamida ' + d.minWords + ' so\'z kerak)') + '</span> <span class="mute">' + tp.visible + " ta so'z</span></h3><div class=\"row\"><button class=\"btn s\" data-a=\"et\" data-t=\"" + tp.idx + "\">Mavzu</button><button class=\"btn s\" data-a=\"aw\" data-t=\"" + tp.idx + "\">+ So'z</button><button class=\"btn s\" data-a=\"im\" data-t=\"" + tp.idx + "\">⬆ Import</button></div></div>" +
+          table(["Inglizcha", 'Tarjima', 'Misol', 'Holat', ''], words.map(function (w) { return '<tr' + (w.hidden ? ' style="opacity:.55"' : '') + '><td>' + esc(w.emoji) + ' <b>' + esc(w.en) + '</b></td><td>' + esc(w.uz.join('; ')) + '</td><td class="mute">' + esc(w.sent) + '</td><td>' + (w.hidden ? '<span class="tag r">Yashirin</span>' : w.custom ? '<span class="tag g">Yangi</span>' : w.edited ? '<span class="tag y">Tahrirlangan</span>' : '') + '</td><td style="white-space:nowrap"><button class="btn s" data-a="ew" data-id="' + esc(w.id) + '">Tahrir</button> ' + (w.hidden ? '<button class="btn s" data-a="rw" data-id="' + esc(w.id) + '">Qaytarish</button>' : '<button class="btn s d" data-a="dw" data-id="' + esc(w.id) + '">' + (w.custom ? "O'chirish" : 'Yashirish') + '</button>') + '</td></tr>'; }), "So'z yo'q") + '</div>';
+      });
+      page(h);
+      var find = function (id) { var x = null; lv.topics.forEach(function (t) { t.words.forEach(function (w) { if (w.id === id) x = w; }); }); return x; };
+      $('#wf').onkeydown = function (e) { if (e.key === 'Enter') location.hash = '#/content?level=' + contentLevel + '&q=' + encodeURIComponent(e.target.value.trim()); };
+      $('#el').onclick = function () { modal('<h2>Darajani tahrirlash</h2><form id="f"><label>Nomi<input name="title" value="' + esc(lv.title) + '" maxlength="40" required style="width:100%"></label><label>Tavsif<input name="sub" value="' + esc(lv.sub) + '" maxlength="60" required style="width:100%"></label><p class="err" id="fe"></p><div class="row"><button class="btn p">Saqlash</button><button type="button" class="btn" data-c>Bekor</button></div></form>'); formSubmit('PUT', '/api/admin/levels/' + lv.idx); };
+      $('#nt').onclick = function () { topicForm(null); };
+      $('#main').onclick = function (e) {
+        var b = e.target.closest('[data-a]'); if (!b) return; var a = b.dataset.a, t = +b.dataset.t;
+        if (a === 'et') topicForm(lv.topics[t]); else if (a === 'aw') wordForm(null, t); else if (a === 'im') importForm(t);
+        else if (a === 'ew') { var w = find(b.dataset.id); wordForm(w); }
+        else if (a === 'rw') { var w2 = find(b.dataset.id); api('PUT', '/api/admin/words/' + encodeURIComponent(w2.id), Object.assign({}, w2, { hidden: false })).then(function () { toast('Qaytarildi'); route(); }).catch(fail); }
+        else if (a === 'dw') { var w3 = find(b.dataset.id); confirmBox(w3.custom ? '«' + w3.en + '» butunlay o\'chiriladi.' : '«' + w3.en + "» yashiriladi (foydalanuvchilar progressi saqlanadi, keyin qaytarish mumkin).", w3.custom ? "O'chirish" : 'Yashirish', true).then(function (y) { if (y) api('DELETE', '/api/admin/words/' + encodeURIComponent(w3.id)).then(function () { toast('Bajarildi'); route(); }).catch(fail); }); }
+      };
+      function topicForm(tp) {
+        modal('<h2>' + (tp ? 'Mavzuni tahrirlash' : 'Yangi mavzu') + '</h2><form id="f"><label>Nomi<input name="title" value="' + esc(tp ? tp.title : '') + '" maxlength="40" required style="width:100%"></label><label>Belgi (emoji)<input name="icon" value="' + esc(tp ? tp.icon : '📘') + '" maxlength="8"></label><label>Tushuntirish (dars boshida ko\'rsatiladi)<textarea name="tip" maxlength="400" style="min-height:90px">' + esc(tp ? tp.tip : '') + '</textarea></label><p class="err" id="fe"></p><div class="row"><button class="btn p">Saqlash</button><button type="button" class="btn" data-c>Bekor</button></div></form>');
+        if (tp) formSubmit('PUT', '/api/admin/topics/' + lv.idx + '/' + tp.idx); else formSubmit('POST', '/api/admin/topics', { level: lv.idx });
+      }
+      function wordForm(w, topic) {
+        var ed = !!w;
+        modal('<h2>' + (ed ? "So'zni tahrirlash" : "Yangi so'z") + '</h2><form id="f"><label>Inglizcha so\'z<input name="en" value="' + esc(ed ? w.en : '') + '" maxlength="40" required style="width:100%"></label><label>Tarjimalar (";" bilan ajrating — barchasi to\'g\'ri javob hisoblanadi)<input name="uz" value="' + esc(ed ? w.uz.join('; ') : '') + '" required style="width:100%"></label><label>Emoji (rasm mashqi uchun, ixtiyoriy)<input name="emoji" value="' + esc(ed ? w.emoji : '') + '" maxlength="8"></label><label>Misol gap (so\'zni o\'z ichiga olsin)<input name="sent" value="' + esc(ed ? w.sent : '') + '" maxlength="160" style="width:100%"></label><label>Gap tarjimasi<input name="sentUz" value="' + esc(ed ? w.sentUz : '') + '" maxlength="160" style="width:100%"></label><p class="err" id="fe"></p><div class="row"><button class="btn p">Saqlash</button><button type="button" class="btn" data-c>Bekor</button></div></form>');
+        formSubmit(ed ? 'PUT' : 'POST', ed ? '/api/admin/words/' + encodeURIComponent(w.id) : '/api/admin/words', ed ? { hidden: !!w.hidden } : { level: lv.idx, topic: topic }, true);
+      }
+      function importForm(topic) {
+        modal('<h2>Jadvaldan import</h2><p class="mute">Har qatorda: <code>inglizcha ; tarjima(lar) ; emoji ; misol gap ; gap tarjimasi</code> (faqat birinchi ikkitasi majburiy). Excel/Sheets\'dan nusxalangan jadval (TAB) ham ishlaydi. Tarjimalar ichida "," bilan ajrating.</p><textarea id="imp" placeholder="apple ; olma ; 🍎&#10;table\tstol"></textarea><label>Takrorlangan so\'zlar bo\'lsa<select id="dm"><option value="report">Faqat ko\'rsat — hech narsa qo\'shma</option><option value="skip">Takrorlarni o\'tkazib yubor</option><option value="allow">Takrorlarni ham qo\'sh</option></select></label><div id="ir"></div><div class="row" style="margin-top:.6rem"><button class="btn" id="pv">Oldindan ko\'rish</button><button class="btn p" id="ap">Import qilish</button><button class="btn" data-c>Yopish</button></div>');
+        var rows = function () { return $('#imp').value.split('\n').map(function (l) { return l.replace(/\r$/, ''); }).filter(function (l) { return l.trim(); }).map(function (l) { return (l.indexOf('\t') >= 0 ? l.split('\t') : l.split(';')).map(function (x) { return x.trim(); }); }); };
+        var run = function (dry) {
+          api('POST', '/api/admin/import', { level: lv.idx, topic: topic, rows: rows(), duplicates: $('#dm').value, dryRun: dry }).then(function (r) {
+            $('#ir').innerHTML = '<p>✅ Qo\'shiladi: <b>' + r.added.length + '</b> · 🔁 Takror: <b>' + r.duplicates.length + '</b> · ❌ Xato: <b>' + r.invalid.length + '</b></p>' + (r.duplicates.length ? '<p class="mute">Takror: ' + r.duplicates.map(function (x) { return esc(x.en) + ' (' + esc(x.where) + ')'; }).join(', ') + '</p>' : '') + (r.invalid.length ? '<p class="err">' + r.invalid.map(function (x) { return x.row + '-qator: ' + esc(x.error); }).join('<br>') + '</p>' : '') + (!dry && !r.applied ? '<p class="err">Takrorlar bor — hech narsa qo\'shilmadi. Yuqoridan variantni tanlang.</p>' : '');
+            if (!dry && r.applied) { toast(r.added.length + " ta so'z import qilindi"); closeModal(); route(); }
+          }).catch(fail);
+        };
+        $('#pv').onclick = function () { run(true); }; $('#ap').onclick = function () { run(false); };
+      }
+    }).catch(function (e) { page('<p class="err">' + esc(e.message) + '</p>'); });
+  };
+  function formSubmit(method, url, extra, word) {
+    var f = $('#f', dlg); var c = $('[data-c]', dlg); if (c) c.onclick = closeModal;
+    f.onsubmit = function (e) {
+      e.preventDefault(); var o = Object.assign({}, extra || {}); new FormData(f).forEach(function (v, k) { o[k] = v; });
+      if (word) o.uz = String(o.uz).split(';').map(function (s) { return s.trim(); }).filter(Boolean);
+      var go = function (allow) { if (allow) o.allowDuplicate = true; api(method, url, o).then(function () { closeModal(); toast('Saqlandi'); route(); }).catch(function (er) { if (er.status === 409 && er.data && er.data.duplicate && !allow) { confirmBox(er.message, "Baribir qo'shish").then(function (y) { if (y) go(true); else { modalBack(); } }); } else $('#fe').textContent = er.message; }); };
+      function modalBack() { route(); }
+      go(false);
+    };
+  }
+
+  V.exercises = function () {
+    api('GET', '/api/admin/content').then(function (d) {
+      page('<h1>Mashq turlari</h1><div class="card"><p class="mute">O\'chirilgan mashq turlari yangi darslarda chiqmaydi. Yengil guruh (tarjima/rasm) va murakkab guruh (yozish, harf, bo\'sh joy, gap, eshitish) har birida kamida bittadan tur yoqiq bo\'lishi shart. Juftlashtirish va xatolarni takrorlash doim yoqiq.</p><form id="ef">' + d.kinds.map(function (k) { return '<label style="font-weight:500"><input type="checkbox" name="' + k + '"' + (d.disabled.indexOf(k) < 0 ? ' checked' : '') + '> ' + esc(KIND[k]) + '</label>'; }).join('') + '<p class="err" id="ee"></p><button class="btn p">Saqlash</button></form></div>');
+      $('#ef').onsubmit = function (e) { e.preventDefault(); var off = d.kinds.filter(function (k) { return !e.target.elements[k].checked; }); api('PUT', '/api/admin/exercises', { disabled: off }).then(function () { toast('Saqlandi'); }).catch(function (er) { $('#ee').textContent = er.message; }); };
+    }).catch(fail);
+  };
+  V.achievements = function () {
+    api('GET', '/api/admin/achievements').then(function (d) {
+      page('<h1>Yutuqlar</h1><div class="card">' + table(['Yutuq', 'Ochgan foydalanuvchilar', ''], Object.keys(ACH).map(function (id) { var n = d.counts[id] || 0; return '<tr><td>' + esc(ACH[id]) + '</td><td>' + n + ' / ' + d.users + '</td><td style="width:35%"><div class="hbar"><i style="width:' + (d.users ? 100 * n / d.users : 0) + '%"></i></div></td></tr>'; })) + '<p class="mute">Yutuq shartlari dastur kodida (store.js) belgilangan; bu yerda faqat ochilish statistikasi ko\'rsatiladi.</p></div>');
+    }).catch(fail);
+  };
+  V.stats = function (r) { V.dashboard(r); };
+  V.announcements = function () {
+    api('GET', '/api/admin/announcements').then(function (d) {
+      page('<div class="row sb"><h1>E\'lonlar</h1><button class="btn p" id="na">+ Yangi e\'lon</button></div><p class="mute">Faol e\'lonlar o\'quvchilarning bosh sahifasida ko\'rinadi (oxirgi 5 ta).</p><div class="card">' + table(['Sarlavha', 'Matn', 'Holat', 'Sana', ''], d.rows.map(function (a) { return '<tr><td>' + esc(a.title) + '</td><td>' + esc(a.body) + '</td><td><span class="tag ' + (a.active ? 'g' : '') + '">' + (a.active ? 'Faol' : 'Nofaol') + '</span></td><td>' + fdate(a.created) + '</td><td style="white-space:nowrap"><button class="btn s" data-e="' + a.id + '">Tahrir</button> <button class="btn s d" data-d="' + a.id + '">O\'chirish</button></td></tr>'; }), "E'lon yo'q") + '</div>');
+      var form = function (a) { modal('<h2>' + (a ? "E'lonni tahrirlash" : "Yangi e'lon") + '</h2><form id="f"><label>Sarlavha<input name="title" maxlength="80" required style="width:100%" value="' + esc(a ? a.title : '') + '"></label><label>Matn<textarea name="body" maxlength="500" required style="min-height:90px">' + esc(a ? a.body : '') + '</textarea></label><label style="font-weight:500"><input type="checkbox" name="active"' + (!a || a.active ? ' checked' : '') + '> Faol</label><p class="err" id="fe"></p><div class="row"><button class="btn p">Saqlash</button><button type="button" class="btn" data-c>Bekor</button></div></form>'); var f = $('#f', dlg); $('[data-c]', dlg).onclick = closeModal; f.onsubmit = function (e) { e.preventDefault(); var o = { title: f.title.value, body: f.body.value, active: f.active.checked }; api(a ? 'PUT' : 'POST', '/api/admin/announcements' + (a ? '/' + a.id : ''), o).then(function () { closeModal(); toast('Saqlandi'); route(); }).catch(function (er) { $('#fe').textContent = er.message; }); }; };
+      $('#na').onclick = function () { form(null); };
+      $('#main').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; if (b.dataset.e) form(d.rows.filter(function (x) { return x.id == b.dataset.e; })[0]); if (b.dataset.d) confirmBox("E'lon o'chiriladi.", "O'chirish", true).then(function (y) { if (y) api('DELETE', '/api/admin/announcements/' + b.dataset.d).then(function () { route(); }).catch(fail); }); };
+    }).catch(fail);
+  };
+  V.audit = function () {
+    api('GET', '/api/admin/audit?page=' + (cur.q.page || 1)).then(function (d) {
+      page('<h1>Audit jurnali</h1><div class="card">' + table(['Vaqt', 'Administrator', 'Amal', 'Obyekt', 'Natija', 'Izoh'], d.rows.map(function (a) { return '<tr><td>' + fdate(a.ts) + '</td><td>' + esc(a.user_name || '—') + '</td><td>' + esc(a.action) + '</td><td>' + esc(a.target || '') + '</td><td><span class="tag ' + (a.ok ? 'g' : 'r') + '">' + (a.ok ? 'OK' : 'Xato') + '</span></td><td class="mute">' + esc(a.detail || '') + '</td></tr>'; }), 'Yozuv yo\'q') + pager(d, 'audit') + '</div>');
+    }).catch(fail);
+  };
+  V.settings = function () {
+    Promise.all([api('GET', '/api/admin/settings'), api('GET', '/api/admin/admins')]).then(function (res) {
+      var s = res[0], a = res[1];
+      page('<h1>Sozlamalar</h1><div class="card"><h2>Platforma</h2><label style="font-weight:500"><input type="checkbox" id="ro"' + (s.registrationOpen ? ' checked' : '') + '> Yangi foydalanuvchilar ro\'yxatdan o\'ta oladi</label><button class="btn p" id="ss" style="margin-top:.6rem">Saqlash</button></div>' +
+        '<div class="card"><div class="row sb"><h2>Administratorlar</h2><button class="btn p" id="aa">+ Administrator qo\'shish</button></div>' + table(['Ism', 'Rol', 'Holat', 'Oxirgi kirish', ''], a.rows.map(function (u) { return '<tr><td>' + esc(u.name) + '</td><td>' + esc(ROLE[u.role]) + '</td><td><span class="tag ' + (u.status === 'active' ? 'g' : 'r') + '">' + (u.status === 'active' ? 'Faol' : 'Bloklangan') + '</span></td><td>' + fdate(u.last_seen) + '</td><td><button class="btn s" data-u="' + u.id + '">Tahrir</button></td></tr>'; })) +
+        '<p class="mute">Rollar: <b>Super Admin</b> — hammasi; <b>Admin</b> — mazmun, foydalanuvchilar, statistika, e\'lonlar, audit; <b>Editor</b> — faqat kurs mazmuni va mashqlar.</p></div>');
+      $('#ss').onclick = function () { api('PUT', '/api/admin/settings', { registrationOpen: $('#ro').checked }).then(function () { toast('Saqlandi'); }).catch(fail); };
+      var form = function (u) {
+        modal('<h2>' + (u ? esc(u.name) : 'Yangi administrator') + '</h2><form id="f">' + (u ? '' : '<label>Ism<input name="name" maxlength="24" required style="width:100%"></label>') + '<label>Rol<select name="role">' + ['editor', 'admin', 'super_admin'].map(function (r) { return '<option value="' + r + '"' + (u && u.role === r ? ' selected' : '') + '>' + ROLE[r] + '</option>'; }).join('') + '</select></label>' + (u ? '<label>Holat<select name="status"><option value="active"' + (u.status === 'active' ? ' selected' : '') + '>Faol</option><option value="disabled"' + (u.status === 'disabled' ? ' selected' : '') + '>Bloklangan</option></select></label>' : '') + '<label>' + (u ? 'Yangi parol (ixtiyoriy)' : 'Parol') + '<input name="pass" type="password" autocomplete="new-password" style="width:100%"' + (u ? '' : ' required') + '></label><p class="mute">Kamida 10 belgi, harf va raqam.</p><p class="err" id="fe"></p><div class="row"><button class="btn p">Saqlash</button><button type="button" class="btn" data-c>Bekor</button></div></form>');
+        var f = $('#f', dlg); $('[data-c]', dlg).onclick = closeModal;
+        f.onsubmit = function (e) { e.preventDefault(); var o = {}; new FormData(f).forEach(function (v, k) { if (v !== '') o[k] = v; }); api(u ? 'PUT' : 'POST', '/api/admin/admins' + (u ? '/' + u.id : ''), o).then(function () { closeModal(); toast('Saqlandi'); route(); }).catch(function (er) { $('#fe').textContent = er.message; }); };
+      };
+      $('#aa').onclick = function () { form(null); };
+      $('#main').onclick = function (e) { var b = e.target.closest('[data-u]'); if (b) form(a.rows.filter(function (x) { return x.id == b.dataset.u; })[0]); };
+    }).catch(fail);
+  };
+
+  function route() {
+    if (!me) return;
+    var r = parseHash(); cur = { name: r.name, q: r.q };
+    var nav = NAV.filter(function (n) { return n[0] === r.name; })[0];
+    shell();
+    if (!nav || !can(nav[3])) { page('<h1>Ruxsat yo\'q</h1><p>Bu bo\'limga kirish huquqingiz yo\'q.</p>'); return; }
+    closeModal(); (V[r.name] || V.dashboard)(r);
+  }
+  window.addEventListener('hashchange', route);
+  function start() { route(); clearInterval(hbTimer); hbTimer = setInterval(loadNotifsSafe, 60000); }
+  function loadNotifsSafe() { if (me && $('#bn')) loadNotifs(); }
+  api('GET', '/api/admin/me').then(function (r) { me = r.admin; csrf = r.csrf; start(); }).catch(function () { renderLogin(); });
+})();
+
+<\/script>
+</body>
+</html>
+</script>
+<script>window.TY_SINGLE=true;if(/[?&]admin(&|=|$)/.test(location.search)){window.__adm=true;var b=document.getElementById('admin-bundle').textContent.replace(/<\\\/script/g,'</script');document.open();document.write(b);document.close();}</script>
+<a class="skip" href="#main">Asosiy mazmunga o'tish</a>
+<div id="app"></div>
+<div id="lesson" hidden></div>
+<div id="modal" hidden></div>
+<div id="toasts" aria-live="polite"></div>
+<noscript><p style="padding:2rem">Bu sayt ishlashi uchun JavaScript kerak.</p></noscript>
+<script>
+if(!window.__adm){
+/* Kurs ma'lumotlari. So'z qatori: inglizcha|tarjimalar(;)|emoji|inglizcha gap|o'zbekcha gap
+   MUHIM: so'zlarning tartibini o'zgartirmang — progress so'z identifikatoriga (daraja.mavzu.indeks) bog'langan. Yangi so'zlarni oxiriga qo'shing. */
+(function (TY) {
+  var L = [];
+  function lvl(id, title, sub, color, topics) { L.push({ id: id, title: title, sub: sub, color: color, topics: topics }); }
+  function t(title, icon, tip, words) { return { title: title, icon: icon, tip: tip, words: words }; }
+
+  lvl('A1', 'Beginner', 'A1 · Boshlang\'ich', '#22c55e', [
+    t('Salomlashish', '💬', "Inglizcha salomlashish: 'Hello' — kun bo'yi, 'Good morning' — ertalab, 'Good night' — uxlashdan oldin. 'Please' va 'sorry' — muloqotdagi eng muhim so'zlar.", `
+hello|salom|👋|Hello, my name is Ali.|Salom, mening ismim Ali.
+goodbye|xayr;xayr-xo'sh||Goodbye, see you tomorrow.|Xayr, ertagacha ko'rishamiz.
+please|iltimos;marhamat||Please sit down.|Iltimos, o'tiring.
+sorry|kechirasiz;uzr;afsus||I am sorry I am late.|Kechikkanim uchun uzr.
+friend|do'st;o'rtoq||She is my best friend.|U mening eng yaxshi do'stim.
+name|ism;nom|📛|What is your name?|Ismingiz nima?
+morning|ertalab;tong|🌅|Good morning, teacher.|Xayrli tong, ustoz.
+night|tun;kecha|🌙|Good night, mom.|Xayrli tun, onajon.`),
+    t('Oila', '👪', "'My' — mening: my mother, my father. Ingliz tilida egalik olmoshi ot oldidan keladi. 'Boy' va 'girl' — bola, 'baby' — chaqaloq.", `
+mother|ona;oyi|👩|My mother cooks every day.|Onam har kuni ovqat pishiradi.
+father|ota;dada|👨|My father works in a bank.|Otam bankda ishlaydi.
+brother|aka;uka;birodar||My brother plays football.|Akam futbol o'ynaydi.
+sister|opa;singil||My sister likes music.|Opam musiqani yaxshi ko'radi.
+family|oila|👪|I love my family.|Men oilamni yaxshi ko'raman.
+baby|chaqaloq;go'dak|👶|The baby is sleeping.|Chaqaloq uxlayapti.
+boy|o'g'il bola;bola|👦|The boy has a ball.|Bolaning to'pi bor.
+girl|qiz bola;qiz|👧|The girl reads a book.|Qiz kitob o'qiyapti.`),
+    t('Ovqat', '🍎', "Sanaladigan otlar oldidan 'a/an' ishlatiladi: an apple, an egg. Sanalmaydigan otlar (water, milk, bread, rice) oldidan ishlatilmaydi.", `
+apple|olma|🍎|I eat an apple every day.|Men har kuni olma yeyman.
+bread|non|🍞|We buy fresh bread.|Biz yangi non sotib olamiz.
+water|suv|💧|Drink more water.|Ko'proq suv iching.
+milk|sut|🥛|Milk is good for children.|Sut bolalar uchun foydali.
+rice|guruch;osh|🍚|We cook rice for dinner.|Biz kechki ovqatga guruch pishiramiz.
+egg|tuxum|🥚|I eat one egg for breakfast.|Men nonushtada bitta tuxum yeyman.
+cheese|pishloq|🧀|She likes cheese.|U pishloqni yaxshi ko'radi.
+meat|go'sht|🥩|He does not eat meat.|U go'sht yemaydi.`),
+    t('Hayvonlar', '🐶', "Ko'plik: ko'p otlarga -s qo'shiladi: cat → cats. Hayvonlar haqida: 'I have a dog' — mening itim bor.", `
+cat|mushuk|🐱|The cat sleeps on the sofa.|Mushuk divanda uxlaydi.
+dog|it|🐶|My dog is very friendly.|Mening itim juda xushmuomala.
+bird|qush|🐦|A bird is singing in the tree.|Daraxtda qush kuylayapti.
+fish|baliq|🐟|The fish swims in the river.|Baliq daryoda suzadi.
+horse|ot|🐴|He rides a horse.|U ot minadi.
+cow|sigir|🐄|The cow gives us milk.|Sigir bizga sut beradi.
+lion|sher|🦁|The lion is a strong animal.|Sher kuchli hayvon.
+rabbit|quyon|🐰|The rabbit eats a carrot.|Quyon sabzi yeydi.`)
+  ]);
+
+  lvl('A2', 'Elementary', 'A2 · Boshlang\'ich+', '#06b6d4', [
+    t('Uy', '🏠', "Joy predloglari: in (ichida), on (ustida), under (tagida). 'The book is on the table' — kitob stol ustida.", `
+kitchen|oshxona|🍳|My mother is in the kitchen.|Onam oshxonada.
+bed|karavot;to'shak|🛏️|The bed is very comfortable.|Karavot juda qulay.
+window|deraza|🪟|Please open the window.|Iltimos, derazani oching.
+door|eshik|🚪|Close the door, please.|Iltimos, eshikni yoping.
+table|stol||The keys are on the table.|Kalitlar stol ustida.
+chair|stul|🪑|There is a chair near the wall.|Devor yonida stul bor.
+garden|bog';bog'cha|🌳|We have a small garden.|Bizning kichik bog'imiz bor.
+room|xona||My room is on the second floor.|Mening xonam ikkinchi qavatda.`),
+    t('Sayohat', '✈️', "Sayohatda foydali so'zlar. 'I want to buy a ticket' — chipta sotib olmoqchiman. 'Want to + fe'l' — xohlamoq.", `
+ticket|chipta|🎫|I want to buy a ticket.|Men chipta sotib olmoqchiman.
+airport|aeroport|✈️|The airport is far from the city.|Aeroport shahardan uzoqda.
+train|poyezd|🚆|The train leaves at nine.|Poyezd soat to'qqizda jo'naydi.
+hotel|mehmonxona|🏨|We stay at a cheap hotel.|Biz arzon mehmonxonada qolamiz.
+passport|pasport|🛂|Do not forget your passport.|Pasportingizni unutmang.
+luggage|yuk;bagaj|🧳|My luggage is very heavy.|Yukim juda og'ir.
+map|xarita|🗺️|Look at the map, please.|Iltimos, xaritaga qarang.
+journey|sayohat;safar|🧭|The journey took five hours.|Safar besh soat davom etdi.`),
+    t('Kasblar', '💼', "'He is a doctor' — kasbni aytishda 'a/an' ishlatiladi. Unli tovush bilan boshlansa 'an': an engineer.", `
+teacher|o'qituvchi;ustoz;muallim||Our teacher is kind.|Ustozimiz mehribon.
+doctor|shifokor;doktor;vrach|👩‍⚕️|The doctor helps sick people.|Shifokor kasal odamlarga yordam beradi.
+nurse|hamshira|🩺|The nurse works at night.|Hamshira kechasi ishlaydi.
+driver|haydovchi||The driver is waiting outside.|Haydovchi tashqarida kutyapti.
+farmer|fermer;dehqon|🧑‍🌾|The farmer grows wheat.|Dehqon bug'doy yetishtiradi.
+engineer|muhandis||My uncle is an engineer.|Amakim muhandis.
+office|ofis;idora|🏢|I go to the office by bus.|Men ofisga avtobusda boraman.
+salary|maosh;oylik||His salary is good.|Uning maoshi yaxshi.`),
+    t('Ob-havo', '⛅', "Ob-havo haqida: 'It is sunny' — havo quyoshli. 'It' bu yerda rasmiy ega, tarjima qilinmaydi.", `
+sunny|quyoshli|☀️|It is sunny today.|Bugun havo quyoshli.
+rainy|yomg'irli|🌧️|Tomorrow will be rainy.|Ertaga yomg'irli bo'ladi.
+cloudy|bulutli|☁️|It is cloudy in the morning.|Ertalab havo bulutli.
+windy|shamolli|💨|It is very windy today.|Bugun juda shamolli.
+snow|qor|❄️|Children play in the snow.|Bolalar qorda o'ynaydi.
+winter|qish|⛄|Winter is my favourite season.|Qish mening sevimli faslim.
+summer|yoz|🏖️|We go to the sea in summer.|Biz yozda dengizga boramiz.
+cold|sovuq|🥶|The water is too cold.|Suv juda sovuq.`)
+  ]);
+
+  lvl('B1', 'Intermediate', 'B1 · O\'rta', '#3b82f6', [
+    t('Salomatlik', '🩺', "Maslahat berish: 'You should + fe'l' — siz ... qilishingiz kerak. 'You should take medicine' — dori ichishingiz kerak.", `
+headache|bosh og'rig'i||I have a terrible headache.|Mening boshim qattiq og'riyapti.
+medicine|dori;tibbiyot|💊|You should take this medicine twice a day.|Bu dorini kuniga ikki marta ichishingiz kerak.
+healthy|sog'lom;foydali||Fruit is healthy food.|Mevalar foydali ovqat.
+exercise|mashq;jismoniy mashq|🏃|Regular exercise keeps you fit.|Muntazam mashq sizni sog'lom saqlaydi.
+injury|jarohat;shikast||He missed the match because of an injury.|U jarohat tufayli o'yinni o'tkazib yubordi.
+patient|bemor||The patient needs rest.|Bemorga dam kerak.
+symptom|alomat;belgi||Fever is a common symptom.|Isitma keng tarqalgan alomat.
+recover|tuzalmoq;sog'ayib ketmoq||She will recover soon.|U tez orada tuzaladi.`),
+    t('Texnologiya', '💻', "Present Perfect: 'I have downloaded the file' — faylni yuklab oldim (natija hozir muhim). have/has + fe'lning 3-shakli.", `
+software|dasturiy ta'minot;dastur||This software is easy to use.|Bu dastur foydalanish uchun oson.
+website|veb-sayt;sayt|🌐|I found it on the website.|Men buni veb-saytda topdim.
+password|parol|🔑|Never share your password.|Parolingizni hech kimga bermang.
+download|yuklab olmoq;yuklamoq|⬇️|I want to download this video.|Men bu videoni yuklab olmoqchiman.
+battery|batareya|🔋|My phone battery is dead.|Telefonimning batareyasi tugagan.
+screen|ekran||The screen is too bright.|Ekran juda yorqin.
+device|qurilma||This device is very small.|Bu qurilma juda kichik.
+internet|internet||The internet is slow today.|Bugun internet sekin.`),
+    t('Shahar hayoti', '🏙️', "Qiyosiy daraja: 'bigger than', 'more crowded than'. Uzun sifatlar oldidan 'more' qo'yiladi.", `
+traffic|tirbandlik;transport harakati|🚦|The traffic is terrible in the morning.|Ertalab tirbandlik dahshatli.
+neighbourhood|mahalla;qo'shnilar||I like my neighbourhood.|Men mahallamni yaxshi ko'raman.
+public|jamoat;ommaviy||Public transport is cheap here.|Bu yerda jamoat transporti arzon.
+crowded|gavjum;odam ko'p||The market is crowded on Sundays.|Bozor yakshanba kunlari gavjum.
+pavement|yo'lak;trotuar||Walk on the pavement.|Yo'lakdan yuring.
+tourist|sayyoh;turist|📸|Every tourist visits the museum.|Har bir sayyoh muzeyga boradi.
+museum|muzey|🏛️|The museum opens at ten.|Muzey soat o'nda ochiladi.
+suburb|shahar atrofi;chekka||They live in a quiet suburb.|Ular tinch shahar chekkasida yashaydi.`),
+    t('Ta\'lim', '🎓', "Maqsadni ifodalash: 'I study to pass the exam'. 'To + fe'l' maqsadni bildiradi.", `
+knowledge|bilim||Knowledge is power.|Bilim — kuch.
+subject|fan;mavzu||Math is my favourite subject.|Matematika mening sevimli fanim.
+exam|imtihon|📝|The exam starts at nine.|Imtihon soat to'qqizda boshlanadi.
+lecture|ma'ruza||The lecture was very interesting.|Ma'ruza juda qiziqarli edi.
+degree|daraja;diplom||She has a degree in law.|Uning huquq bo'yicha diplomi bor.
+homework|uy vazifasi|📚|Did you finish your homework?|Uy vazifangizni tugatdingizmi?
+deadline|muddat;oxirgi muddat||The deadline is on Friday.|Oxirgi muddat juma kuni.
+research|tadqiqot;izlanish||Scientists do research in the lab.|Olimlar laboratoriyada tadqiqot olib boradi.`)
+  ]);
+
+  lvl('B2', 'Upper-Intermediate', 'B2 · O\'rta+', '#8b5cf6', [
+    t('Ish va karyera', '🧑‍💼', "Rasmiy yozishmada: 'I am writing to apply for the position'. Ish suhbatida 'experience' sanalmaydigan ot: much experience.", `
+employee|xodim;ishchi||Every employee gets a bonus.|Har bir xodim mukofot oladi.
+colleague|hamkasb||My colleague helped me.|Hamkasbim menga yordam berdi.
+manager|menejer;boshliq||The manager called a meeting.|Menejer yig'ilish chaqirdi.
+promotion|lavozim ko'tarilishi;ko'tarilish||She got a promotion last year.|U o'tgan yili lavozimga ko'tarildi.
+resign|ishdan ketmoq;iste'foga chiqmoq||He decided to resign.|U iste'foga chiqishga qaror qildi.
+experience|tajriba||We need someone with experience.|Bizga tajribali odam kerak.
+application|ariza;ilova||I sent my application yesterday.|Men arizamni kecha yubordim.
+interview|suhbat;intervyu||The interview went well.|Suhbat yaxshi o'tdi.`),
+    t('Atrof-muhit', '🌍', "Passiv: 'Plastic is recycled' — plastik qayta ishlanadi. be + fe'lning 3-shakli.", `
+pollution|ifloslanish||Air pollution is a serious problem.|Havo ifloslanishi jiddiy muammo.
+climate|iqlim||The climate is getting warmer.|Iqlim isib bormoqda.
+recycle|qayta ishlamoq|♻️|We should recycle paper and glass.|Biz qog'oz va shishani qayta ishlashimiz kerak.
+environment|atrof-muhit;muhit||We must protect the environment.|Biz atrof-muhitni asrashimiz kerak.
+extinct|yo'q bo'lib ketgan||Dinosaurs became extinct long ago.|Dinozavrlar uzoq vaqt oldin qirilib ketgan.
+resource|resurs;boylik||Water is a valuable resource.|Suv qimmatli resurs.
+wildlife|yovvoyi tabiat||The park protects local wildlife.|Park mahalliy yovvoyi tabiatni himoya qiladi.
+landscape|manzara;landshaft||The landscape is beautiful here.|Bu yerda manzara go'zal.`),
+    t('Fikr bildirish', '🗣️', "Fikr bildirish: 'In my opinion...', 'I agree with...', 'I prefer tea to coffee'. Kelishmaslik: 'I'm afraid I disagree'.", `
+opinion|fikr;nuqtai nazar||In my opinion, he is right.|Mening fikrimcha, u haq.
+argue|bahslashmoq;da'vo qilmoq||They argue about everything.|Ular hamma narsa haqida bahslashadi.
+agree|rozi bo'lmoq;kelishmoq||I agree with you completely.|Men siz bilan to'liq roziman.
+evidence|dalil;isbot||There is no evidence for this.|Buning dalili yo'q.
+conclusion|xulosa||What is your conclusion?|Sizning xulosangiz qanday?
+suggest|taklif qilmoq;maslahat bermoq||I suggest we start now.|Men hozir boshlashni taklif qilaman.
+doubt|shubha;shubhalanmoq||I doubt that he will come.|Uning kelishiga shubhalanaman.
+prefer|afzal ko'rmoq;ma'qul ko'rmoq||I prefer tea to coffee.|Men choyni qahvadan afzal ko'raman.`),
+    t('Pul va moliya', '💰', "Shart gap: 'If I had more money, I would invest.' (2-tur shart). Pul so'zlari: income — kirim, expense — chiqim.", `
+income|daromad;kirim||Her income is quite high.|Uning daromadi ancha yuqori.
+budget|byudjet||We have a small budget.|Bizning byudjetimiz kichik.
+expense|xarajat;chiqim||Rent is our biggest expense.|Ijara bizning eng katta xarajatimiz.
+savings|jamg'arma;omonat||He spent all his savings.|U barcha jamg'armasini sarfladi.
+debt|qarz||She is trying to pay off her debt.|U qarzini to'lashga harakat qilyapti.
+invest|sarmoya kiritmoq;investitsiya qilmoq||It is wise to invest early.|Erta sarmoya kiritish aqllilik.
+afford|qurbi yetmoq;imkoni bo'lmoq||I cannot afford a new car.|Yangi mashinaga qurbim yetmaydi.
+profit|foyda;daromad||The company made a big profit.|Kompaniya katta foyda ko'rdi.`)
+  ]);
+
+  lvl('C1', 'Advanced', 'C1 · Ilg\'or', '#f97316', [
+    t('Murakkab sifatlar', '🧠', "C1 darajasida aniq va nozik ma'noli sifatlar kerak: 'inevitable' — muqarrar, 'meticulous' — juda sinchkov.", `
+ambiguous|noaniq;ikki ma'noli||The ending of the film is ambiguous.|Filmning yakuni noaniq.
+inevitable|muqarrar;oldini olib bo'lmaydigan||Change is inevitable.|O'zgarish muqarrar.
+reluctant|istamaydigan;ikkilanayotgan||He was reluctant to speak.|U gapirishni istamasdi.
+comprehensive|keng qamrovli;to'liq||We need a comprehensive plan.|Bizga keng qamrovli reja kerak.
+substantial|sezilarli;katta||There was a substantial increase in sales.|Sotuvda sezilarli o'sish bo'ldi.
+controversial|munozarali;bahsli||It is a controversial decision.|Bu munozarali qaror.
+meticulous|sinchkov;puxta||She is meticulous about details.|U tafsilotlarga juda sinchkov.
+profound|chuqur;teran||The book had a profound effect on me.|Kitob menga chuqur ta'sir qildi.`),
+    t('Kuchli fe\'llar', '⚡', "Rasmiy yozuvda oddiy fe'llar o'rniga aniqroq fe'llar ishlatiladi: make worse → undermine, improve → enhance.", `
+undermine|susaytirmoq;zaiflashtirmoq||Constant criticism can undermine confidence.|Doimiy tanqid ishonchni susaytirishi mumkin.
+enhance|yaxshilamoq;oshirmoq||Exercise can enhance your memory.|Mashq xotirangizni yaxshilashi mumkin.
+advocate|yoqlab chiqmoq;targ'ib qilmoq||Many people advocate equal rights.|Ko'pchilik teng huquqlarni yoqlab chiqadi.
+acknowledge|tan olmoq;e'tirof etmoq||I acknowledge my mistake.|Men xatomni tan olaman.
+accomplish|erishmoq;bajarmoq||We want to accomplish our goal.|Biz maqsadimizga erishmoqchimiz.
+hinder|to'sqinlik qilmoq||Bad weather can hinder the rescue.|Yomon ob-havo qutqaruvga to'sqinlik qilishi mumkin.
+mitigate|yumshatmoq;kamaytirmoq||Trees mitigate the effects of heat.|Daraxtlar issiqlik ta'sirini yumshatadi.
+scrutinize|sinchiklab o'rganmoq;tekshirmoq||Auditors scrutinize every report.|Auditorlar har bir hisobotni sinchiklab tekshiradi.`),
+    t('Jamiyat', '🏛️', "Ijtimoiy mavzularda abstrakt otlar ko'p: inequality, justice, welfare. Ular odatda sanalmaydi.", `
+inequality|tengsizlik||Income inequality is growing.|Daromad tengsizligi o'sib bormoqda.
+justice|adolat;sudlov||Everyone deserves justice.|Har kim adolatga loyiq.
+welfare|farovonlik;ijtimoiy ta'minot||The government supports public welfare.|Hukumat jamoat farovonligini qo'llab-quvvatlaydi.
+immigrant|muhojir;ko'chib kelgan||Each immigrant works very hard.|Har bir muhojir juda qattiq ishlaydi.
+legislation|qonunchilik;qonunlar||New legislation was introduced.|Yangi qonunchilik kiritildi.
+diversity|xilma-xillik||Diversity makes teams stronger.|Xilma-xillik jamoalarni kuchliroq qiladi.
+authority|hokimiyat;vakolat||The local authority fixed the road.|Mahalliy hokimiyat yo'lni tuzatdi.
+privilege|imtiyoz||Education is a privilege for many.|Ko'pchilik uchun ta'lim — imtiyoz.`),
+    t('Fan va innovatsiya', '🔬', "Ilmiy uslub: 'The results suggest that...' — natijalar shuni ko'rsatadiki... Ishonchsizlik: may, might, could.", `
+breakthrough|katta yutuq;burilish||Scientists announced a major breakthrough.|Olimlar katta yutuq haqida e'lon qildi.
+innovation|yangilik;innovatsiya||Innovation drives economic growth.|Innovatsiya iqtisodiy o'sishni harakatga keltiradi.
+hypothesis|gipoteza;faraz||The experiment confirmed the hypothesis.|Tajriba gipotezani tasdiqladi.
+phenomenon|hodisa||Lightning is a natural phenomenon.|Chaqmoq — tabiiy hodisa.
+sophisticated|murakkab;takomillashgan||It is a sophisticated machine.|Bu murakkab mashina.
+outcome|natija;oqibat||The outcome was surprising.|Natija ajablanarli bo'ldi.
+implement|joriy qilmoq;amalga oshirmoq||They will implement the plan next month.|Ular rejani keyingi oy joriy qiladi.
+strategy|strategiya||We need a new marketing strategy.|Bizga yangi marketing strategiyasi kerak.`)
+  ]);
+
+  lvl('IELTS', 'IELTS tayyorgarligi', 'IELTS · Akademik', '#e11d48', [
+    t('Grafik tavsifi', '📈', "Writing Task 1: grafikdagi o'zgarishni tasvirlash. 'The figure rose sharply' / 'remained steady'. Aniq raqam bo'lmasa 'approximately' ishlating.", `
+fluctuate|o'zgarib turmoq;tebranmoq||Prices fluctuate during the year.|Narxlar yil davomida o'zgarib turadi.
+decline|kamaymoq;pasaymoq||Sales began to decline in May.|Sotuv may oyida kamaya boshladi.
+steady|barqaror;bir maromdagi||The figure remained steady.|Ko'rsatkich barqaror qoldi.
+peak|cho'qqi;eng yuqori nuqta||Sales reached a peak in July.|Sotuv iyul oyida cho'qqiga chiqdi.
+significant|sezilarli;muhim||There was a significant rise in 2020.|2020-yilda sezilarli o'sish bo'ldi.
+proportion|ulush;nisbat||A large proportion of students passed.|Talabalarning katta ulushi o'tdi.
+approximately|taxminan||Approximately half of the people agreed.|Odamlarning taxminan yarmi rozi bo'ldi.
+trend|tendensiya;yo'nalish||The overall trend is upward.|Umumiy tendensiya yuqoriga.`),
+    t('Essay bog\'lovchilari', '🔗', "Writing Task 2'da fikrlarni bog'lash band (Coherence) uchun muhim. Qarama-qarshilik: however, nevertheless, whereas. Natija: therefore, consequently.", `
+moreover|bundan tashqari;qolaversa||Moreover, it saves a lot of time.|Bundan tashqari, bu juda ko'p vaqtni tejaydi.
+however|biroq;lekin||However, there are some disadvantages.|Biroq, ba'zi kamchiliklar bor.
+therefore|shuning uchun;demak||Therefore, schools should change.|Shuning uchun maktablar o'zgarishi kerak.
+furthermore|shuningdek;yana||Furthermore, it is cheap.|Shuningdek, bu arzon.
+nevertheless|shunga qaramay||Nevertheless, many people disagree.|Shunga qaramay, ko'p odamlar rozi emas.
+whereas|holbuki;aksincha||Cities are noisy, whereas villages are quiet.|Shaharlar shovqinli, holbuki qishloqlar tinch.
+consequently|natijada||Consequently, prices went up.|Natijada narxlar oshdi.
+although|garchi;-sa ham||Although it is expensive, many buy it.|Garchi qimmat bo'lsa ham, ko'pchilik sotib oladi.`),
+    t('Ta\'lim va ish', '🎒', "Speaking Part 2 va Task 2 mavzulari: ta'lim va mehnat bozori. 'Vocational training' — kasbiy ta'lim.", `
+curriculum|o'quv dasturi||The curriculum includes science and art.|O'quv dasturi fan va san'atni o'z ichiga oladi.
+tuition|ta'lim to'lovi;dars||Tuition fees are rising every year.|Ta'lim to'lovlari har yili oshmoqda.
+vocational|kasbiy;kasb-hunar||Vocational training prepares students for work.|Kasbiy ta'lim talabalarni ishga tayyorlaydi.
+graduate|bitiruvchi;bitirmoq||She will graduate in June.|U iyun oyida bitiradi.
+literacy|savodxonlik||Literacy rates have improved.|Savodxonlik darajasi yaxshilandi.
+qualification|malaka;diplom||You need a teaching qualification.|Sizga o'qituvchilik malakasi kerak.
+enrol|o'qishga yozilmoq;ro'yxatdan o'tmoq||He wants to enrol in a course.|U kursga yozilmoqchi.
+workforce|ishchi kuchi||The workforce is getting older.|Ishchi kuchi qarib bormoqda.`),
+    t('Sog\'liq va ekologiya', '🌱', "Reading va Listening'da ko'p uchraydi. 'Renewable energy' — qayta tiklanadigan energiya, 'carbon emissions' — uglerod chiqindilari.", `
+sustainable|barqaror;davomli||We need sustainable energy.|Bizga barqaror energiya kerak.
+emission|chiqindi gaz;emissiya||Factories reduce carbon emission.|Zavodlar uglerod chiqindisini kamaytiradi.
+deforestation|o'rmonlarning kesilishi||Deforestation destroys habitats.|O'rmonlarning kesilishi yashash joylarini yo'q qiladi.
+obesity|semizlik||Obesity is increasing among children.|Bolalar orasida semizlik ko'paymoqda.
+epidemic|epidemiya||The epidemic spread quickly.|Epidemiya tez tarqaldi.
+nutrition|ovqatlanish;oziqlanish||Good nutrition is important.|To'g'ri ovqatlanish muhim.
+awareness|xabardorlik;anglash||Public awareness is growing.|Jamoatchilik xabardorligi oshmoqda.
+renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati — qayta tiklanadigan energiya.`)
+  ]);
+
+  // Matnni tuzilmaga aylantirish; id = daraja.mavzu.indeks (barqaror)
+  L.forEach(function (lv, li) {
+    lv.topics.forEach(function (tp, ti) {
+      tp.words = tp.words.trim().split('\n').map(function (line, wi) {
+        var p = line.split('|');
+        return { id: li + '.' + ti + '.' + wi, en: p[0].trim(), uz: p[1].split(';').map(function (s) { return s.trim(); }),
+                 emoji: (p[2] || '').trim(), sent: p[3].trim(), sentUz: p[4].trim() };
+      });
+    });
+  });
+  TY.baseLevels = JSON.parse(JSON.stringify(L));   // admin o'zgartirishlari shu asosga qo'llanadi
+  TY.MIN_WORDS = 4;                                  // mavzu darsi bo'lishi uchun kamida shuncha ko'rinadigan so'z
+
+  // Indekslar va tugunlar (LEVELS o'zgarganda qayta chaqiriladi)
+  TY.reindex = function () {
+    var LV = TY.LEVELS;
+    TY.NODES = []; TY.nodeById = {}; TY.wordById = {}; TY.allWords = [];
+    LV.forEach(function (lv, li) {
+      lv.index = li; lv.nodes = [];
+      lv.topics.forEach(function (tp, ti) {
+        tp.id = 'L' + li + 'T' + ti;
+        tp.words.forEach(function (w) { w.level = li; w.topic = ti; if (!w.hidden) { TY.wordById[w.id] = w; TY.allWords.push(w); } });
+        if (tp.words.filter(function (w) { return !w.hidden; }).length >= TY.MIN_WORDS) lv.nodes.push({ id: tp.id, kind: 'lesson', level: li, topic: ti, title: tp.title, icon: tp.icon });
+      });
+      lv.nodes.push({ id: 'L' + li + 'R', kind: 'review', level: li, title: 'Takrorlash', icon: '🔁' });
+      lv.nodes.push({ id: 'L' + li + 'X', kind: 'test', level: li, title: 'Sinov', icon: '🏆' });
+      lv.nodes.forEach(function (n) { n.order = TY.NODES.length; TY.NODES.push(n); TY.nodeById[n.id] = n; });
+    });
+  };
+  TY.LEVELS = JSON.parse(JSON.stringify(L));
+  TY.reindex();
+})(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
+
+}
 </script>
 <script>
+if(!window.__adm){
+/* Admin tahrirlarini asosiy kursga qo'llash (brauzer va serverda bir xil ishlaydi).
+   rows = { levels:[{idx,title,sub}], topics:[{level,idx,title,icon,tip}], words:[{id,level,topic,en,uz,emoji,sent,sentUz,hidden,pos}], disabled:[tur] }
+   keepHidden=true bo'lsa yashirin so'zlar `hidden` belgisi bilan qoladi (admin ko'rinishi). */
+(function (TY) {
+  TY.disabledKinds = {};
+  TY.applyContent = function (rows, keepHidden) {
+    rows = rows || {};
+    var L = JSON.parse(JSON.stringify(TY.baseLevels));
+    (rows.levels || []).forEach(function (r) { var lv = L[r.idx]; if (lv) { if (r.title) lv.title = r.title; if (r.sub) lv.sub = r.sub; } });
+    (rows.topics || []).slice().sort(function (a, b) { return a.idx - b.idx; }).forEach(function (r) {
+      var lv = L[r.level]; if (!lv) return;
+      if (lv.topics[r.idx]) { var t = lv.topics[r.idx]; if (r.title) t.title = r.title; if (r.icon) t.icon = r.icon; if (r.tip != null) t.tip = r.tip; }
+      else if (r.idx === lv.topics.length) lv.topics.push({ title: r.title, icon: r.icon || '📘', tip: r.tip || '', words: [] });
+    });
+    (rows.words || []).slice().sort(function (a, b) { return (a.pos || 0) - (b.pos || 0); }).forEach(function (r) {
+      var lv = L[r.level], tp = lv && lv.topics[r.topic]; if (!tp) return;
+      var w = tp.words.filter(function (x) { return x.id === r.id; })[0];
+      if (w) { w.en = r.en; w.uz = r.uz; w.emoji = r.emoji || ''; w.sent = r.sent || ''; w.sentUz = r.sentUz || ''; w.hidden = !!r.hidden; }
+      else tp.words.push({ id: r.id, en: r.en, uz: r.uz, emoji: r.emoji || '', sent: r.sent || '', sentUz: r.sentUz || '', hidden: !!r.hidden });
+    });
+    if (!keepHidden) L.forEach(function (lv) { lv.topics.forEach(function (tp) { tp.words = tp.words.filter(function (w) { return !w.hidden; }); }); });
+    TY.LEVELS = L; TY.reindex();
+    TY.disabledKinds = {}; (rows.disabled || []).forEach(function (k) { TY.disabledKinds[k] = 1; });
+  };
+})(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));
+
+}
+</script>
+<script>
+if(!window.__adm){
+/* Lokal admin rejimi: server yo'q (bitta fayl / file://) bo'lganda /api/admin/* so'rovlarini brauzer ichida (localStorage) bajaradi.
+   Bu serverdagi mantiqning qisqartirilgan nusxasi. Xavfsizlik FAQAT shu brauzer darajasida (haqiqiy himoya emas). */
+(function (TY) {
+  'use strict';
+  var P = 'tilyoli:', DAY = 864e5, MIN_WORDS = TY.MIN_WORDS || 4;
+  var KINDS = ['mc_en_uz', 'mc_uz_en', 'picture', 'type_en_uz', 'type_uz_en', 'scramble', 'cloze', 'build', 'listen'];
+  var EASY = ['mc_en_uz', 'mc_uz_en', 'picture'], HARD = ['type_en_uz', 'type_uz_en', 'scramble', 'cloze', 'build', 'listen'];
+  function ls(k, d) { try { var v = localStorage.getItem(P + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
+  function sv(k, v) { try { localStorage.setItem(P + k, JSON.stringify(v)); } catch (e) {} }
+  function rm(k) { try { localStorage.removeItem(P + k); } catch (e) {} }
+  var now = Date.now;
+  function HttpErr(status, msg, extra) { var e = new Error(msg); e.status = status; e.extra = extra; return e; }
+  var bad = function (m) { return HttpErr(400, m); };
+
+  // ---- Ma'lumot qatlami ----
+  function content() { var c = ls('local-content', null) || {}; c.levels = c.levels || []; c.topics = c.topics || []; c.words = c.words || []; c.disabled = c.disabled || []; c.announcements = c.announcements || []; c.seq = c.seq || 0; return c; }
+  function saveContent(c) { sv('local-content', c); }
+  TY.localRows = function () { var c = content(); return { levels: c.levels, topics: c.topics, words: c.words, disabled: c.disabled }; };
+  TY.localAnnouncements = function () { return content().announcements.filter(function (a) { return a.active; }).slice(-5).reverse(); };
+  function audit(action, target, ok, detail) { var a = ls('local-audit', []); a.unshift({ id: now(), ts: now(), user_name: (ls('local-admin', {}) || {}).name, action: action, target: target == null ? null : String(target), ok: ok === false ? 0 : 1, detail: detail || null }); sv('local-audit', a.slice(0, 500)); }
+  function learners() {
+    var u = ls('users', {}), out = [];
+    Object.keys(u).forEach(function (k, i) {
+      var st = ls('data:' + k, null) || null, last = 0;
+      if (st) { (st.history || []).forEach(function (h) { last = Math.max(last, h.ts); }); Object.keys(st.days || {}).forEach(function (d) { var t = new Date(d + 'T12:00:00').getTime(); if (st.days[d].secs || st.days[d].xp) last = Math.max(last, t); }); }
+      out.push({ id: i + 1, key: k, name: u[k].name, status: u[k].disabled ? 'disabled' : 'active', created_at: u[k].created, last_seen: last || null, state: st, xp: st ? st.xp : 0, streak: TY.Game ? 0 : 0, lessons: st ? Object.keys(st.done || {}).length : 0, words_learned: st ? Object.keys(st.words || {}).filter(function (w) { return st.words[w].c > 0; }).length : 0 });
+      out[out.length - 1].streak = st ? (st.streak || 0) : 0;
+    });
+    return out;
+  }
+  function events() { var ev = []; learners().forEach(function (u) { if (u.state) (u.state.history || []).forEach(function (h) { ev.push({ ts: h.ts, mode: h.mode, node: h.node, pct: h.pct, xp: h.xp, ok: h.ok ? 1 : 0, uid: u.id, name: u.name }); }); }); return ev.sort(function (a, b) { return b.ts - a.ts; }); }
+  function merged(keep) { var c = content(); TY.applyContent({ levels: c.levels, topics: c.topics, words: c.words, disabled: c.disabled }, keep); return TY.LEVELS; }
+  function dayKey(ts) { var d = new Date(ts); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0'); }
+
+  // ---- Tekshiruv ----
+  function str(v, max, label, req) {
+    if (v == null || v === '') { if (req) throw bad(label + ' kiritilishi shart'); return ''; }
+    if (typeof v !== 'string') throw bad(label + " noto'g'ri turda");
+    v = v.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim(); if (req && !v) throw bad(label + ' kiritilishi shart');
+    if (v.length > max) throw bad(label + ' juda uzun (maks. ' + max + ')'); return v;
+  }
+  function validWord(b) {
+    var en = str(b.en, 40, "Inglizcha so'z", true);
+    if (!/^[A-Za-z][A-Za-z '\-.]*$/.test(en)) throw bad("Inglizcha so'zda faqat lotin harflari, bo'shliq, ' - . bo'lishi mumkin");
+    var uz = (Array.isArray(b.uz) ? b.uz : String(b.uz || '').split(';')).map(function (x) { return str(x, 60, 'Tarjima'); }).filter(Boolean);
+    if (!uz.length) throw bad('Kamida bitta tarjima kerak'); if (uz.length > 8) throw bad('Tarjimalar 8 tadan oshmasin');
+    var sent = str(b.sent, 160, 'Misol gap'), sentUz = str(b.sentUz, 160, 'Gap tarjimasi');
+    if (sent && !new RegExp('\\b' + en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(sent)) throw bad("Misol gapda so'zning o'zi bo'lishi kerak (bo'sh joyni to'ldirish mashqi uchun)");
+    if (sent && !sentUz) throw bad('Misol gap tarjimasini kiriting');
+    return { en: en, uz: uz, emoji: str(b.emoji, 8, 'Emoji'), sent: sent, sentUz: sentUz };
+  }
+  function intIn(v, min, max, label) { v = Number(v); if (!Number.isInteger(v) || v < min || v > max) throw bad(label + " noto'g'ri"); return v; }
+  function dupOf(level, en, exceptId) { var L = merged(true), k = en.toLowerCase(), r = null; L[level].topics.forEach(function (tp) { tp.words.forEach(function (w) { if (!r && w.id !== exceptId && w.en.toLowerCase() === k) r = { id: w.id, topic: tp.title, hidden: !!w.hidden }; }); }); return r; }
+  function findWord(id) { var L = merged(true), f = null; L.forEach(function (lv, li) { lv.topics.forEach(function (tp, ti) { tp.words.forEach(function (w) { if (w.id === id) f = { li: li, ti: ti, w: w, tp: tp }; }); }); }); return f; }
+  function upsert(c, id, level, topic, v, base, hidden) {
+    var r = c.words.filter(function (x) { return x.id === id; })[0];
+    if (r) { r.en = v.en; r.uz = v.uz; r.emoji = v.emoji; r.sent = v.sent; r.sentUz = v.sentUz; r.hidden = hidden ? 1 : 0; }
+    else c.words.push({ id: id, level: level, topic: topic, en: v.en, uz: v.uz, emoji: v.emoji, sent: v.sent, sentUz: v.sentUz, hidden: hidden ? 1 : 0, base: base ? 1 : 0, pos: ++c.seq });
+  }
+  function newId(c, level, topic) { var k = c.words.filter(function (x) { return !x.base; }).length + 1, id; do { id = level + '.' + topic + '.a' + (k++); } while (c.words.some(function (x) { return x.id === id; })); return id; }
+
+  // ---- Admin sessiyasi ----
+  function hash(s) {
+    if (window.crypto && crypto.subtle && window.TextEncoder) return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function (b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); });
+    var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return Promise.resolve('x' + (h >>> 0).toString(16));
+  }
+  function pwProblem(p) { if (typeof p !== 'string' || p.length < 10) return "Parol kamida 10 belgidan iborat bo'lsin"; if (!/[A-Za-z]/.test(p) || !/[0-9]/.test(p)) return "Parolda harf va raqam bo'lsin"; return null; }
+  function session() { try { return sessionStorage.getItem(P + 'local-admin-session') === '1'; } catch (e) { return false; } }
+  function setSession(v) { try { v ? sessionStorage.setItem(P + 'local-admin-session', '1') : sessionStorage.removeItem(P + 'local-admin-session'); } catch (e) {} }
+  var ADMIN = function () { var a = ls('local-admin', null); return { name: a ? a.name : 'Admin', role: 'super_admin', perms: ['dashboard', 'content', 'exercises', 'users', 'stats', 'announcements', 'audit', 'admins', 'settings'] }; };
+  var CSRF = 'local';
+
+  // ---- Statistika ----
+  function dashboard(days) {
+    var L = merged(false), us = learners(), t = now(), ev = events(), out = {};
+    var lessonNodes = TY.NODES.filter(function (n) { return n.kind === 'lesson'; }).length;
+    out.content = { levels: L.length, lessons: lessonNodes, tests: L.length, exercises: KINDS.length + 1, words: TY.allWords.length, hiddenWords: content().words.filter(function (w) { return w.hidden; }).length, edits: content().words.length };
+    var act = function (d) { return us.filter(function (u) { return u.last_seen && u.last_seen >= t - d * DAY; }).length; };
+    var doneSum = us.reduce(function (a, u) { return a + u.lessons; }, 0);
+    out.users = { total: us.length, active7: act(7), active30: act(30), new7: us.filter(function (u) { return u.created_at >= t - 7 * DAY; }).length, disabled: us.filter(function (u) { return u.status === 'disabled'; }).length };
+    out.learning = { lessonsCompleted: ev.filter(function (e) { return e.ok; }).length, avgProgress: us.length ? Math.round(1000 * doneSum / (us.length * TY.NODES.length)) / 10 : 0, totalXp: us.reduce(function (a, u) { return a + u.xp; }, 0) };
+    var title = function (id) { var n = TY.nodeById[id]; return n ? L[n.level].id + ' · ' + n.title : id; };
+    var byNode = {}; ev.forEach(function (e) { if (!e.node) return; var b = byNode[e.node] || (byNode[e.node] = { n: 0, s: 0 }); b.n++; b.s += e.pct; });
+    out.popularLessons = Object.keys(byNode).sort(function (a, b) { return byNode[b].n - byNode[a].n; }).slice(0, 5).map(function (k) { return { node: k, title: title(k), count: byNode[k].n }; });
+    out.hardLessons = Object.keys(byNode).filter(function (k) { return byNode[k].n >= 3; }).sort(function (a, b) { return byNode[a].s / byNode[a].n - byNode[b].s / byNode[b].n; }).slice(0, 5).map(function (k) { return { node: k, title: title(k), attempts: byNode[k].n, avgScore: Math.round(byNode[k].s / byNode[k].n) }; });
+    var ws = {}; us.forEach(function (u) { if (u.state) Object.keys(u.state.words || {}).forEach(function (id) { var a = ws[id] || (ws[id] = { c: 0, w: 0 }); a.c += u.state.words[id].c || 0; a.w += u.state.words[id].w || 0; }); });
+    out.hardWords = Object.keys(ws).filter(function (id) { return TY.wordById[id] && ws[id].c + ws[id].w >= 5; }).map(function (id) { return { id: id, en: TY.wordById[id].en, uz: TY.wordById[id].uz[0], attempts: ws[id].c + ws[id].w, wrongRate: Math.round(100 * ws[id].w / (ws[id].c + ws[id].w)) }; }).sort(function (a, b) { return b.wrongRate - a.wrongRate; }).slice(0, 8);
+    out.recentUsers = us.slice().sort(function (a, b) { return b.created_at - a.created_at; }).slice(0, 8).map(function (u) { return { id: u.id, name: u.name, created_at: u.created_at, xp: u.xp }; });
+    out.recentActivity = ev.slice(0, 10).map(function (e) { return { ts: e.ts, mode: e.mode, node: e.node, pct: e.pct, xp: e.xp, ok: e.ok, name: e.name, uid: e.uid, title: e.node ? title(e.node) : ({ practice: 'Aralash mashq', mistakes: "Xato so'zlar" }[e.mode] || e.mode) }; });
+    var s = {}, start = t - (days - 1) * DAY, i; for (i = 0; i < days; i++) s[dayKey(start + i * DAY)] = { date: dayKey(start + i * DAY), registrations: 0, active: 0, lessons: 0, xp: 0, _u: {} };
+    us.forEach(function (u) { var k = dayKey(u.created_at); if (s[k]) s[k].registrations++; });
+    ev.forEach(function (e) { var k = dayKey(e.ts); if (s[k]) { s[k].xp += e.xp; if (e.ok) s[k].lessons++; s[k]._u[e.uid] = 1; } });
+    out.series = Object.keys(s).map(function (k) { s[k].active = Object.keys(s[k]._u).length; delete s[k]._u; return s[k]; });
+    out.levelDistribution = L.map(function (lv) { return { level: lv.id, users: 0 }; });
+    us.forEach(function (u) { if (!u.state) return; var d = u.state.done || {}, top = 0, any = false; Object.keys(d).forEach(function (id) { var m = /^L(\d)/.exec(id); if (m) { top = Math.max(top, +m[1]); any = true; } }); if (any && out.levelDistribution[top]) out.levelDistribution[top].users++; });
+    out.role = 'super_admin'; return out;
+  }
+
+  // ---- Marshrutlar ----
+  var R = [];
+  function r(method, re, fn, open) { R.push({ method: method, re: new RegExp('^' + re.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), fn: fn, open: open }); }
+  r('POST', '/api/admin/login', function (c) {
+    var name = str(c.body.name, 24, 'Ism', true), pass = String(c.body.pass || ''), a = ls('local-admin', null), lock = ls('local-lock', { n: 0, t: 0 });
+    if (lock.n >= 5 && now() - lock.t < 15 * 6e4) throw HttpErr(429, "Urinishlar ko'p. 15 daqiqadan keyin qayta urining.");
+    if (!a) { var p = pwProblem(pass); if (p) throw bad(p); return hash(name.toLowerCase() + ':' + pass).then(function (h) { sv('local-admin', { name: name, h: h }); setSession(true); audit('admin.setup', name, true); return { admin: ADMIN(), csrf: CSRF }; }); }
+    return hash(name.toLowerCase() + ':' + pass).then(function (h) {
+      if (name.toLowerCase() !== a.name.toLowerCase() || h !== a.h) { lock = { n: (lock.n || 0) + 1, t: now() }; sv('local-lock', lock); audit('admin.login', name, false); throw HttpErr(401, "Ism yoki parol noto'g'ri"); }
+      rm('local-lock'); setSession(true); audit('admin.login', name, true); return { admin: ADMIN(), csrf: CSRF };
+    });
+  }, true);
+  r('POST', '/api/admin/logout', function () { setSession(false); return {}; });
+  r('GET', '/api/admin/me', function () { return { admin: ADMIN(), csrf: CSRF }; });
+  r('GET', '/api/admin/dashboard', function (c) { return dashboard(intIn(c.q.days || 30, 7, 90, 'days')); });
+  r('GET', '/api/admin/notifications', function () {
+    var us = learners(), l = [], t = now(), n = us.filter(function (u) { return u.created_at >= t - DAY; }).length;
+    if (n) l.push({ type: 'info', text: "Oxirgi 24 soatda " + n + " ta yangi foydalanuvchi", ts: t });
+    var d = us.filter(function (u) { return u.status === 'disabled'; }).length; if (d) l.push({ type: 'info', text: d + ' ta bloklangan hisob', ts: t });
+    ls('local-audit', []).filter(function (a) { return !a.ok; }).slice(0, 5).forEach(function (a) { l.push({ type: 'err', text: 'Muvaffaqiyatsiz: ' + a.action + ' ' + (a.target || ''), ts: a.ts }); });
+    return { items: l };
+  });
+  r('GET', '/api/admin/users', function (c) {
+    var page = intIn(c.q.page || 1, 1, 10000, 'page'), size = 20, q = String(c.q.q || '').toLowerCase().slice(0, 40), us = learners().filter(function (u) { return u.name.toLowerCase().indexOf(q) >= 0 && (!c.q.status || u.status === c.q.status); });
+    var cmp = { name: function (a, b) { return a.name.localeCompare(b.name); }, xp: function (a, b) { return b.xp - a.xp; }, seen: function (a, b) { return (b.last_seen || 0) - (a.last_seen || 0); } }[c.q.sort] || function (a, b) { return b.created_at - a.created_at; };
+    us.sort(cmp); var total = us.length;
+    return { rows: us.slice((page - 1) * size, page * size).map(function (u) { return { id: u.id, name: u.name, status: u.status, created_at: u.created_at, last_seen: u.last_seen, xp: u.xp, streak: u.streak, lessons: u.lessons, words_learned: u.words_learned }; }), total: total, page: page, pages: Math.max(1, Math.ceil(total / size)) };
+  });
+  function userBy(id) { id = intIn(id, 1, 1e9, 'id'); var u = learners().filter(function (x) { return x.id === id; })[0]; if (!u) throw HttpErr(404, 'Foydalanuvchi topilmadi'); return u; }
+  r('GET', '/api/admin/users/:id', function (c) {
+    var u = userBy(c.params.id), s = u.state || {}; var L = merged(false);
+    var done = Object.keys(s.done || {}).map(function (id) { return { id: id, title: TY.nodeById[id] ? L[TY.nodeById[id].level].id + ' · ' + TY.nodeById[id].title : id, best: s.done[id].best }; });
+    var hard = Object.keys(s.words || {}).filter(function (id) { return TY.wordById[id] && s.words[id].w > 0; }).map(function (id) { return { en: TY.wordById[id].en, uz: TY.wordById[id].uz[0], wrong: s.words[id].w, right: s.words[id].c }; }).sort(function (a, b) { return b.wrong - a.wrong; }).slice(0, 10);
+    return { user: { id: u.id, name: u.name, status: u.status, created_at: u.created_at, last_seen: u.last_seen, xp: u.xp, streak: u.streak, lessons: u.lessons, words_learned: u.words_learned },
+      progress: { hearts: s.hearts, bestStreak: s.bestStreak, goalMin: s.goalMin, achievements: Object.keys(s.ach || {}), mistakes: Object.keys(s.mistakes || {}).length, done: done, percent: Math.round(100 * done.length / TY.NODES.length) },
+      days: Object.keys(s.days || {}).sort().slice(-14).map(function (d) { return Object.assign({ date: d }, s.days[d]); }), hardWords: hard, events: events().filter(function (e) { return e.uid === u.id; }).slice(0, 15) };
+  });
+  r('POST', '/api/admin/users/:id/status', function (c) { var u = userBy(c.params.id); if (['active', 'disabled'].indexOf(c.body.status) < 0) throw bad('status'); var us = ls('users', {}); us[u.key].disabled = c.body.status === 'disabled'; sv('users', us); audit('user.' + c.body.status, u.name, true); return {}; });
+  r('POST', '/api/admin/users/:id/reset-progress', function (c) { var u = userBy(c.params.id); rm('data:' + u.key); audit('user.reset-progress', u.name, true); return {}; });
+  r('DELETE', '/api/admin/users/:id', function (c) { var u = userBy(c.params.id), us = ls('users', {}); delete us[u.key]; sv('users', us); rm('data:' + u.key); audit('user.delete', u.name, true); return {}; });
+  r('GET', '/api/admin/export/users.csv', function () { audit('export.users', '', true); return { csv: TY.localCsv() }; });
+  TY.localCsv = function () {
+    var cell = function (v) { var s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }, iso = function (t) { return t ? new Date(t).toISOString() : ''; };
+    return ['id,name,status,created,last_seen,xp,streak,lessons,words_learned'].concat(learners().map(function (u) { return [u.id, u.name, u.status, iso(u.created_at), iso(u.last_seen), u.xp, u.streak, u.lessons, u.words_learned].map(cell).join(','); })).join('\n');
+  };
+  r('GET', '/api/admin/content', function () {
+    var L = merged(true), c = content(), ed = {}; c.words.forEach(function (w) { ed[w.id] = 1; });
+    return { levels: L.map(function (lv, li) { return { idx: li, id: lv.id, title: lv.title, sub: lv.sub, color: lv.color, topics: lv.topics.map(function (tp, ti) { var vis = tp.words.filter(function (w) { return !w.hidden; }).length; return { idx: ti, title: tp.title, icon: tp.icon, tip: tp.tip, visible: vis, published: vis >= MIN_WORDS, words: tp.words.map(function (w) { return Object.assign({}, w, { edited: !!ed[w.id], custom: /\.a\d+$/.test(w.id) }); }) }; }) }; }), disabled: c.disabled, kinds: KINDS, minWords: MIN_WORDS };
+  });
+  function topicOf(level, topic) { var L = merged(true), lv = L[intIn(level, 0, L.length - 1, 'Daraja')]; return { lv: lv, tp: lv.topics[intIn(topic, 0, lv.topics.length - 1, 'Mavzu')] }; }
+  r('POST', '/api/admin/words', function (c) {
+    topicOf(c.body.level, c.body.topic); var level = +c.body.level, topic = +c.body.topic, v = validWord(c.body), d = dupOf(level, v.en);
+    if (d && !c.body.allowDuplicate) throw HttpErr(409, '«' + v.en + "» bu darajada allaqachon bor (" + d.topic + "). Baribir qo'shish uchun tasdiqlang.", { duplicate: d });
+    var cc = content(), id = newId(cc, level, topic); upsert(cc, id, level, topic, v, false, false); saveContent(cc); audit('word.create', id + ' ' + v.en, true); return { id: id };
+  });
+  r('PUT', '/api/admin/words/:id', function (c) {
+    var f = findWord(decodeURIComponent(c.params.id)); if (!f) throw HttpErr(404, "So'z topilmadi");
+    var v = validWord(c.body), hidden = !!c.body.hidden;
+    if (hidden && !f.w.hidden && f.tp.words.filter(function (w) { return !w.hidden; }).length - 1 < MIN_WORDS) throw HttpErr(409, 'Mavzuda kamida ' + MIN_WORDS + " ta ko'rinadigan so'z qolishi kerak");
+    var d = dupOf(f.li, v.en, f.w.id); if (d && !c.body.allowDuplicate && v.en.toLowerCase() !== f.w.en.toLowerCase()) throw HttpErr(409, '«' + v.en + '» allaqachon bor', { duplicate: d });
+    var cc = content(), row = cc.words.filter(function (x) { return x.id === f.w.id; })[0]; upsert(cc, f.w.id, f.li, f.ti, v, row ? row.base : 1, hidden); saveContent(cc);
+    audit(hidden !== !!f.w.hidden ? (hidden ? 'word.hide' : 'word.restore') : 'word.update', f.w.id + ' ' + v.en, true); return {};
+  });
+  r('DELETE', '/api/admin/words/:id', function (c) {
+    var f = findWord(decodeURIComponent(c.params.id)); if (!f) throw HttpErr(404, "So'z topilmadi");
+    if (!f.w.hidden && f.tp.words.filter(function (w) { return !w.hidden; }).length - 1 < MIN_WORDS) throw HttpErr(409, 'Mavzuda kamida ' + MIN_WORDS + " ta ko'rinadigan so'z qolishi kerak");
+    var cc = content(), row = cc.words.filter(function (x) { return x.id === f.w.id; })[0];
+    if (row && !row.base) { cc.words = cc.words.filter(function (x) { return x.id !== f.w.id; }); saveContent(cc); audit('word.delete', f.w.id, true); return { deleted: true }; }
+    upsert(cc, f.w.id, f.li, f.ti, f.w, true, true); saveContent(cc); audit('word.hide', f.w.id + ' ' + f.w.en, true); return { hidden: true };
+  });
+  r('POST', '/api/admin/import', function (c) {
+    topicOf(c.body.level, c.body.topic); var level = +c.body.level, topic = +c.body.topic, rows = c.body.rows;
+    if (!Array.isArray(rows) || !rows.length) throw bad("Qatorlar yo'q"); if (rows.length > 500) throw bad("Bir martada 500 tadan ko'p qator mumkin emas");
+    var mode = ['report', 'skip', 'allow'].indexOf(c.body.duplicates) >= 0 ? c.body.duplicates : 'report', dry = !!c.body.dryRun, res = { added: [], duplicates: [], invalid: [] }, seen = {}, apply = [];
+    rows.forEach(function (rw, i) {
+      try {
+        var v = validWord({ en: rw[0], uz: String(rw[1] || '').split(/[;,]/), emoji: rw[2], sent: rw[3], sentUz: rw[4] }), key = v.en.toLowerCase(), d = dupOf(level, v.en) || (seen[key] ? { topic: 'importdagi takror' } : null); seen[key] = 1;
+        if (d) { res.duplicates.push({ row: i + 1, en: v.en, where: d.topic }); if (mode !== 'allow') return; }
+        apply.push(v); res.added.push({ row: i + 1, en: v.en });
+      } catch (e) { res.invalid.push({ row: i + 1, en: String(rw[0] || ''), error: e.message }); }
+    });
+    if (dry || (mode === 'report' && res.duplicates.length)) { res.applied = false; return res; }
+    var cc = content(); apply.forEach(function (v) { upsert(cc, newId(cc, level, topic), level, topic, v, false, false); }); saveContent(cc);
+    res.applied = true; audit('word.import', 'L' + level + 'T' + topic + ' +' + apply.length, true); return res;
+  });
+  r('POST', '/api/admin/topics', function (c) {
+    var L = merged(true), level = intIn(c.body.level, 0, L.length - 1, 'Daraja'), idx = L[level].topics.length; if (idx >= 12) throw bad("Bir darajada 12 tadan ko'p mavzu mumkin emas");
+    var cc = content(); cc.topics.push({ level: level, idx: idx, title: str(c.body.title, 40, 'Mavzu nomi', true), icon: str(c.body.icon, 8, 'Belgi') || '📘', tip: str(c.body.tip, 400, 'Tushuntirish') }); saveContent(cc); audit('topic.create', 'L' + level + 'T' + idx, true); return { idx: idx };
+  });
+  r('PUT', '/api/admin/topics/:level/:idx', function (c) {
+    topicOf(c.params.level, c.params.idx); var cc = content(), l = +c.params.level, i = +c.params.idx, row = cc.topics.filter(function (x) { return x.level === l && x.idx === i; })[0], v = { level: l, idx: i, title: str(c.body.title, 40, 'Mavzu nomi', true), icon: str(c.body.icon, 8, 'Belgi') || '📘', tip: str(c.body.tip, 400, 'Tushuntirish') };
+    if (row) Object.assign(row, v); else cc.topics.push(v); saveContent(cc); audit('topic.update', 'L' + l + 'T' + i, true); return {};
+  });
+  r('PUT', '/api/admin/levels/:idx', function (c) {
+    var L = merged(true), idx = intIn(c.params.idx, 0, L.length - 1, 'Daraja'), cc = content(), v = { idx: idx, title: str(c.body.title, 40, 'Nom', true), sub: str(c.body.sub, 60, 'Tavsif', true) }, row = cc.levels.filter(function (x) { return x.idx === idx; })[0];
+    if (row) Object.assign(row, v); else cc.levels.push(v); saveContent(cc); audit('level.update', idx, true); return {};
+  });
+  r('PUT', '/api/admin/exercises', function (c) {
+    var d = c.body.disabled; if (!Array.isArray(d) || d.some(function (k) { return KINDS.indexOf(k) < 0; })) throw bad("Mashq turi noto'g'ri");
+    if (EASY.every(function (k) { return d.indexOf(k) >= 0; }) || HARD.every(function (k) { return d.indexOf(k) >= 0; })) throw bad("Yengil va murakkab guruhlarning har birida kamida bitta mashq turi yoqiq bo'lsin");
+    var cc = content(); cc.disabled = d.filter(function (k, i) { return d.indexOf(k) === i; }); saveContent(cc); audit('exercises.update', d.join(',') || '-', true); return {};
+  });
+  r('GET', '/api/admin/achievements', function () { var counts = {}, us = learners().filter(function (u) { return u.state; }); us.forEach(function (u) { Object.keys(u.state.ach || {}).forEach(function (k) { counts[k] = (counts[k] || 0) + 1; }); }); return { counts: counts, users: us.length }; });
+  r('GET', '/api/admin/announcements', function () { return { rows: content().announcements.slice().reverse() }; });
+  r('POST', '/api/admin/announcements', function (c) { var cc = content(), a = { id: ++cc.seq, title: str(c.body.title, 80, 'Sarlavha', true), body: str(c.body.body, 500, 'Matn', true), active: c.body.active === false ? 0 : 1, created: now(), author: ADMIN().name }; cc.announcements.push(a); saveContent(cc); audit('announcement.create', a.id, true); return { id: a.id }; });
+  r('PUT', '/api/admin/announcements/:id', function (c) { var cc = content(), a = cc.announcements.filter(function (x) { return x.id == c.params.id; })[0]; if (!a) throw HttpErr(404, 'Topilmadi'); a.title = str(c.body.title, 80, 'Sarlavha', true); a.body = str(c.body.body, 500, 'Matn', true); a.active = c.body.active ? 1 : 0; saveContent(cc); audit('announcement.update', a.id, true); return {}; });
+  r('DELETE', '/api/admin/announcements/:id', function (c) { var cc = content(); cc.announcements = cc.announcements.filter(function (x) { return x.id != c.params.id; }); saveContent(cc); audit('announcement.delete', c.params.id, true); return {}; });
+  r('GET', '/api/admin/audit', function (c) { var page = intIn(c.q.page || 1, 1, 10000, 'page'), a = ls('local-audit', []); return { rows: a.slice((page - 1) * 30, page * 30), total: a.length, page: page, pages: Math.max(1, Math.ceil(a.length / 30)) }; });
+  r('GET', '/api/admin/settings', function () { return { registrationOpen: ls('local-settings', { registrationOpen: true }).registrationOpen !== false }; });
+  r('PUT', '/api/admin/settings', function (c) { sv('local-settings', { registrationOpen: !!c.body.registrationOpen }); audit('settings.update', 'registrationOpen=' + !!c.body.registrationOpen, true); return {}; });
+  r('GET', '/api/admin/admins', function () { var a = ls('local-admin', {}); return { rows: [{ id: 1, name: a.name || 'Admin', role: 'super_admin', status: 'active', created_at: null, last_seen: now() }] }; });
+  r('POST', '/api/admin/admins', function () { throw bad("Lokal rejimda faqat bitta administrator bo'ladi. Ko'p administrator va rollar uchun server rejimidan foydalaning."); });
+  r('PUT', '/api/admin/admins/:id', function (c) {
+    if (!c.body.pass) throw bad("Lokal rejimda faqat parolni almashtirish mumkin"); var p = pwProblem(c.body.pass); if (p) throw bad(p);
+    var a = ls('local-admin', {}); return hash(a.name.toLowerCase() + ':' + c.body.pass).then(function (h) { a.h = h; sv('local-admin', a); audit('admin.update', a.name + ' +parol', true); return {}; });
+  });
+
+  // fetch o'rnini bosuvchi (Response'ga o'xshash obyekt qaytaradi)
+  function resp(status, j) { return { ok: status < 400, status: status, json: function () { return Promise.resolve(j); }, text: function () { return Promise.resolve(JSON.stringify(j)); } }; }
+  TY.localFetch = function (url, o) {
+    o = o || {}; var u = new URL(url, 'http://x'), path = u.pathname, method = (o.method || 'GET').toUpperCase(), q = {}; u.searchParams.forEach(function (v, k) { q[k] = v; });
+    var body = {}; try { body = o.body ? JSON.parse(o.body) : {}; } catch (e) {}
+    for (var i = 0; i < R.length; i++) {
+      var m = R[i].method === method && R[i].re.exec(path); if (!m) continue;
+      if (!R[i].open && !session()) return Promise.resolve(resp(401, { error: 'Kirish talab qilinadi' }));
+      try { return Promise.resolve(R[i].fn({ params: Object.assign({}, m.groups), q: q, body: body })).then(function (j) { return resp(200, j || {}); }, function (e) { return resp(e.status || 500, Object.assign({ error: e.message }, e.extra || {})); }); }
+      catch (e) { return Promise.resolve(resp(e.status || 500, Object.assign({ error: e.message }, e.extra || {}))); }
+    }
+    return Promise.resolve(resp(404, { error: 'API topilmadi' }));
+  };
+  TY.localSetupNeeded = function () { return !ls('local-admin', null); };
+  TY.LOCAL_ADMIN = true;
+})(window.TY = window.TY || {});
+
+}
+</script>
+<script>
+if(!window.__adm){
 /* Saqlash qatlami. Hozir: brauzer localStorage (har bir foydalanuvchi uchun alohida kalit).
    Backend qo'shish uchun faqat TY.Storage adapterini (read/write/list/remove) almashtirish kifoya. */
 (function (TY) {
@@ -580,9 +1692,10 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   window.addEventListener('pagehide', function () { Server.flush(); });
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') Server.flush(); });
   TY.ready = (function () {
-    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(false);
+    var local = function (on) { if (!on && TY.localRows) { TY.applyContent(TY.localRows()); Server.announcements = TY.localAnnouncements(); } return on; };
+    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(local(false));
     return fetch('api/ping', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (p) {
-      if (!p || !p.server) return false;
+      if (!p || !p.server) return local(false);
       Server.on = true; Server.registrationOpen = p.registrationOpen;
       return api('GET', 'api/content').then(function (c) { TY.applyContent(c.rows); Server.announcements = c.announcements || []; }).catch(function () {})
         .then(function () { return api('GET', 'api/me'); }).then(function (me) { Auth.openServer(me.user.name, me.state, me.csrf); }).catch(function () {}).then(function () { return true; });
@@ -602,6 +1715,8 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
       name = (name || '').trim();
       if (name.length < 2) return Promise.reject(new Error("Ism kamida 2 belgi bo'lsin"));
       if (!pass || pass.length < 4) return Promise.reject(new Error("Parol kamida 4 belgi bo'lsin"));
+      var lset = null; try { lset = JSON.parse(Storage.get('local-settings') || 'null'); } catch (e) {}
+      if (lset && lset.registrationOpen === false) return Promise.reject(new Error("Ro'yxatdan o'tish vaqtincha yopiq"));
       var u = users(); if (u[ukey(name)]) return Promise.reject(new Error('Bu ism band'));
       return hash(ukey(name) + ':' + pass).then(function (h) { u[ukey(name)] = { name: name, h: h, created: Date.now() }; saveUsers(u); Auth.open(name); });
     },
@@ -609,6 +1724,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
       if (Server.on) return api('POST', 'api/login', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       var u = users()[ukey(name || '')];
       if (!u) return Promise.reject(new Error('Foydalanuvchi topilmadi'));
+      if (u.disabled) return Promise.reject(new Error('Hisob bloklangan. Administratorga murojaat qiling.'));
       return hash(ukey(name) + ':' + pass).then(function (h) { if (h !== u.h) throw new Error("Parol noto'g'ri"); Auth.open(u.name); });
     },
     guest: function () { var u = users(); if (!u['mehmon']) { u['mehmon'] = { name: 'Mehmon', h: null, created: Date.now() }; saveUsers(u); } Auth.open('Mehmon'); },
@@ -618,7 +1734,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
       try { s = raw ? migrate(JSON.parse(raw), key) : newState(); } catch (e) { Storage.set(key + ':corrupt', raw); s = newState(); }
       Auth.state = s; Auth.key = key; Game.regen(); Game.rollStreak(); Auth.save();
     },
-    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k]) { Auth.open(users()[k].name); return true; } return false; },
+    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k] && !users()[k].disabled) { Auth.open(users()[k].name); return true; } return false; },
     logout: function () {
       if (Server.on && Auth.current) { var p = Server.flush(); p = (p || Promise.resolve()).then(function () { return api('POST', 'api/logout').catch(function () {}); }); Auth.pending = p; }
       Storage.remove('session'); Auth.current = null; Auth.state = null; Server.csrf = null;
@@ -744,8 +1860,10 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   TY.Game = Game;
 })(window.TY = window.TY || {});
 
+}
 </script>
 <script>
+if(!window.__adm){
 /* Mashqlar mexanikasi: javobni tekshirish, savollarni tuzish va sessiya. UI'dan mustaqil (test qilish oson). */
 (function (TY) {
   var G = TY.Game;
@@ -947,8 +2065,10 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   };
 })(window.TY = window.TY || {});
 
+}
 </script>
 <script>
+if(!window.__adm){
 /* Interfeys: marshrutlash, sahifalar va dars oynasi. */
 (function (TY) {
   var A = TY.Auth, G = TY.Game, $ = function (s, r) { return (r || document).querySelector(s); };
@@ -1163,7 +2283,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
       '<section class="card"><h3>Ko\'rinish</h3>' + seg('theme', [['auto', 'Avto'], ['light', '☀️ Yorug\''], ['dark', '🌙 Qorong\'i']], s.theme) + '</section>' +
       '<section class="card"><h3>Ovoz</h3><div class="seg"><button data-act="tog" data-k="sound" aria-pressed="' + s.sound + '">🔔 Effektlar: ' + (s.sound ? 'yoqiq' : 'o\'chiq') + '</button><button data-act="tog" data-k="speech" aria-pressed="' + s.speech + '">🔊 Talaffuz: ' + (s.speech ? 'yoqiq' : 'o\'chiq') + '</button></div>' + (TY.canSpeak() ? '' : '<p class="mute">Bu brauzerda talaffuz (TTS) yo\'q — eshitish mashqlari o\'tkazib yuboriladi.</p>') + '</section>' +
       '<section class="card"><h3>Ma\'lumotlar</h3><p class="mute">Barcha natijalar shu brauzerda (localStorage) saqlanadi. Boshqa qurilmaga ko\'chirish uchun eksport qiling.</p><div class="seg"><button data-act="export">⬇️ Eksport</button><label class="btn ghost small" style="cursor:pointer">⬆️ Import<input type="file" accept="application/json" id="imp" hidden></label><button data-act="reset">♻️ Progressni tozalash</button></div></section>' +
-      '<section class="card"><div class="seg"><button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
+      '<section class="card"><div class="seg">' + (TY.Server.on ? '<a class="btn ghost small" href="/admin">🛠️ Admin panel</a>' : (window.TY_SINGLE ? '<a class="btn ghost small" href="?admin">🛠️ Admin panel</a>' : '')) + '<button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
   }
 
   // ---- Dars oynasi ----
@@ -1346,6 +2466,7 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
   TY.ready.then(function () { route(); });
 })(window.TY = window.TY || {});
 
+}
 </script>
 </body>
 </html>
