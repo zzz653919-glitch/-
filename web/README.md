@@ -16,18 +16,18 @@ python3 -m http.server 8080      # yoki istalgan statik server
 | Fayl | Vazifa |
 |---|---|
 | `index.html` | Kirish nuqtasi |
-| `css/app.css` | Dizayn (yorug'/qorong'i rejim, moslashuvchan) |
-| `js/data.js` | Kurs: 6 daraja × 4 mavzu × 8 so'z = 192 so'z, tushuntirishlar, misol gaplar |
-| `js/store.js` | Saqlash adapteri, hisoblar, migratsiya, XP/streak/yurak/yutuq/topshiriq mantig'i |
-| `js/engine.js` | Javobni tekshirish, mashqlarni tuzish (tasodifiy), sessiya |
-| `js/ui.js` | Marshrutlash, sahifalar, dars oynasi |
-| `tests/logic.test.js` | Node mantiq testlari (`node tests/logic.test.js`) |
-| `tests/e2e.js` | Playwright brauzer testi (desktop + mobil) |
+| `app.css` | Dizayn (yorug'/qorong'i rejim, moslashuvchan) |
+| `data.js` | Kurs: 6 daraja × 4 mavzu × 8 so'z = 192 so'z, tushuntirishlar, misol gaplar |
+| `store.js` | Saqlash adapteri, hisoblar, migratsiya, XP/streak/yurak/yutuq/topshiriq mantig'i |
+| `engine.js` | Javobni tekshirish, mashqlarni tuzish (tasodifiy), sessiya |
+| `ui.js` | Marshrutlash, sahifalar, dars oynasi |
+| `logic.test.js` | Node mantiq testlari (`node logic.test.js`) |
+| `e2e.js` | Playwright brauzer testi (desktop + mobil) |
 
 ## Ma'lumotlarni saqlash (muhim)
 - Backend yo'q. Hamma narsa brauzerning **localStorage**'ida, `tilyoli:` prefiksi bilan:
   `tilyoli:users` (hisoblar ro'yxati), `tilyoli:data:<ism>` (XP, streak, yurak, darslar, so'z statistikasi, xatolar, yutuqlar, kunlik statistika), `tilyoli:session`.
-- Backend qo'shish uchun faqat `TY.Storage` (js/store.js) va `TY.Auth` dagi `register/login/save` almashtiriladi — qolgan kod holat obyektiga tayanadi.
+- Backend qo'shish uchun faqat `TY.Storage` (store.js) va `TY.Auth` dagi `register/login/save` almashtiriladi — qolgan kod holat obyektiga tayanadi.
 - **Migratsiya:** ma'lumotda `v` (sxema versiyasi) bor. Eski versiya ochilganda avval `tilyoli:data:<ism>:backup-v<N>` nusxa yoziladi, keyin yetishmagan maydonlar qo'shiladi; mavjud maydonlar o'chirilmaydi. Buzilgan JSON `:corrupt` kalitiga ko'chiriladi.
 - Profil → Eksport/Import orqali JSON nusxa olish va boshqa qurilmaga ko'chirish mumkin.
 - **So'z identifikatorlari** (`daraja.mavzu.indeks`) progressga bog'langan: `data.js` dagi so'zlar tartibini o'zgartirmang, yangilarini mavzu oxiriga qo'shing.
