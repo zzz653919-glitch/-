@@ -19,6 +19,8 @@ log = logging.getLogger(__name__)
 class Speaker(QObject):
     _ready = Signal(str, int)
     note = Signal(str)
+    speakingChanged = Signal(bool)
+    _done = Signal(int)
 
     def __init__(self, settings: Settings, parent=None):
         super().__init__(parent)
@@ -26,30 +28,51 @@ class Speaker(QObject):
         self._gen = 0
         self._tmp = Path(tempfile.mkdtemp(prefix="pyatnitsa-tts-"))
         self._noted = False
+        self.speaking = False
+        self._closed = False
         self._player = self._out = None
         try:
             from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
             self._player, self._out = QMediaPlayer(self), QAudioOutput(self)
             self._player.setAudioOutput(self._out)
+            self._player.playbackStateChanged.connect(self._on_state)
+            self._player.errorOccurred.connect(lambda *a: self._finish(self._gen))
             self._out.setVolume(settings.volume)
         except Exception:  # noqa: BLE001
             log.warning("QtMultimedia mavjud emas; faqat tizim ovozi ishlatiladi")
         self._ready.connect(self._play)
+        self._done.connect(self._finish)
 
     def set_volume(self, v: float) -> None:
         self.settings.volume = v
         if self._out:
             self._out.setVolume(v)
 
+    def _set_speaking(self, on: bool) -> None:
+        if self.speaking != on:
+            self.speaking = on
+            self.speakingChanged.emit(on)
+
+    def _finish(self, gen: int) -> None:
+        if gen == self._gen:
+            self._set_speaking(False)
+
+    def _on_state(self, state) -> None:
+        from PySide6.QtMultimedia import QMediaPlayer
+        if state == QMediaPlayer.StoppedState:
+            self._set_speaking(False)
+
     def stop(self) -> None:
         self._gen += 1
         if self._player:
             self._player.stop()
+        self._set_speaking(False)
 
     def say(self, text: str, lang: str = "uz") -> None:
         if not self.settings.voice_enabled or not text.strip():
             return
         self.stop()
+        self._set_speaking(True)
         threading.Thread(target=self._work, args=(text[:600], self._gen, lang), daemon=True).start()
 
     # ---- fon oqimi
@@ -59,13 +82,16 @@ class Speaker(QObject):
                 import edge_tts
                 path = self._tmp / f"s{gen}.mp3"
                 asyncio.run(edge_tts.Communicate(text, voice_name(self.settings.voice_gender, lang)).save(str(path)))
-                self._ready.emit(str(path), gen)
+                if not self._closed:
+                    self._ready.emit(str(path), gen)
                 return
             except Exception as e:  # noqa: BLE001
                 log.warning("edge-tts ishlamadi (%s), tizim ovoziga o'tildi", e)
         if gen != self._gen:
             return
         self._system_voice(text, lang)
+        if not self._closed:
+            self._done.emit(gen)
 
     def _system_voice(self, text: str, lang: str = "uz") -> None:
         try:
@@ -104,5 +130,6 @@ class Speaker(QObject):
         self._player.play()
 
     def close(self) -> None:
+        self._closed = True
         self.stop()
         shutil.rmtree(self._tmp, ignore_errors=True)

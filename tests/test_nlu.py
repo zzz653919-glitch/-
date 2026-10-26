@@ -6,7 +6,7 @@ from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QApplication
 
 from nlu_corpus import DEV, FRESH, HELDOUT, USER_EXAMPLES, describe, evaluate
-from pyatnitsa import audio, controller as C, nlu
+from pyatnitsa import audio, controller as C, nlu, stt
 from pyatnitsa.commands import normalize, parse
 from pyatnitsa.executor import Executor
 from pyatnitsa.settings import Settings
@@ -194,7 +194,7 @@ def make(app, tmp_path, confirm=True):
     st = Settings(); st.confirm_commands = confirm
     plat = FakePlatform({"chrome": Path("/x/chrome.exe"), "calculator": Path("/x/calc.exe")}, tmp_path)
     FakeRecorder.instances.clear()
-    c = C.Controller(st, Executor(st, plat), FakeSpeaker(), FakeRecorder, lambda r, l: "")
+    c = C.Controller(st, Executor(st, plat), FakeSpeaker(), FakeRecorder, lambda r, l: "", post_roll_ms=0)
     msgs = []
     c.message.connect(lambda role, t: msgs.append((role, t)))
     return c, plat, msgs
@@ -257,7 +257,7 @@ def test_text_commands_work_with_microphone_off(app, tmp_path):
 
 
 def test_voice_candidates_pick_the_meaningful_language():
-    heard = [audio.Heard("ochi krom brauzer", "en-US", 0.4), audio.Heard("Открой хром", "ru-RU", 0.8), audio.Heard("och xrom", "uz-UZ", 0.5)]
+    heard = [stt.Heard("ochi krom brauzer", "en-US", 0.4), stt.Heard("Открой хром", "ru-RU", 0.8), stt.Heard("och xrom", "uz-UZ", 0.5)]
     best = C.Controller.choose_transcript(heard)
     assert parse(best).kind == "ok"
     assert C.Controller.choose_transcript("abc") == "abc"

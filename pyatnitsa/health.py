@@ -75,6 +75,10 @@ class Snapshot:
     os_name: str
     uptime_s: float
     events: list[dict] | None             # None = olib bo'lmadi
+    net_active: bool | None = None        # faol tarmoq adapteri bormi (None = aniqlab bo'lmadi)
+    net_iface: str | None = None
+    net_down_bps: float | None = None
+    net_up_bps: float | None = None
 
 
 @dataclass
@@ -260,12 +264,13 @@ class HealthMonitor:
         self._gpu = _Cache(8, read_gpus)
         self._events = _Cache(300, read_events)
         self._last_io: tuple[float, object] | None = None
+        self._last_net: tuple[float, int, int] | None = None
         self.cpu_history: deque[float] = deque(maxlen=HISTORY_LEN)
         self.ram_history: deque[float] = deque(maxlen=HISTORY_LEN)
         self.gpu_history: deque[float] = deque(maxlen=HISTORY_LEN)
         self.latest: Snapshot | None = None
         self.version = 0
-        self.interval = 3.0
+        self.interval = 2.0
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
         self._wake = threading.Event()
@@ -305,13 +310,16 @@ class HealthMonitor:
                                        b.secsleft if isinstance(b.secsleft, int) and b.secsleft >= 0 else None)
             except Exception:  # noqa: BLE001
                 pass
+            net_active, net_iface = self._net_status()
+            net_down, net_up = self._net_rates()
             snap = Snapshot(
                 taken=time.time(), cpu_percent=cpu, cpu_count=psutil.cpu_count(logical=True),
                 cpu_freq_mhz=freq_mhz, cpu_temp=temp, cpu_temp_note=note,
                 ram_total=vm.total, ram_used=vm.total - vm.available, ram_available=vm.available,
                 ram_percent=vm.percent, disks=self._disks(), disk_read_bps=rb, disk_write_bps=wb,
                 gpus=self._gpu.get(force_slow), battery=batt, os_name=os_description(),
-                uptime_s=time.time() - psutil.boot_time(), events=self._events.get(force_slow))
+                uptime_s=time.time() - psutil.boot_time(), events=self._events.get(force_slow),
+                net_active=net_active, net_iface=net_iface, net_down_bps=net_down, net_up_bps=net_up)
             self.latest = snap
             self.cpu_history.append(cpu)
             self.ram_history.append(vm.percent)
@@ -319,6 +327,40 @@ class HealthMonitor:
                 self.gpu_history.append(snap.gpus[0].util)
             self.version += 1
             return snap
+
+    @staticmethod
+    def _net_status() -> tuple[bool | None, str | None]:
+        """Faol (yoqilgan va IPv4 manzilli) tarmoq adapteri. Internetga chiqish bu yerda tekshirilmaydi (diagnostikada tekshiriladi)."""
+        try:
+            stats, addrs = psutil.net_if_stats(), psutil.net_if_addrs()
+        except Exception:  # noqa: BLE001
+            return None, None
+        virtual = ("vethernet", "virtualbox", "vmware", "loopback", "pseudo", "docker", "veth", "br-", "wsl", "bluetooth")
+        active = []
+        for name, st in stats.items():
+            low = name.lower()
+            if not st.isup or low == "lo" or low.startswith("loopback"):
+                continue
+            ips = [a.address for a in addrs.get(name, []) if a.family.name == "AF_INET" and not a.address.startswith(("127.", "169.254."))]
+            if ips:
+                active.append(name)
+        real = [n for n in active if not any(v in n.lower() for v in virtual)]
+        pick = (real or active or [None])[0]
+        return bool(active), pick
+
+    def _net_rates(self) -> tuple[float | None, float | None]:
+        try:
+            io = psutil.net_io_counters(pernic=True)
+            rx = sum(v.bytes_recv for k, v in io.items() if k.lower() != "lo" and not k.lower().startswith("loopback"))
+            tx = sum(v.bytes_sent for k, v in io.items() if k.lower() != "lo" and not k.lower().startswith("loopback"))
+        except Exception:  # noqa: BLE001
+            return None, None
+        now, last = time.monotonic(), self._last_net
+        self._last_net = (now, rx, tx)
+        if last is None or now - last[0] <= 0:
+            return None, None
+        dt = now - last[0]
+        return max(0.0, (rx - last[1]) / dt), max(0.0, (tx - last[2]) / dt)
 
     @staticmethod
     def _disks() -> list[DiskInfo]:
@@ -375,6 +417,11 @@ class HealthMonitor:
         self._stop.set()
         self._wake.set()
 
+    def join(self, timeout: float = 1.0) -> None:
+        t = self._thread
+        if t and t.is_alive() and t is not threading.current_thread():
+            t.join(timeout)
+
     def refresh_now(self) -> None:
         self._wake.set()
 
@@ -384,8 +431,9 @@ class HealthMonitor:
             try:
                 self.sample(force_slow=force)
                 force = False
-                if self.on_update:
-                    self.on_update()
+                cb = self.on_update
+                if cb and not self._stop.is_set():
+                    cb()
             except Exception:  # noqa: BLE001
                 log.exception("Monitoring xatosi")
             if self._wake.wait(self.interval):

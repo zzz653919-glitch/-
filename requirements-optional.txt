@@ -1,0 +1,3 @@
+# Ixtiyoriy: oflayn, ko'p tilli nutq tanish (o'zbekcha uchun Google'dan yaxshiroq bo'lishi mumkin).
+# Sozlamalar -> Speech engine -> Whisper. Birinchi ishlatishda model yuklab olinadi (tiny ~75 MB, base ~145 MB, small ~480 MB).
+faster-whisper>=1.0

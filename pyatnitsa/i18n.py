@@ -249,6 +249,46 @@ _S: dict[str, tuple[str, str, str]] = {   # kalit: (uz, ru, en)
                  "If you like, open the Command Prompt as administrator and run it yourself."),
     "admin.say": ("Bu tekshiruv administrator huquqini talab qiladi, avtomatik bajarmayman.", "Эта проверка требует прав администратора, автоматически я её не запускаю.",
                   "This check needs administrator rights, I won't run it automatically."),
+    # ---- mikrofon va nutqni tanish xatolari (har biri aniq sabab)
+    "mic.not_found": ("Mikrofon topilmadi. Windows'dagi kirish qurilmasini tekshiring.", "Микрофон не найден. Проверьте устройство ввода в Windows.",
+                      "Microphone not found. Check your Windows input device."),
+    "mic.permission": ("Mikrofonga kirish rad etildi yoki u boshqa dastur tomonidan band. Windows → Sozlamalar → Maxfiylik → Mikrofon ruxsatini tekshiring. ({detail})",
+                       "Доступ к микрофону запрещён или он занят другой программой. Проверьте Параметры Windows → Конфиденциальность → Микрофон. ({detail})",
+                       "Microphone access was denied or the device is in use. Check Windows Settings → Privacy → Microphone. ({detail})"),
+    "mic.busy": ("Mikrofon allaqachon ishlatilmoqda (boshqa yozuv yoki test).", "Микрофон уже используется (другая запись или тест).",
+                 "The microphone is already in use (another recording or the test)."),
+    "mic.open_failed": ("Mikrofonni ochib bo'lmadi. {detail}", "Не удалось открыть микрофон. {detail}", "Could not open the microphone. {detail}"),
+    "mic.lib_missing": ("Audio kutubxonasi (sounddevice / PortAudio) ishlamayapti: {detail}", "Аудиобиблиотека (sounddevice / PortAudio) не работает: {detail}",
+                        "The audio library (sounddevice / PortAudio) is not working: {detail}"),
+    "voice.too_short": ("Yozuv juda qisqa. Space ni bosib, buyruqni to'liq ayting va yana Space bosing.",
+                        "Запись слишком короткая. Нажмите Space, скажите команду целиком и снова нажмите Space.",
+                        "The recording was too short. Press Space, say the whole command, then press Space again."),
+    "voice.silent": ("Mikrofon hech qanday tovush yozmadi. U o'chirilgan yoki noto'g'ri qurilma tanlangan bo'lishi mumkin (Sozlamalar → Mikrofon testi).",
+                     "Микрофон не записал никакого звука. Возможно, он выключен или выбрано не то устройство (Настройки → Тест микрофона).",
+                     "The microphone captured no sound. It may be muted or the wrong device is selected (Settings → Microphone test)."),
+    "voice.no_speech": ("Nutq aniqlanmadi. Iltimos, qayta urinib ko'ring.", "Речь не обнаружена. Пожалуйста, попробуйте ещё раз.",
+                        "No speech detected. Please try again."),
+    "voice.too_quiet": ("Mikrofon ishlayapti, lekin ovoz juda past. Mikrofonga yaqinroq gapiring yoki Windows'da kirish ovozini oshiring.",
+                        "Микрофон работает, но звук слишком тихий. Говорите ближе или увеличьте громкость входа в Windows.",
+                        "The microphone is working, but the audio is too quiet. Speak closer or raise the input volume in Windows."),
+    "voice.unclear": ("Aniq eshitilmadi: «{text}» (ishonch past). Iltimos, buyruqni qaytaring.", "Расслышал неуверенно: «{text}». Пожалуйста, повторите команду.",
+                      "I'm not sure I heard that correctly: “{text}”. Please repeat the command."),
+    "stt.empty": ("Nutqni tanish xizmati matn qaytarmadi. Iltimos, aniqroq va yaqinroq gapirib, qayta urinib ko'ring.",
+                  "Служба распознавания не вернула текст. Пожалуйста, говорите чётче и ближе и повторите.",
+                  "Speech recognition returned no text. Please speak clearly and closer, and try again."),
+    "stt.network": ("Nutqni tanish xizmatiga ulanib bo'lmadi. Internetni tekshiring. ({detail})", "Не удалось связаться со службой распознавания речи. Проверьте интернет. ({detail})",
+                    "Could not reach the speech recognition service. Check your internet connection. ({detail})"),
+    "stt.failed": ("Nutqni tanish ishlamadi. Iltimos, qayta urinib ko'ring. ({detail})", "Распознавание речи не удалось. Пожалуйста, попробуйте ещё раз. ({detail})",
+                   "Speech recognition failed. Please try again. ({detail})"),
+    "stt.lib_missing": ("SpeechRecognition kutubxonasi o'rnatilmagan: {detail}", "Библиотека SpeechRecognition не установлена: {detail}", "The SpeechRecognition library is not installed: {detail}"),
+    "stt.whisper_missing": ("Whisper o'rnatilmagan. `pip install faster-whisper` ni bajaring yoki Sozlamalarda Google dvigatelini tanlang. ({detail})",
+                            "Whisper не установлен. Выполните `pip install faster-whisper` или выберите движок Google в настройках. ({detail})",
+                            "Whisper is not installed. Run `pip install faster-whisper` or choose the Google engine in Settings. ({detail})"),
+    "stt.whisper_load": ("Whisper modelini yuklab bo'lmadi (birinchi marta internet kerak). {detail}", "Не удалось загрузить модель Whisper (при первом запуске нужен интернет). {detail}",
+                         "Could not load the Whisper model (internet is needed the first time). {detail}"),
+    "heard_unknown": ("Eshitdim: «{text}». Mos amalni aniqlay olmadim — bu buyruq hali qo'llab-quvvatlanmasligi mumkin. Masalan: «Chrome'ni och», «RAM holatini ko'rsat».",
+                      "Я услышал: «{text}». Не смог определить нужное действие — возможно, эта команда пока не поддерживается. Например: «Открой Chrome», «Покажи состояние RAM».",
+                      "I heard: “{text}”. I could not identify the intended action — the command may not be supported yet. For example: “Open Chrome”, “Show RAM status”."),
 }
 
 _APP_TITLES = {   # app_id: (uz, ru, en)
@@ -270,6 +310,10 @@ def T(key: str, lang: str = "uz", **kw) -> str:
         return s.format(**kw) if kw else s
     except (KeyError, IndexError, ValueError):
         return s
+
+
+def has(key: str) -> bool:
+    return key in _S
 
 
 def app_title(app_id: str, lang: str = "uz") -> str:

@@ -13,9 +13,9 @@ from . import APP_ID
 
 log = logging.getLogger(__name__)
 
-STT_LANGUAGES = [("Avto (o'zbek + rus + ingliz)", "auto"), ("O'zbekcha", "uz-UZ"), ("Русский", "ru-RU"), ("English", "en-US")]
-TTS_ENGINES = [("Avto (internet ovozi, keyin tizim ovozi)", "auto"),
-               ("Faqat tizim ovozi (oflayn)", "system")]
+STT_LANGUAGES = [("Auto (Uzbek + Russian + English)", "auto"), ("Uzbek (O'zbekcha)", "uz-UZ"), ("Russian (Русский)", "ru-RU"), ("English", "en-US")]
+TTS_ENGINES = [("Auto (online voice, then system voice)", "auto"),
+               ("System voice only (offline)", "system")]
 
 
 def data_dir() -> Path:
@@ -33,11 +33,16 @@ def data_dir() -> Path:
 @dataclass
 class Settings:
     stt_language: str = "auto"
+    stt_engine: str = "google"             # google | whisper (oflayn, ixtiyoriy)
+    whisper_model: str = "base"            # tiny | base | small
+    auto_stop_silence: bool = False        # jimlikdan keyin avtomatik to'xtatish (ixtiyoriy)
     microphone: str | None = None          # qurilma nomi; None = tizim standarti
     voice_enabled: bool = True
     voice_gender: str = "male"             # male | female
     tts_engine: str = "auto"
     volume: float = 0.8
+    reduce_motion: str = "system"          # system | on | off
+    show_terminal: bool = True
     confirm_commands: bool = True          # har bir buyruq bajarilishidan oldin tasdiq
     autostart: bool = False                # standart: o'chiq
     city: str = "Tashkent"
@@ -81,6 +86,12 @@ class Settings:
             if ok:
                 setattr(s, key, val)
         s.volume = min(1.0, max(0.0, s.volume))
+        if s.stt_engine not in ("google", "whisper"):
+            s.stt_engine = "google"
+        if s.whisper_model not in ("tiny", "base", "small"):
+            s.whisper_model = "base"
+        if s.reduce_motion not in ("system", "on", "off"):
+            s.reduce_motion = "system"
         if s.voice_gender not in ("male", "female"):
             s.voice_gender = "male"
         if s.tts_engine not in {v for _, v in TTS_ENGINES}:

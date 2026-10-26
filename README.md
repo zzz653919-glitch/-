@@ -1,6 +1,6 @@
 # ПЯТНИЦА — o'zbek tilidagi xavfsiz ovozli kompyuter yordamchisi
 
-Windows uchun Python + PySide6 ilovasi. **Buyruqlar faqat ilova oynasi ochiq va faol bo'lgandagina qabul qilinadi va bajariladi.** Ovozli buyruq (Space), matnli chat va **PC Health Monitor** —
+Windows uchun Python + PySide6 ilovasi. **Buyruqlar faqat ilova oynasi ochiq va faol bo'lgandagina qabul qilinadi va bajariladi.** Kiberpank uslubidagi interfeys (animatsiyali AI Core), ovozli buyruq (Space), matnli chat, buyruq terminali, diagnostika va jonli **PC monitoring** —
 bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan belgilangan xavfsiz amallarni bajaradi.
 
 ## Ishga tushirish (Windows)
@@ -14,16 +14,42 @@ bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan
 ### Alohida ilova (.exe) yig'ish
 `build.bat` ni ishga tushiring (PyInstaller o'rnatiladi) — natija `dist\Pyatnitsa\Pyatnitsa.exe`. Butun `dist\Pyatnitsa` papkasini istalgan joyga ko'chirib, yorliq yaratish mumkin. (Bu skript Windows'da hali sinalmagan.)
 
+## Interfeys (kiberpank, PySide6)
+Chap: **AI Assistant · Command History · System Monitoring · Diagnostics · Settings · About** (hammasi ishlaydigan sahifalar). Markaz: animatsiyali **AI Core**, ПЯТНИЦА, holat yorlig'i, mikrofon ko'rsatkichi va ovoz vizualizatsiyasi, suhbat (pufakchalar, vaqt belgisi), kiritish maydoni, tasdiq paneli, ijro holati, **Command Terminal**. O'ng: jonli PC holati (CPU, RAM, disk, GPU, harorat, batareya, tarmoq, uptime).
+- **AI Core holatlari faqat haqiqiy holatni ko'rsatadi:** STANDBY · LISTENING (mikrofon haqiqatan ochilgandan keyin; to'lqin real mikrofon darajasiga bog'liq) · PROCESSING (audio → matn) · INTERPRETING (matn → amal) · AWAITING CONFIRMATION · EXECUTING · RESPONDING (javob aytilayotganda) · ERROR (haqiqiy mikrofon/tanish/ijro xatosi).
+- **Terminal** faqat haqiqiy hodisalarni yozadi (`[VOICE] Listening activated`, `[AI] Intent identified: OPEN_APPLICATION`, `[EXECUTION] …`, `[SUCCESS]/[ERROR] …`).
+- Monitoring qiymatlari `psutil`/tizim vositalaridan olinadi, fon oqimida, GUI qotmaydi. Datchik yo'q bo'lsa — **Unavailable** (yoki **Not supported**); soxta/tasodifiy qiymat ko'rsatilmaydi. Monitoring faqat oyna ochiq (kichraytirilmagan) paytda o'qiydi; hech narsa yuborilmaydi.
+- **Animatsiyalar:** yengil taymer (~30 FPS, oyna yashirilganda to'xtaydi); Sozlamalarda «Reduce motion» yoki Windows'ning «animatsiyalarni o'chirish» tanlovi hisobga olinadi.
+- Oyna o'lchamiga moslashadi: <1240 px da chap panel ikonkalarga siqiladi, <1100 px da o'ng panel yashiriladi, past oynada terminal yashiriladi.
+- Interfeys yorliqlari inglizcha (HUD uslubi); yordamchining **javoblari** esa buyruq tilida (uz/ru/en).
+
 ## Boshqaruv
 | Amal | Usul |
 |---|---|
-| Tinglashni boshlash / to'xtatish | **Space** (oyna faol bo'lganda) yoki «Mikrofonni yoqish» tugmasi |
+| Tinglashni boshlash / to'xtatish | **Space** (oyna faol bo'lganda; matn yozayotganda emas, lekin **bo'sh** kiritish maydonida ham ishlaydi) yoki «Start listening» tugmasi |
 | Matnli buyruq | Pastdagi chat: Enter — yuborish, Shift+Enter — yangi qator |
 | Tasdiqlash / bekor qilish | Enter yoki «Ha, bajar» / Esc yoki «Bekor qilish» |
 | Ovoz balandligi | Slayder; Sozlamalar (⚙) — til, mikrofon, ovoz, tarix, ruxsat etilgan dasturlar |
 
 Oqim: **buyruq (ovoz yoki matn) → ekranda matn → tahlil → tasdiq → bajarish → natija ekranda va ovozda**.
 Ovozli va matnli buyruqlar *aynan bir xil* kod yo'lidan va bir xil xavfsizlik qoidalaridan o'tadi.
+
+## Mikrofon va ovozli buyruq quvuri (tuzatilgan)
+**Aniqlangan asl sabablar** (kod tahlili bo'yicha; haqiqiy qurilmada tasdiqlash — «Test holati» bo'limiga qarang):
+1. `transcribe()` ichidagi `except Exception` **har qanday ichki xatoni yutib**, «buyruqni tushunmadim» deb ko'rsatardi (FLAC konverteri bloklangan, HTTP 403/429, `audioop` yo'q ...). Endi xatolar turlarga ajratilib, aniq sabab bilan ko'rsatiladi.
+2. Audio sifati tekshirilmasdi: jim / juda past / bo'sh yozuv ham yuborilardi, «ovoz past» va «ovoz yo'q» farqlanmasdi. Endi tahlil, kuchaytirish, chetdagi jimlikni kesish va 16 kHz ga o'tkazish bor.
+3. Qurilma faqat nom bo'yicha (Windows'da bir nom bir necha host API'da takrorlanadi) tanlanar, ochilish xatolari bitta umumiy xabarga aylanardi. Endi MME > DirectSound > WASAPI tartibida tanlanadi; ruxsat yo'q / qurilma yo'q / chastota mos emas / PortAudio yo'q alohida xabarlar.
+4. Space bosilishi bilan yozuv darhol kesilardi (oxirgi bo'g'in yo'qolardi) — endi 250 ms «post-roll». Daraja ko'rsatkichi chiziqli edi (past mikrofon ko'rinmasdi) — endi dBFS shkalasi.
+5. Eski interfeysda matn maydoni fokusda bo'lsa Space bo'shliq yozardi, mikrofon yoqilmasdi — endi bo'sh maydonda Space mikrofonni yoqadi.
+6. «Tushunmadim» javobi nima eshitilganini aytmasdi — endi: *«Eshitdim: «…». Mos amalni aniqlay olmadim»*.
+
+**Quvur:** Space → qurilma tekshiruvi → yozish (LISTENING faqat oqim ochilgach) → Space/(ixtiyoriy) jimlikda to'xtash → mikrofon bo'shatiladi → PROCESSING (sifat tahlili → 16 kHz → dvigatel, fon oqimida) → INTERPRETING → tasdiq → EXECUTING → natija tekshirilib ko'rsatiladi. Bir vaqtda faqat bitta yozuv (qulf). Bo'sh/jim/past ishonchli (<0,40) natijada buyruq **bajarilmaydi**.
+
+**Aniq xabarlar (uz/ru/en):** «Mikrofon topilmadi…», «Mikrofon hech qanday tovush yozmadi», «Nutq aniqlanmadi», «Mikrofon ishlayapti, lekin ovoz juda past», «Nutqni tanish xizmatiga ulanib bo'lmadi», «Nutqni tanish ishlamadi (sabab)», «Aniq eshitilmadi — takrorlang», «Eshitdim: «…»…».
+
+**Mikrofon testi** (Settings → Microphone test): 4 s yozadi, jonli daraja, qurilma/chastota/peak/shovqin/nutq davomiyligi, tanigan matn (+ muqobillar), **qanday amal sifatida tushunilgani** — hech narsa bajarilmaydi. Hali saqlanmagan tanlovlar (qurilma, til, dvigatel) bilan sinaydi.
+
+**Dvigatellar:** Google Web Speech (standart; uz/ru/en parallel) yoki **Whisper** (oflayn, ixtiyoriy: `pip install -r requirements-optional.txt`; Settings → Speech engine; o'zbekcha uchun «small» tavsiya). Whisper tilni faqat uz/ru/en orasidan tanlaydi va buyruq so'zlari (Chrome, Downloads, RAM …) bilan yo'naltiriladi. **Jurnal** (`%APPDATA%\Pyatnitsa\pyatnitsa.log`): qurilma, chastota, yozuv davomiyligi, peak/shovqin, dvigatel va til, tanigan matn, intent, ijro natijasi, istisnolar. Audio yozuv va kalitlar **hech qachon** yozilmaydi.
 
 ## Ko'p tilli tushunish (o'zbekcha · ruscha · inglizcha · aralash)
 Buyruq faqat aniq iboraga solishtirilmaydi — `pyatnitsa/nlu.py` ma'nosini aniqlaydi:
@@ -91,17 +117,22 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 194 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 256 ta avtomatik test (Linux, offscreen Qt, ~17 s).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
 - Boshqaruvchi: Space → tinglash boshlanishi, qayta Space → to'xtash; mikrofon Space'siz ochilmaydi; tasdiqsiz hech narsa bajarilmaydi; bekor qilish; xatodan keyin dastur ishlashda davom etadi; mikrofon/tanish xatolari tushunarli xabar beradi.
 - Ijrochi (soxta Windows qatlami bilan): Chrome va Downloads to'g'ri chaqiriladi; topilmagan dastur o'rniga boshqasi ochilmaydi; o'chirilgan dastur ochilmaydi; Google URL to'g'ri kodlanadi; kurs/ob-havo formatlash va manba/sana ko'rsatilishi (soxta javob bilan); internet yo'qligida son o'ylab topilmaydi.
-- Chat: Enter yuboradi, Shift+Enter yangi qator, matnli buyruq mikrofonsiz ishlaydi, matn yozayotganda Space mikrofonni yoqmaydi.
+- Chat va tugmalar: Enter yuboradi, Shift+Enter yangi qator, matnli buyruq mikrofonsiz ishlaydi, matn yozayotganda Space — oddiy bo'shliq, bo'sh maydonda va boshqa joyda — mikrofon.
+- **Audio quvuri** (soxta `sounddevice` bilan, haqiqiy kod): qurilma tanlash (MME > WASAPI), 16 kHz ochish va mahalliy chastotaga o'tish, hamma audio bloklari yozilishi, mikrofon bo'shatilishi va qayta ochilishi, ikkinchi yozuv rad etilishi, ruxsat/qurilma/PortAudio xatolari alohida kalitlar bilan; sifat tahlili (nutq/jim/shovqin/past/qisqa), kuchaytirish, chetlarni kesish (ichki pauzalar saqlanadi), resampling; jimlikni aniqlash.
+- **Nutq dvigatellari:** Google 3 tilda parallel, xatolarning turlarga ajratilishi (tarmoq / xizmat rad etdi / FLAC) va yutilmasligi, qisman xatoda qolgan tillardan foydalanish; Whisper (soxta model bilan); jim/qisqa/past ovoz dvigatelga yuborilmasligi.
+- **Boshqaruvchi:** holatlar tartibi (LISTENING → PROCESSING → INTERPRETING → CONFIRM → EXECUTING → RESPONDING), mikrofon matnga aylantirishdan oldin bo'shatilishi, past ishonchda bajarilmasligi, har bir xato turiga aniq xabar va to'g'ri holat (ERROR faqat haqiqiy xatolarda), terminal hodisalarining tartibi, tarix yozuvlari.
+- **Interfeys:** 6 sahifa navigatsiyasi, tasdiq paneli, terminal va ijro holati, tarix (matnni kiritish maydoniga qo'yish bajarmaydi), diagnostika fon oqimida, sozlamalar saqlanishi, mikrofon testi (matn va tushunilgan amal ko'rsatiladi, bajarilmaydi), kichik/katta oyna, uzun xabarlar maketni buzmasligi, reduced-motion.
 - Monitoring: haqiqiy `psutil` o'lchovlari (Linux'da), holat baholash va sabablar, mavjud bo'lmagan qiymatlar uchun «Ma'lumot mavjud emas».
 
 **Windows'da qo'lda tekshirilishi kerak (bu muhitda sinab bo'lmadi):**
-- Haqiqiy mikrofondan yozish (`sounddevice`) va Google nutq tanishi, o'zbekcha tanish sifati.
+- **Haqiqiy mikrofon** (bu muhitda audio qurilma va PortAudio yo'q): yozish, daraja ko'rsatkichi, Windows ruxsatlari, oqim ochilish kechikishi (birinchi bo'g'in kesilishi mumkinligi), haqiqiy shovqin sharoitida jimlikni aniqlash chegaralari — barchasi faqat sintetik signallar va soxta qurilma bilan sinalgan.
+- **Haqiqiy tanish sifati:** Google va Whisper bilan o'zbekcha/ruscha/inglizcha jonli nutq, aralash gaplar (ular Google'da cheklangan), Whisper modelini yuklab olish va tezligi. Real tanish aniqligi o'lchanmagan.
 - Ovozli javob: `edge-tts` + `QMediaPlayer` ovozi va `pyttsx3` fallback.
 - Chrome/Kalkulyator/Notepad/Explorer ochilishi, Downloads/Desktop/Documents (OneDrive ko'chirilgan papkalar ham) — kodi tayyor, lekin Windows'da bajarilmagan.
 - Haqiqiy internet: cbu.uz kursi va Open-Meteo ob-havosi (sinov muhitida tarmoq bloklangan edi; faqat «internet yo'q» yo'li tekshirildi).
@@ -122,6 +153,11 @@ pyatnitsa/services.py    kurs va ob-havo (internet)
 pyatnitsa/health.py      PC Health Monitor (faqat o'qish)
 pyatnitsa/controller.py  holat mashinasi (ovoz + matn)
 pyatnitsa/audio.py, tts.py, settings.py
-pyatnitsa/ui.py, widgets.py  interfeys
+pyatnitsa/audio.py       mikrofon, qurilma tanlash, sifat tahlili, tayyorlash, jimlikni aniqlash
+pyatnitsa/stt.py         nutq dvigatellari (Google / Whisper), xato turlari
+pyatnitsa/voice_test.py  mikrofon testi
+pyatnitsa/diagnostics.py haqiqiy tizim tekshiruvlari
+pyatnitsa/gui/           kiberpank interfeys (main_window, core_widget, monitor_view, chat, terminal, pages, settings_page, theme, icons)
+pyatnitsa/ui.py          moslik uchun qisqa import
 tests/                   avtomatik testlar
 ```
