@@ -12,7 +12,8 @@ import time
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
-from . import audio, commands, stt
+from . import ai_chat, audio, commands, router, stt
+from .ai_chat import AIError
 from .audio import VoiceError
 from .executor import Executor, Result
 from .i18n import T, has
@@ -21,8 +22,10 @@ from .settings import Settings
 log = logging.getLogger("pyatnitsa.voice")
 
 IDLE, LISTENING, CHECKING, INTERPRETING, CONFIRM, RUNNING, DONE = "idle", "listening", "checking", "interpreting", "confirm", "running", "done"
+THINKING, STREAMING = "thinking", "streaming"
 LABELS = {IDLE: "Kutmoqda", LISTENING: "Tinglayapti", CHECKING: "Nutq matnga aylantirilmoqda", INTERPRETING: "Buyruq tahlil qilinmoqda",
-          CONFIRM: "Tasdiq kutilmoqda", RUNNING: "Bajarilmoqda", DONE: "Tayyor"}
+          CONFIRM: "Tasdiq kutilmoqda", RUNNING: "Bajarilmoqda", DONE: "Tayyor",
+          THINKING: "AI o'ylamoqda", STREAMING: "AI javob bermoqda"}
 _OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
 _REAL_FAILURES = ("mic.", "stt.network", "stt.failed", "stt.lib_missing", "stt.whisper")   # bular ERROR holati; qolganlari («nutq yo'q» va h.k.) oddiy javob
 
@@ -53,15 +56,21 @@ class Controller(QObject):
     confirmChanged = Signal(bool, str)     # kerakmi, savol matni
     log = Signal(str, str)                 # daraja (info|active|success|warn|error), "[TEG] matn" — faqat HAQIQIY hodisalar
     record = Signal(dict)                  # tugallangan buyruq yozuvi (tarix sahifasi uchun)
+    aiStream = Signal(str, str)            # thinking_on | thinking_off | start | delta | end | stopped | error  (+ matn)
+    retryChanged = Signal(bool)
+    _ai_first = Signal(int)
+    _ai_delta = Signal(int, str)
+    _ai_done = Signal(int, object)
+    _ai_err = Signal(int, object)
     _voice_done = Signal(object, object, object, object)   # matn, ParseResult, tanlangan Heard, xato
     _stage = Signal(str)
     _executed = Signal(object)
     _level_in = Signal(float)
     _endpoint = Signal()
 
-    def __init__(self, settings: Settings, executor: Executor, speaker, recorder_factory=None, transcribe=None, post_roll_ms: int = 250):
+    def __init__(self, settings: Settings, executor: Executor, speaker, recorder_factory=None, transcribe=None, post_roll_ms: int = 250, ai=None):
         super().__init__()
-        self.settings, self.executor, self.speaker = settings, executor, speaker
+        self.settings, self.executor, self.speaker, self.ai = settings, executor, speaker, ai
         self._recorder_factory = recorder_factory or self._default_recorder
         self._transcribe = transcribe or (lambda rec, lang: stt.recognize(rec, self.settings))
         self.post_roll_ms = post_roll_ms
@@ -73,6 +82,11 @@ class Controller(QObject):
         self._stopping = False
         self._closed = False
         self._t0 = 0.0
+        self._ai_rid = 0
+        self._ai_parts: list[str] = []
+        self._ai_streaming = False
+        self._retry: tuple | None = None
+        self._last_recording = None
         self._pending: list[commands.Command] = []
         self._cur: dict | None = None
         self._limit = QTimer(self, singleShot=True, interval=audio.MAX_SECONDS * 1000)
@@ -80,6 +94,10 @@ class Controller(QObject):
         self._idle = QTimer(self, singleShot=True, interval=2000)
         self._idle.timeout.connect(self._idle_tick)
         self._voice_done.connect(self._on_voice_done)
+        self._ai_first.connect(self._on_ai_first)
+        self._ai_delta.connect(self._on_ai_delta)
+        self._ai_done.connect(self._on_ai_done)
+        self._ai_err.connect(self._on_ai_error)
         self._stage.connect(self._on_stage)
         self._executed.connect(self._on_executed)
         self._level_in.connect(self.level)
@@ -108,8 +126,15 @@ class Controller(QObject):
     def core_state(self) -> str:
         """AI yadrosi uchun HAQIQIY holat."""
         s = self.state
-        return {LISTENING: "listening", CHECKING: "processing", INTERPRETING: "interpreting", CONFIRM: "confirm", RUNNING: "executing"}.get(
-            s, ("responding" if self.last_ok else "error") if s == DONE else "standby")
+        base = {LISTENING: "listening", CHECKING: "processing", INTERPRETING: "interpreting", CONFIRM: "confirm", RUNNING: "executing",
+                THINKING: "thinking", STREAMING: "responding"}
+        if s in base:
+            return base[s]
+        if s == DONE:
+            if not self.last_ok:
+                return "error"
+            return "speaking" if getattr(self.speaker, "speaking", False) else "responding"
+        return "standby"
 
     def log_event(self, level: str, tag: str, text: str) -> None:
         log.info("[%s] %s", tag, text)
@@ -137,6 +162,13 @@ class Controller(QObject):
     def busy(self) -> bool:
         return self.state in (CHECKING, INTERPRETING, RUNNING)
 
+    @property
+    def ai_busy(self) -> bool:
+        return self.state in (THINKING, STREAMING)
+
+    def can_retry(self) -> bool:
+        return self._retry is not None and not self.busy and not self.ai_busy and self.state != LISTENING
+
     # ------------------------------------------------------------ xato matnlari
     def error_text(self, err: BaseException) -> str:
         if isinstance(err, VoiceError) and has(err.key):
@@ -155,6 +187,9 @@ class Controller(QObject):
         if self.state == LISTENING:
             if not self._stopping:
                 self._begin_stop()
+        elif self.ai_busy and self._guard():           # AI gapirayotganda Space: javobni to'xtatib, tinglashni boshlaydi
+            self.cancel_ai()
+            self._start_listening()
         elif not self.busy and not self._stopping and self._guard():
             if self.state == CONFIRM:
                 self.cancel(silent=True)
@@ -229,6 +264,10 @@ class Controller(QObject):
             return
         secs = getattr(recording, "seconds", 0.0)
         self.log_event("info", "VOICE", f"Listening stopped ({secs:.1f}s recorded); converting speech to text")
+        self._last_recording = recording            # faqat xotirada; muvaffaqiyatsiz bo'lsa «Retry» uchun
+        self._run_stt(recording)
+
+    def _run_stt(self, recording) -> None:
         self._set(CHECKING)
         lang = self.settings.stt_language
         engine = self.settings.stt_engine
@@ -277,6 +316,8 @@ class Controller(QObject):
             self._voice_failed(err)
             return
         self.log_event("info", "VOICE", f"Speech recognized: {text}")
+        self._last_recording = None
+        self._set_retry(None)
         if chosen is not None and chosen.conf is not None and chosen.conf < audio.MIN_CONFIDENCE and res.kind != "blocked":
             self.message.emit("user", text)               # nima eshitilgani ko'rinsin, lekin bajarilmaydi
             self.log_event("warn", "VOICE", f"Low recognition confidence ({chosen.conf:.2f}); asking the user to repeat")
@@ -286,7 +327,13 @@ class Controller(QObject):
             return
         self._handle_text(text, "voice", res)
 
+    def _set_retry(self, ctx: tuple | None) -> None:
+        self._retry = ctx
+        self.retryChanged.emit(ctx is not None)
+
     def _voice_failed(self, err: BaseException) -> None:
+        if self._last_recording is not None:
+            self._set_retry(("stt",))                # xabar yo'qolmasin: o'sha yozuvni qayta tanish mumkin
         if isinstance(err, VoiceError):
             real = err.key.startswith(_REAL_FAILURES)
             self.log_event("error" if real else "warn", "ERROR" if real else "VOICE", f"{err.key}: {(err.detail or self.error_text(err))[:200]}")
@@ -300,12 +347,16 @@ class Controller(QObject):
         text = text.strip()
         if not text or self.state == LISTENING or self.busy or self._stopping or not self._guard():
             return
+        if self.ai_busy:
+            self.message.emit("system", T("ai.busy", self.lang))
+            return
         if self.state == CONFIRM:
             self.cancel(silent=True)
         self._handle_text(text, "text")
 
     def _handle_text(self, text: str, source: str, res: commands.ParseResult | None = None) -> None:
         self.last_ok = True
+        self._set_retry(None)
         if self.state != INTERPRETING:           # ovozli oqimda allaqachon INTERPRETING
             self._set(INTERPRETING)
         self.message.emit("user", text)
@@ -313,6 +364,11 @@ class Controller(QObject):
         if source == "text":
             self.log_event("info", "TEXT", "Command received")
         res = res or commands.parse(text)
+        route = router.route(text, res, has_history=bool(self.ai and len(self.ai.history)))
+        self.log_event("info", "AI", f"Routed: {route.category} ({route.reason})")
+        if route.to_ai:
+            self._start_ai(text, route, res)
+            return
         self.lang = res.lang
         if res.kind != "ok":
             tag, level, outcome = {"blocked": ("SECURITY", "warn", "blocked"), "clarify": ("AI", "info", "clarify")}.get(res.kind, ("AI", "info", "unknown"))
@@ -384,6 +440,162 @@ class Controller(QObject):
 
         threading.Thread(target=work, daemon=True).start()
 
+    # ------------------------------------------------------------ AI suhbat (faqat MATN; undan hech narsa bajarilmaydi)
+    def _ai_error_text(self, e: AIError, lang: str) -> str:
+        wait = f" ({int(e.retry_after)} s)" if e.retry_after else ""
+        return T(f"ai.err.{e.kind}", lang, detail=(e.detail or "")[:200], wait=wait)
+
+    def _start_ai(self, text: str, route: router.Route, res: commands.ParseResult | None = None, show_user: bool = False) -> None:
+        self.lang = route.lang
+        ok, why = self.ai.available() if self.ai else (False, "disabled")
+        if not ok:
+            plain_unknown = not (why == "no_key" or (res is not None and res.kind != "unknown") or route.category == router.QUESTION_ANSWERING)
+            if why == "no_key" or (res is not None and res.kind != "unknown") or route.category == router.QUESTION_ANSWERING:
+                msg = T("ai.disabled" if why == "disabled" else "ai.err.no_key", route.lang)
+            else:
+                msg = T("heard_unknown", route.lang, text=text)
+            self.log_event("warn", "AI", "AI chat unavailable: " + ("disabled in settings" if why == "disabled" else "no API key configured"))
+            self._reply(msg, ok=(why == "disabled" or why == ""))
+            self._finish_record("unknown" if plain_unknown else "ai_failed", msg)
+            return
+        if not self.settings.ai_notice_shown:
+            self.settings.ai_notice_shown = True
+            self.settings.save()
+            self.message.emit("system", T("ai.notice", route.lang, provider="Anthropic"))
+        self._ai_rid += 1
+        rid = self._ai_rid
+        self.ai.apply_settings()
+        self.ai.history.add_user(text)
+        self._ai_parts, self._ai_streaming = [], False
+        self._ai_ctx = (text, route)
+        system = ai_chat.build_system_prompt(route.lang, has_history=len(self.ai.history) > 1, live_unsupported=route.live_unsupported)
+        msgs = self.ai.history.messages()
+        self.log_event("active", "AI", f"Request sent to Anthropic · model {self.ai.client.model} · {len(msgs)} context message(s)")
+        self.aiStream.emit("thinking_on", "")
+        self._set(THINKING)
+
+        def work():
+            try:
+                reply = self.ai.client.stream_reply(msgs, system, lambda t: self._ai_delta.emit(rid, t), lambda: self._ai_first.emit(rid))
+                if not self._closed:
+                    self._ai_done.emit(rid, reply)
+            except Exception as e:  # noqa: BLE001
+                if not self._closed:
+                    self._ai_err.emit(rid, e if isinstance(e, AIError) else ai_chat.map_error(e))
+
+        threading.Thread(target=work, name="ai-chat", daemon=True).start()
+
+    def _on_ai_first(self, rid: int) -> None:
+        if rid != self._ai_rid or self.state != THINKING:
+            return
+        self._ai_streaming = True
+        self.aiStream.emit("thinking_off", "")
+        self.aiStream.emit("start", "")
+        self.log_event("info", "AI", "Response streaming")
+        self._set(STREAMING)
+
+    def _on_ai_delta(self, rid: int, chunk: str) -> None:
+        if rid != self._ai_rid:
+            return
+        self._ai_parts.append(chunk)
+        self.aiStream.emit("delta", chunk)
+
+    def _on_ai_done(self, rid: int, reply: ai_chat.Reply) -> None:
+        if rid != self._ai_rid:
+            return
+        text = reply.text
+        if self._ai_streaming is False:
+            self.aiStream.emit("thinking_off", "")
+        if reply.cancelled:
+            if text.strip():
+                self.ai.history.add_assistant(text)
+            else:
+                self.ai.history.pop_last_user()
+            self.aiStream.emit("stopped", text)
+            self.log_event("info", "AI", "Generation stopped by the user")
+            self._finish_record("cancelled", "Stopped by user")
+            self.last_ok = True
+            self._set(IDLE)
+            return
+        self.ai.history.add_assistant(text)
+        if not self._ai_streaming:                     # oqim bo'lmagan (juda qisqa) javob
+            self.aiStream.emit("start", "")
+            self.aiStream.emit("delta", text)
+        self.aiStream.emit("end", text)
+        if reply.truncated:
+            self.message.emit("system", T("ai.truncated", self.lang))
+        self.log_event("success", "AI", f"Response complete · {len(text)} chars · {reply.seconds:.1f}s · stop={reply.stop_reason}"
+                       + (" · served by fallback model" if reply.fallback_used else ""))
+        self._finish_record("answered", text[:160])
+        self.last_ok = True
+        self._set_retry(None)
+        if self.settings.voice_enabled:
+            self.speaker.say(text, router.detect_language(text))
+            self._set(DONE)
+        else:
+            self._set(IDLE)
+
+    def _on_ai_error(self, rid: int, e: AIError) -> None:
+        if rid != self._ai_rid:
+            return
+        self.ai.history.pop_last_user()                # qayta urinishda qayta qo'shiladi
+        self.aiStream.emit("thinking_off", "")
+        msg = self._ai_error_text(e, self.lang)
+        self.log_event("error", "ERROR", f"AI request failed ({e.kind}): {(e.detail or '')[:160]}")
+        self.aiStream.emit("error", msg)
+        self._set_retry(("ai",) + self._ai_ctx)
+        self._finish_record("ai_failed", msg)
+        self.last_ok = False
+        if self.settings.voice_enabled:
+            self.speaker.say(msg.split(".")[0] + ".", self.lang)
+        self._set(DONE)
+
+    def cancel_ai(self) -> None:
+        """Javob yaratilishini DARHOL to'xtatadi (qisman javob saqlanadi). Eski so'rovning kech signallari e'tiborsiz qoldiriladi."""
+        if not (self.ai_busy and self.ai):
+            return
+        self._ai_rid += 1                              # kech kelgan done/delta/error signallari endi hisobga olinmaydi
+        self.ai.cancel()
+        text = "".join(self._ai_parts)
+        self.aiStream.emit("thinking_off", "")
+        if text.strip():
+            self.ai.history.add_assistant(text)
+        else:
+            self.ai.history.pop_last_user()
+        self.aiStream.emit("stopped", text)
+        self.log_event("info", "AI", "Generation stopped by the user")
+        self._finish_record("cancelled", "Stopped by user")
+        self.last_ok = True
+        self._set(IDLE)
+
+    def stop_speaking(self) -> None:
+        self.speaker.stop()
+        self.log_event("info", "SPEECH", "Speech stopped by the user")
+        if self.state == DONE:
+            self._set(IDLE)
+
+    def retry(self) -> None:
+        """Muvaffaqiyatsiz AI so'rovini yoki nutq tanishni qayta bajaradi."""
+        if not self.can_retry() or not self._guard():
+            return
+        ctx = self._retry
+        self._set_retry(None)
+        if ctx[0] == "ai":
+            self.log_event("info", "AI", "Retrying the last request")
+            self._start_ai(ctx[1], ctx[2], None)
+        elif ctx[0] == "stt" and self._last_recording is not None:
+            self.log_event("info", "VOICE", "Retrying speech recognition on the same recording")
+            self._run_stt(self._last_recording)
+
+    def clear_conversation(self) -> None:
+        """Chatdagi suhbatni va AI kontekstini tozalaydi (buyruqlar tarixi saqlanadi)."""
+        self.cancel_ai()
+        if self.ai:
+            self.ai.history.clear()
+        self._last_recording = None
+        self._set_retry(None)
+        self.log_event("info", "SYSTEM", "Conversation context cleared")
+
     def _on_executed(self, results: list[Result]) -> None:
         for r in results:
             first = r.message.splitlines()[0] if r.message else ""
@@ -397,6 +609,8 @@ class Controller(QObject):
     # ------------------------------------------------------------ yopish
     def shutdown(self) -> None:
         self._closed = True
+        if self.ai:
+            self.ai.cancel()
         self._limit.stop(); self._idle.stop()
         if self._recorder:
             try:

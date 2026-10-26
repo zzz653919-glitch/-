@@ -9,10 +9,10 @@ C = {
     "ok": "#2ee6a6", "warn": "#ffb020", "err": "#ff4d6d",
 }
 STATE_COLORS = {   # AI Core holatlari
-    "standby": "#00bcd4", "listening": "#00e5ff", "processing": "#6c7bff", "interpreting": "#9d7bff", "confirm": "#a78bfa",
+    "standby": "#00bcd4", "listening": "#00e5ff", "processing": "#6c7bff", "interpreting": "#9d7bff", "thinking": "#8b5cf6", "speaking": "#2ee6a6", "confirm": "#a78bfa",
     "executing": "#38bdf8", "responding": "#22d3ee", "error": "#ff4d6d",
 }
-STATE_LABELS = {"standby": "STANDBY", "listening": "LISTENING", "processing": "PROCESSING", "interpreting": "INTERPRETING", "confirm": "AWAITING CONFIRMATION",
+STATE_LABELS = {"standby": "STANDBY", "listening": "LISTENING", "processing": "PROCESSING", "interpreting": "INTERPRETING", "thinking": "THINKING", "speaking": "SPEAKING", "confirm": "AWAITING CONFIRMATION",
                 "executing": "EXECUTING", "responding": "RESPONDING", "error": "ERROR"}
 LEVEL_COLORS = {"info": "#8aa0bd", "active": "#8b9dff", "success": "#2ee6a6", "warn": "#ffb020", "error": "#ff4d6d"}
 FONT_UI = "'Bahnschrift','Segoe UI Variable Text','Segoe UI','Inter','Noto Sans',sans-serif"
@@ -58,13 +58,17 @@ QPushButton#nav:checked {{ background: rgba(0, 229, 255, 0.12); border-left: 3px
 
 QFrame#bubbleUser {{ background: rgba(109, 40, 217, 0.28); border: 1px solid rgba(139, 92, 246, 0.55); border-radius: 12px; }}
 QFrame#bubbleAI {{ background: rgba(0, 229, 255, 0.07); border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 12px; }}
+QFrame#bubbleErr {{ background: rgba(255, 77, 109, 0.10); border: 1px solid rgba(255, 77, 109, 0.55); border-radius: 12px; }}
 QLabel#bubbleHead {{ color: {C['muted']}; font-size: 11px; letter-spacing: 1px; }}
 QLabel#bubbleSys {{ color: {C['dim']}; font-size: 12px; }}
 
-QPlainTextEdit, QLineEdit, QComboBox, QListWidget, QTableWidget {{
+QPlainTextEdit, QLineEdit, QComboBox, QListWidget, QTableWidget, QSpinBox {{
     background: rgba(6, 11, 22, 0.9); border: 1px solid {C['border']}; border-radius: 10px; padding: 7px;
     selection-background-color: rgba(0, 229, 255, 0.35); selection-color: #fff; }}
-QPlainTextEdit:focus, QLineEdit:focus, QComboBox:focus {{ border: 1px solid {C['cyan']}; }}
+QSpinBox {{ min-width: 110px; padding-right: 22px; }}
+QSpinBox::up-button, QSpinBox::down-button {{ width: 18px; border: none; background: transparent; }}
+QSpinBox::up-arrow, QSpinBox::down-arrow {{ width: 8px; height: 8px; }}
+QPlainTextEdit:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{ border: 1px solid {C['cyan']}; }}
 QComboBox::drop-down {{ border: none; width: 22px; }}
 QComboBox QAbstractItemView {{ background: {C['bg2']}; border: 1px solid {C['border']}; selection-background-color: rgba(0,229,255,0.25); }}
 QPlainTextEdit#terminal {{ font-family: {FONT_MONO}; font-size: 12px; background: rgba(2, 5, 10, 0.92); }}

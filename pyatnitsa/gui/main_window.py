@@ -26,9 +26,11 @@ STATE_HINT = {
     "listening": "Microphone is live — press SPACE again when you finish",
     "processing": "Converting speech to text…",
     "interpreting": "Analyzing the command…",
+    "thinking": "Thinking — waiting for the AI model…",
+    "speaking": "Speaking the answer — press SPACE to interrupt",
     "confirm": "Waiting for your confirmation — Enter to run, Esc to cancel",
     "executing": "Executing the command…",
-    "responding": "Delivering the response",
+    "responding": "Writing the answer…",
     "error": "Something went wrong — details are in the conversation and terminal",
 }
 PAGES = [("assistant", "AI Assistant"), ("history", "Command History"), ("monitor", "System Monitoring"),
@@ -119,7 +121,7 @@ class MainWindow(QMainWindow):
         self.pages: dict[str, QWidget] = {}
         self.history = HistoryPage()
         self.diag = DiagnosticsPage(self.monitor, on_event=self.ctrl.log_event)
-        self.settings_page = SettingsPage(self.settings, can_test=self._can_test_mic)
+        self.settings_page = SettingsPage(self.settings, can_test=self._can_test_mic, ai=self.ctrl.ai)
         self.monitor_view = MetricsView(self.bridge, compact=False)
         mon = QWidget(); ml = QVBoxLayout(mon); ml.setContentsMargins(0, 0, 0, 0); ml.setSpacing(12)
         ml.addLayout(page_header("SYSTEM MONITORING", "Live values read from this computer. “Unavailable / Not supported” means the sensor or driver does not provide it."))
@@ -162,6 +164,8 @@ class MainWindow(QMainWindow):
         # ---- suhbat
         chat = QFrame(); chat.setObjectName("panel"); cl = QVBoxLayout(chat); cl.setContentsMargins(12, 8, 12, 12); cl.setSpacing(8)
         head = QHBoxLayout(); t = QLabel("CONVERSATION"); t.setObjectName("section"); head.addWidget(t); head.addStretch(1)
+        self.voice_stop = QPushButton("Stop voice"); self.voice_stop.setObjectName("ghost"); self.voice_stop.setIcon(icon("mic", COL["muted"], 16))
+        self.voice_stop.setFocusPolicy(Qt.NoFocus); self.voice_stop.setToolTip("Stop the spoken answer"); self.voice_stop.hide(); head.addWidget(self.voice_stop)
         self.term_btn = QPushButton("Terminal"); self.term_btn.setObjectName("ghost"); self.term_btn.setCheckable(True); self.term_btn.setFocusPolicy(Qt.NoFocus)
         self.term_btn.setChecked(self.settings.show_terminal); self.term_btn.clicked.connect(self._toggle_terminal); head.addWidget(self.term_btn)
         clr = QPushButton("Clear"); clr.setObjectName("ghost"); clr.setIcon(icon("trash", COL["muted"], 16)); clr.setFocusPolicy(Qt.NoFocus)
@@ -171,6 +175,10 @@ class MainWindow(QMainWindow):
         inp = QHBoxLayout(); inp.setSpacing(8)
         self.input = ChatInput(); inp.addWidget(self.input, 1)
         self.send_btn = QPushButton(" Send"); self.send_btn.setObjectName("primary"); self.send_btn.setIcon(icon("send", COL["cyan"], 18)); self.send_btn.setFocusPolicy(Qt.NoFocus)
+        self.stop_btn = QPushButton(" Stop"); self.stop_btn.setObjectName("rec"); self.stop_btn.setFocusPolicy(Qt.NoFocus); self.stop_btn.hide()
+        self.stop_btn.setToolTip("Stop generating the answer"); self.retry_btn = QPushButton(" Retry"); self.retry_btn.setFocusPolicy(Qt.NoFocus); self.retry_btn.hide()
+        self.retry_btn.setToolTip("Try the last failed request again")
+        inp.addWidget(self.retry_btn, 0, Qt.AlignBottom); inp.addWidget(self.stop_btn, 0, Qt.AlignBottom)
         inp.addWidget(self.send_btn, 0, Qt.AlignBottom); cl.addLayout(inp)
         lay.addWidget(chat, 5)
 
@@ -205,6 +213,11 @@ class MainWindow(QMainWindow):
         self.input.sendRequested.connect(self.send_text)
         self.input.micToggleRequested.connect(c.toggle_listening)
         self.vol.valueChanged.connect(self._on_volume)
+        self.stop_btn.clicked.connect(c.cancel_ai)
+        self.retry_btn.clicked.connect(c.retry)
+        self.voice_stop.clicked.connect(c.stop_speaking)
+        c.aiStream.connect(self._on_ai_stream)
+        c.retryChanged.connect(lambda _on: self._sync_buttons())
         self.history.reuse.connect(self._reuse_command)
         self.history.cleared.connect(lambda: c.log_event("info", "SYSTEM", "Command history cleared"))
         self.settings_page.saved.connect(self.apply_settings)
@@ -264,6 +277,41 @@ class MainWindow(QMainWindow):
         self.busy.setVisible(st in ("executing", "processing", "interpreting"))
         self.exec_label.setText("EXECUTING" if st == "executing" else "LAST ACTION")
         self.setWindowTitle(f"{APP_NAME} — {STATE_LABELS[st]}")
+        self._sync_buttons()
+
+    def _sync_buttons(self) -> None:
+        busy = self.ctrl.ai_busy
+        self.stop_btn.setVisible(busy)
+        self.send_btn.setEnabled(not busy)
+        self.retry_btn.setVisible(self.ctrl.can_retry())
+        self.voice_stop.setVisible(bool(getattr(self.speaker, "speaking", False)))
+        self.stop_btn.setIcon(icon("trash", COL["err"], 16))
+        self.retry_btn.setIcon(icon("play", COL["cyan"], 16))
+
+    def _on_ai_stream(self, kind: str, text: str) -> None:
+        if kind == "thinking_on":
+            self.chat.thinking_on("Thinking", animate=not self.reduced)
+        elif kind == "thinking_off":
+            self.chat.thinking_off()
+        elif kind == "start":
+            self.chat.disable_retries()
+            self.chat.stream_start()
+        elif kind == "delta":
+            self.chat.stream_delta(text)
+        elif kind == "end":
+            self.chat.stream_end(text)
+        elif kind == "stopped":
+            if text.strip() or self.chat.stream_text().strip():
+                self.chat.stream_end(text if text.strip() else None, suffix="  (stopped)")
+            else:
+                self.chat.stream_discard()
+                self.add_message("system", "Generation stopped.")
+        elif kind == "error":
+            if self.chat.has_stream():
+                self.chat.stream_end(None)
+            self.chat.disable_retries()
+            self.chat.add("assistant", text, error=True, on_retry=self.ctrl.retry)
+        self._sync_buttons()
 
     def _on_level(self, v: float) -> None:
         self.core.set_level(v)
@@ -294,15 +342,17 @@ class MainWindow(QMainWindow):
             if self.ctrl.state == C.CONFIRM:
                 self.ctrl.confirm()
             return
-        if self.ctrl.busy or self.ctrl.state == C.LISTENING:
+        if self.ctrl.busy or self.ctrl.ai_busy or self.ctrl.state == C.LISTENING:
             self.add_message("system", "Busy right now — please wait a moment or stop listening first.")
             return
         self.input.clear()
         self.ctrl.submit_text(text)
 
     def clear_chat(self) -> None:
+        self.ctrl.clear_conversation()             # AI kontekstini ham tozalaydi (buyruqlar tarixi saqlanadi)
         self.chat.clear()
         self.ctrl.log_event("info", "SYSTEM", "Conversation cleared")
+        self._sync_buttons()
 
     def _reuse_command(self, text: str) -> None:
         self.show_page("assistant")
@@ -336,7 +386,7 @@ class MainWindow(QMainWindow):
 
     # ======================================================================= sozlamalar
     def _can_test_mic(self) -> tuple[bool, str]:
-        if self.ctrl.state != C.IDLE and self.ctrl.state != C.DONE:
+        if self.ctrl.state not in (C.IDLE, C.DONE):
             return False, "The assistant is busy (listening or working). Finish the current command first."
         return True, ""
 
@@ -350,6 +400,8 @@ class MainWindow(QMainWindow):
         self.reduced = motion.reduced(s.reduce_motion)
         self.core.set_reduced(self.reduced); self.voice.reduced = self.reduced
         self.terminal.setVisible(s.show_terminal); self.term_btn.setChecked(s.show_terminal)
+        if self.ctrl.ai:
+            self.ctrl.ai.apply_settings()
         s.save()
         self.ctrl.log_event("success", "SYSTEM", "Settings saved")
         self.add_message("system", "Settings saved.")

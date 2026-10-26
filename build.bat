@@ -17,7 +17,7 @@ echo Ishlatiladigan Python: %PY%
 if not exist ".venv\Scripts\python.exe" (%PY% -m venv .venv || goto :error)
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt pyinstaller || goto :error
 ".venv\Scripts\pyinstaller.exe" --noconfirm --clean --windowed --name Pyatnitsa ^
-  --collect-all speech_recognition --collect-all edge_tts --collect-all sounddevice ^
+  --collect-all anthropic --collect-all speech_recognition --collect-all edge_tts --collect-all sounddevice ^
   --hidden-import pythoncom --hidden-import pyttsx3.drivers.sapi5 main.py || goto :error
 echo.
 echo Tayyor: dist\Pyatnitsa\Pyatnitsa.exe  ^(butun dist\Pyatnitsa papkasini ko'chirish mumkin^)

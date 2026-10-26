@@ -14,6 +14,42 @@ bitta dasturda. Dastur faqat siz buyruq berganingizda ishlaydi va faqat oldindan
 ### Alohida ilova (.exe) yig'ish
 `build.bat` ni ishga tushiring (PyInstaller o'rnatiladi) — natija `dist\Pyatnitsa\Pyatnitsa.exe`. Butun `dist\Pyatnitsa` papkasini istalgan joyga ko'chirib, yorliq yaratish mumkin. (Bu skript Windows'da hali sinalmagan.)
 
+## AI suhbat (haqiqiy til modeli bilan)
+ПЯТНИЦА oddiy savollarga javob beradi, tushuntiradi, oldingi gapni davom ettiradi (uz / ru / en va aralash) — javoblar **qoliplardan emas, haqiqiy AI modeli** (Anthropic Claude, rasmiy `anthropic` SDK) tomonidan yaratiladi. Modul: `pyatnitsa/ai_chat.py` (GUI'ga bog'liq emas, qayta ishlatiladi).
+
+**Yo'naltirish** (`pyatnitsa/router.py`, mahalliy qoidalar; AI'ga yuborishdan oldin):
+| Kategoriya | Misol | Qayerga boradi |
+|---|---|---|
+| `COMPUTER_COMMAND` | «Google Chrome och», «Faylni o'chir» | mavjud tasdiqlangan buyruq tizimi (rad etish qoidalari bilan); **AI'ga bormaydi** |
+| `CURRENT_INFORMATION` | «Dollar kursi qancha?», «Soat necha?», «RAM holati» | ilovaning o'z manbalari (cbu.uz, Open-Meteo, psutil). Manbasi yo'q jonli savol («bugungi yangiliklar», «evro kursi») — AI'ga «jonli ma'lumotingiz yo'q, o'ylab topmang» ko'rsatmasi bilan |
+| `QUESTION_ANSWERING` | «Python nima?», «Nega osmon ko'k?», «Nega Chrome ochilmayapti?» | AI |
+| `GENERAL_CONVERSATION` | «Salom, yaxshimisan?», «Oldingi gapimizni davom ettir» | AI (kontekst bilan) |
+| `CLARIFICATION_REQUIRED` | «Chrome» | aniqlashtiruvchi savol |
+«Nega/qanday qilib/how to/почему…» savollar — hatto buyruq so'zi bo'lsa ham (yoki xavfli so'z bo'lsa ham) — **tushuntirish** sifatida AI'ga boradi, hech narsa bajarilmaydi.
+
+**Xavfsizlik:** AI javobi faqat MATN sifatida ko'rsatiladi/o'qiladi; undan buyruq ajratilmaydi va bajarilmaydi. Barcha kompyuter amallari faqat oldingi tekshirilgan yo'ldan (NLU → ruxsat → tasdiq → ijro) o'tadi. Testlar: AI javobida «rm -rf /», «Open Chrome» yozilsa ham hech narsa bajarilmaydi.
+
+**Kontekst:** joriy sessiya tarixi (xotirada, sozlanadigan hajm: standart 16 xabar va ~12 000 belgi); har so'rovda oxirgi xabarlar yuboriladi. «Clear» tugmasi chat va AI kontekstini tozalaydi. Diskka **saqlanmaydi** (doimiy tarix amalga oshirilmagan). Model faqat shu suhbatda bor narsani biladi; «eslab qolish» da'vo qilinmaydi.
+
+**Oqim:** javob so'z-ma'noli bo'laklar bilan chatga oqib keladi (`THINKING` → `RESPONDING`), fon oqimida; GUI qotmaydi. «Stop» darhol to'xtatadi (qisman javob saqlanadi); xatoda «Retry». Space bosilsa — javob to'xtatilib, tinglash boshlanadi. Yangi xabar AI band paytida rad etiladi.
+
+**Ovozli suhbat:** Space → gapirish → matn chatda ko'rinadi → AI javobi → (ixtiyoriy) ovozda o'qiladi. Mikrofon faqat Space bilan; nutq tanish muvaffaqiyatsiz bo'lsa — xabar yo'qolmaydi, «Retry» o'sha yozuvni qayta taniydi. Ovozli va matnli kiritish bir suhbatda aralash ishlaydi.
+
+**Ovozli javob (TTS):** AI javobi tilida o'qiladi (uz/ru/en; erkak/ayol), tezlik va ovoz balandligi sozlanadi, «Stop voice» tugmasi bor; kod bloklari, havolalar va markdown o'qilmaydi. Tizim ovozlari ro'yxatidan **tekshirilgan** til topilmasa, javob jim qoladi va sabab ko'rsatiladi (noto'g'ri tilda o'qilmaydi).
+
+**Holatlar (AI Core):** STANDBY · LISTENING · PROCESSING · INTERPRETING · **THINKING** (so'rov ketdi, birinchi token kutilmoqda) · **RESPONDING** (javob oqib kelmoqda) · **SPEAKING** (ovoz haqiqatan chalinmoqda) · EXECUTING · ERROR.
+
+### AI provayderni sozlash
+1. Kalit oling: https://console.anthropic.com → API Keys.
+2. **Eng oson:** ilovada **Settings → AI Chat → API key** ga qo'ying → *Save key* → *Test AI connection*. Kalit faqat sizning `%APPDATA%\Pyatnitsa\secrets.env` faylingizda (foydalanuvchiga xos) saqlanadi; ekranda, jurnalda va `settings.json` da **ko'rsatilmaydi**.
+3. **Yoki muhit o'zgaruvchisi** (afzal): `setx ANTHROPIC_API_KEY "kalitingiz"` (so'ng dasturni qayta ishga tushiring). Muhit o'zgaruvchisi fayldan ustun.
+4. Kalit yo'q bo'lsa: AI savollarga dasturning o'zi sozlash ko'rsatmasini beradi; kompyuter buyruqlari kalitsiz ishlayveradi.
+- **Model:** standart `claude-opus-5-5` (Settings'da o'zgartiriladi: masalan `claude-sonnet-5-5` — arzonroq, `claude-haiku-5-5` — eng tez va arzon). **Narx/tezlik sizning qaroringiz:** Opus eng sifatli, lekin qimmatroq. Suhbat uchun «Thinking effort» standart *Low* (tez javob).
+- Opus modellarda serverdagi *refusal fallback* yoqilgan (rad etilganda server avtomatik zaxira modelga o'tadi); xizmat uni qabul qilmasa — avtomatik o'chirilib, qayta uriniladi. Settings'dan o'chirish mumkin.
+- Xatolar (kalit, ruxsat, model, limit/`Retry-After`, hisob mablag'i, vaqt, tarmoq, server band, uzun suhbat) — har biri aniq, 3 tilli xabar bilan.
+
+> **Maxfiylik:** AI chat yoqilganda suhbat **matni** (va oxirgi xabarlar) Anthropic'ga yuboriladi — birinchi so'rovdan oldin dastur buni bir marta eslatadi. **Mikrofon audiosi AI'ga yuborilmaydi** (nutqni tanish alohida: Google yoki oflayn Whisper). **Kompyuter buyruqlari AI'ga yuborilmaydi.** AI chatni Settings'da o'chirish mumkin.
+
 ## Interfeys (kiberpank, PySide6)
 Chap: **AI Assistant · Command History · System Monitoring · Diagnostics · Settings · About** (hammasi ishlaydigan sahifalar). Markaz: animatsiyali **AI Core**, ПЯТНИЦА, holat yorlig'i, mikrofon ko'rsatkichi va ovoz vizualizatsiyasi, suhbat (pufakchalar, vaqt belgisi), kiritish maydoni, tasdiq paneli, ijro holati, **Command Terminal**. O'ng: jonli PC holati (CPU, RAM, disk, GPU, harorat, batareya, tarmoq, uptime).
 - **AI Core holatlari faqat haqiqiy holatni ko'rsatadi:** STANDBY · LISTENING (mikrofon haqiqatan ochilgandan keyin; to'lqin real mikrofon darajasiga bog'liq) · PROCESSING (audio → matn) · INTERPRETING (matn → amal) · AWAITING CONFIRMATION · EXECUTING · RESPONDING (javob aytilayotganda) · ERROR (haqiqiy mikrofon/tanish/ijro xatosi).
@@ -81,6 +117,7 @@ Eslatma: bu to'plamlarni tizim muallifi yozgan (haqiqiy foydalanuvchi emas), shu
 **Ma'lum cheklovlar:** faqat ruscha fe'l + lotincha nomlar («Покажи dollar kursi») ruscha javob oladi (o'zbekcha belgi yo'q); juda uzun yoki qo'shma gaplarda bo'laklar noto'g'ri bog'lanishi mumkin; lug'atdan tashqari sinonimlar tushunilmaydi (so'raladi); `ru` dagi o'zbek-kirill (`ўқғҳ`) so'zlari faqat lug'atdagi ko'rinishda; tilni faqat 3 til bo'yicha aniqlaydi.
 
 ## Qo'llab-quvvatlanadigan buyruqlar
+(AI suhbat — alohida; yuqoriga qarang.)
 - **Ochish:** Google Chrome, brauzer, yangi brauzer oynasi, Downloads / Desktop / Documents, Kalkulyator, Notepad, Fayl menejeri, YouTube.
 - **Qidiruv:** «Google'da Python darslarini qidir».
 - **Ma'lumot:** «Dollar kursini ko'rsat», «100 dollar necha so'm?» (O'zbekiston Markaziy banki, sana ko'rsatiladi), «Bugungi ob-havoni ko'rsat» (Open-Meteo, shahar — Sozlamalarda), «Hozirgi vaqtni ayt».
@@ -117,7 +154,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 256 ta avtomatik test (Linux, offscreen Qt, ~17 s).
+`pip install -r requirements-dev.txt && python -m pytest` — 391 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -130,7 +167,19 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - **Interfeys:** 6 sahifa navigatsiyasi, tasdiq paneli, terminal va ijro holati, tarix (matnni kiritish maydoniga qo'yish bajarmaydi), diagnostika fon oqimida, sozlamalar saqlanishi, mikrofon testi (matn va tushunilgan amal ko'rsatiladi, bajarilmaydi), kichik/katta oyna, uzun xabarlar maketni buzmasligi, reduced-motion.
 - Monitoring: haqiqiy `psutil` o'lchovlari (Linux'da), holat baholash va sabablar, mavjud bo'lmagan qiymatlar uchun «Ma'lumot mavjud emas».
 
+**AI suhbat bo'yicha (haqiqatan sinalgan):**
+- Rasmiy `anthropic` SDK **haqiqiy HTTP/SSE orqali lokal soxta server** bilan: oqimli matn, so'rov shakli (model, effort, tizim ko'rsatmasi, kontekst), `fallbacks` yuborilishi va rad etilsa tashlab qayta urinish, kalitni muhitdan o'qish, kalit yo'qligi, 401/403/404/429(+Retry-After)/529/500/400(kredit)/413 xaritalash, timeout, ulanib bo'lmasligi, refusal/bo'sh/`max_tokens` javoblari, **bekor qilish** (birinchi token kutilayotganda ham darhol; oqim o'rtasida — qisman matn saqlanadi).
+- Boshqaruvchi (soxta mijoz bilan): holatlar tartibi (THINKING → STREAMING → …), kontekst va «uni/misol ber» davomi, har turn tilining ko'rsatmasi, kontekst hajmi chegarasi, **buyruq ↔ suhbat ajratish** (buyruq/xavfli so'z AI'ga bormaydi; «Nega Chrome ochilmayapti?» AI'ga boradi va hech narsa ochilmaydi), **AI javobidagi buyruqlar bajarilmasligi**, kalitsiz/o'chirilgan holatda tushuntirish, xatolarning 3 tilda ko'rsatilishi, Retry (savol takrorlanmaydi), Stop, Space bilan to'xtatib tinglash, tozalash, maxfiylik eslatmasi bir marta, tarix yozuvlari, nutq tanish muvaffaqiyatsiz bo'lsa yozuvni saqlab qayta urinish.
+- Kalit xavfsizligi: fayl ruxsati 0600 (POSIX), muhit > fayl tartibi, kalit `settings.json`, jurnal va xato matnlarida yo'q (filtr), manba kodida qattiq kodlangan kalit yo'q.
+- Ovoz (soxta `edge_tts`/`pyttsx3`): til+jins bo'yicha ovoz nomi, tezlik, markdown/kod o'qilmasligi, tekshirilmagan tilda jim qolib sabab ko'rsatish (bir marta), `pending`/`speaking` holatlari, to'xtatish.
+- Interfeys: oqimli pufakcha, «Thinking…», Stop/Retry/Clear/Stop voice tugmalari, xato pufakchasi, Sozlamalarda kalit saqlash va **ulanish testi (lokal serverga, fon oqimida)**.
+
+**Yo'naltiruvchi aniqligi (o'lchangan, `tests/router_corpus.py`):** DEV 95/95 (sozlangan); **YANGI to'plam (105 ibora), birinchi ishga tushirishda: aniq kategoriya 98/105 = 93,3%, buyruq↔AI chegarasi 101/105 = 96,2%**; to'rtta chegara xatosi (vaqt/«dastur» so'zi tasodifan buyruq bo'lib qolishi, savol shaklidagi «xavfli» so'zlar, jonli natija) tuzatilgandan keyin 104/105 va 105/105 — shu sababli bu to'plam endi mustaqil baho emas. To'plamni muallif yozgan; real foydalanishda pastroq bo'lishi mumkin.
+
 **Windows'da qo'lda tekshirilishi kerak (bu muhitda sinab bo'lmadi):**
+- **Haqiqiy Anthropic API** (bu muhitda kalit yo'q; `api.anthropic.com` ga tarmoq ulanishi bor — kalitsiz GET 404 qaytardi — lekin haqiqiy so'rov yuborilmagan): haqiqiy javob sifati va o'zbekcha/ruscha/inglizcha kalitlar bilan natijalar, haqiqiy kechikish, `fallbacks` beta sarlavhasining kalitingiz tomonidan qabul qilinishi (qabul qilinmasa avtomatik o'chiriladi), modelning mavjudligi (`claude-opus-5-5`).
+- Haqiqiy ovozli javob: `edge-tts` o'zbekcha/ruscha/inglizcha erkak va ayol ovozlari, `QMediaPlayer` chalishi, to'xtatish, tezlik; Windows tizim ovozlarida til mavjudligi.
+- Mikrofon → AI to'liq jonli suhbat (haqiqiy mikrofon va nutq tanish bilan).
 - **Haqiqiy mikrofon** (bu muhitda audio qurilma va PortAudio yo'q): yozish, daraja ko'rsatkichi, Windows ruxsatlari, oqim ochilish kechikishi (birinchi bo'g'in kesilishi mumkinligi), haqiqiy shovqin sharoitida jimlikni aniqlash chegaralari — barchasi faqat sintetik signallar va soxta qurilma bilan sinalgan.
 - **Haqiqiy tanish sifati:** Google va Whisper bilan o'zbekcha/ruscha/inglizcha jonli nutq, aralash gaplar (ular Google'da cheklangan), Whisper modelini yuklab olish va tezligi. Real tanish aniqligi o'lchanmagan.
 - Ovozli javob: `edge-tts` + `QMediaPlayer` ovozi va `pyttsx3` fallback.
@@ -144,6 +193,10 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 main.py                  ishga tushirish
 run.bat                  Windows uchun avtomatik o'rnatish va ishga tushirish
 build.bat                Pyatnitsa.exe yig'ish (PyInstaller)
+pyatnitsa/ai_chat.py     AI suhbat: tarix, tizim ko'rsatmasi, oqimli so'rov, xatolar, bekor qilish
+pyatnitsa/router.py      suhbat ↔ buyruq yo'naltirish (5 kategoriya)
+pyatnitsa/credentials.py API kalit (muhit / shaxsiy fayl), jurnaldan yashirish
+pyatnitsa/tts.py         ovozli javob (til/jins/tezlik, tekshirilgan ovozlar)
 pyatnitsa/nlu.py         ko'p tilli tushunish (til, maqsad, parametr, noaniqlik)
 pyatnitsa/i18n.py        uz/ru/en matnlar
 pyatnitsa/commands.py    buyruq turlari, normallashtirish, ruxsat etilgan amallar

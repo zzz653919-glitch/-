@@ -12,7 +12,7 @@ from .theme import STATE_COLORS
 
 # tezlik, yorug'lik, to'lqin amplitudasi, pulsatsiya chastotasi (Gs)
 PARAMS = {
-    "standby": (0.30, 0.35, 0.015, 0.25), "listening": (0.75, 0.80, 0.05, 0.9), "processing": (2.4, 0.65, 0.03, 2.0), "interpreting": (3.0, 0.70, 0.035, 2.6),
+    "standby": (0.30, 0.35, 0.015, 0.25), "listening": (0.75, 0.80, 0.05, 0.9), "processing": (2.4, 0.65, 0.03, 2.0), "interpreting": (3.0, 0.70, 0.035, 2.6), "thinking": (1.6, 0.75, 0.045, 0.8), "speaking": (0.9, 0.85, 0.06, 1.8),
     "confirm": (0.45, 0.55, 0.02, 0.6), "executing": (1.7, 0.85, 0.05, 1.6), "responding": (0.9, 0.75, 0.04, 1.1), "error": (0.5, 0.60, 0.02, 0.4),
 }
 

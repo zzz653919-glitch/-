@@ -6,10 +6,10 @@ import html
 import threading
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QProgressBar, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+from PySide6.QtWidgets import (QSlider, QSpinBox, QProgressBar, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
                                QPushButton, QScrollArea, QVBoxLayout, QWidget)
 
-from .. import apps, audio, stt, voice_test
+from .. import ai_chat, apps, audio, credentials, stt, voice_test
 from ..i18n import T, app_title, has
 from ..settings import STT_LANGUAGES, TTS_ENGINES, Settings
 from .pages import page_header
@@ -23,11 +23,13 @@ class SettingsPage(QWidget):
 
     _level = Signal(float)
     _test_done = Signal(object)
+    _ai_test_done = Signal(object)
 
-    def __init__(self, settings: Settings, can_test=lambda: (True, "")):
+    def __init__(self, settings: Settings, can_test=lambda: (True, ""), ai=None):
         super().__init__()
         self.s = settings
         self._can_test = can_test
+        self._ai = ai
         self._stop_test = threading.Event()
         lay = QVBoxLayout(self); lay.setContentsMargins(0, 0, 0, 0); lay.setSpacing(12)
         top = QHBoxLayout(); top.addLayout(page_header("SETTINGS", "Changes are applied when you press Save."), 1)
@@ -63,6 +65,35 @@ class SettingsPage(QWidget):
         form.addRow(tl); form.addRow(self.test_btn); form.addRow(self.test_level); form.addRow(self.test_out)
         self._level.connect(lambda v: self.test_level.setValue(int(v * 100)))
         self._test_done.connect(self._show_report)
+        # ---- AI Chat
+        al = QLabel("AI CHAT"); al.setObjectName("section"); form.addRow(al)
+        self.ai_on = QCheckBox("Enable AI conversation (questions, explanations, follow-ups)")
+        self.ai_model = QComboBox(); self.ai_model.setEditable(True)
+        for m in ("claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"):
+            self.ai_model.addItem(m)
+        self.ai_effort = QComboBox(); [self.ai_effort.addItem(t, v) for t, v in (("Low — fastest (recommended for chat)", "low"), ("Medium", "medium"), ("High — deeper, slower", "high"))]
+        self.ai_ctx = QSpinBox(); self.ai_ctx.setRange(2, 60); self.ai_ctx.setSuffix(" messages")
+        self.ai_tokens = QSpinBox(); self.ai_tokens.setRange(256, 32000); self.ai_tokens.setSingleStep(256)
+        self.ai_timeout = QSpinBox(); self.ai_timeout.setRange(10, 300); self.ai_timeout.setSuffix(" s")
+        self.ai_fb = QCheckBox("Server-side fallback when a request is declined (Opus models only)")
+        self.ai_key = QLineEdit(); self.ai_key.setEchoMode(QLineEdit.Password); self.ai_key.setPlaceholderText("Paste API key here, then press “Save key”")
+        self.ai_key_status = QLabel(); self.ai_key_status.setObjectName("sub"); self.ai_key_status.setWordWrap(True); self.ai_key_status.setTextFormat(Qt.RichText)
+        kb = QHBoxLayout(); sk = QPushButton("Save key"); sk.clicked.connect(self._save_key); rk = QPushButton("Remove saved key"); rk.clicked.connect(self._remove_key)
+        kb.addWidget(sk); kb.addWidget(rk); kb.addStretch(1)
+        self.ai_test_btn = QPushButton("Test AI connection"); self.ai_test_btn.clicked.connect(self._test_ai)
+        self.ai_test_out = QLabel("Sends one tiny test message to the provider using your key."); self.ai_test_out.setObjectName("sub"); self.ai_test_out.setWordWrap(True)
+        self.ai_test_out.setTextFormat(Qt.RichText)
+        priv = QLabel("Privacy: with AI chat on, the TEXT of your conversation messages is sent to Anthropic. Microphone audio and computer commands are not sent to the AI. "
+                      "History is kept in memory only and is cleared with the Clear button.")
+        priv.setObjectName("dim"); priv.setWordWrap(True)
+        form.addRow("", self.ai_on); form.addRow("Model", self.ai_model); form.addRow("Thinking effort", self.ai_effort); form.addRow("Context size", self.ai_ctx)
+        form.addRow("Max answer length", self.ai_tokens); form.addRow("Timeout", self.ai_timeout); form.addRow("", self.ai_fb)
+        form.addRow("API key", self.ai_key); form.addRow("", kb); form.addRow("", self.ai_key_status); form.addRow(self.ai_test_btn); form.addRow(self.ai_test_out); form.addRow(priv)
+        self.rate = QSlider(Qt.Horizontal); self.rate.setRange(-50, 50); self.rate.setSingleStep(5)
+        self.rate_lbl = QLabel(); self.rate.valueChanged.connect(lambda v: self.rate_lbl.setText(f"{v:+d}%"))
+        rr = QHBoxLayout(); rr.addWidget(self.rate, 1); rr.addWidget(self.rate_lbl)
+        form.addRow("Speech rate", rr)
+        self._ai_test_done.connect(self._show_ai_test)
         hint = QLabel("Allowed actions (unchecked = refused):"); hint.setObjectName("sub"); form.addRow(hint)
         self.apps = QListWidget(); self.apps.setMinimumHeight(190)
         for spec in apps.APPS.values():
@@ -87,6 +118,10 @@ class SettingsPage(QWidget):
         self.tts.setCurrentIndex(max(0, self.tts.findData(s.tts_engine))); self.confirm.setChecked(s.confirm_commands)
         self.motion.setCurrentIndex(max(0, self.motion.findData(s.reduce_motion))); self.terminal.setChecked(s.show_terminal)
         self.auto.setChecked(s.autostart); self.city.setText(s.city)
+        self.ai_on.setChecked(s.ai_enabled); self.ai_model.setCurrentText(s.ai_model or ai_chat.DEFAULT_MODEL)
+        self.ai_effort.setCurrentIndex(max(0, self.ai_effort.findData(s.ai_effort))); self.ai_ctx.setValue(s.ai_context_messages)
+        self.ai_tokens.setValue(s.ai_max_tokens); self.ai_timeout.setValue(s.ai_timeout_s); self.ai_fb.setChecked(s.ai_fallback)
+        self.rate.setValue(s.voice_rate); self.rate_lbl.setText(f"{s.voice_rate:+d}%"); self._refresh_key_status()
         for i in range(self.apps.count()):
             it = self.apps.item(i)
             it.setCheckState(Qt.Checked if s.is_app_allowed(it.data(Qt.UserRole)) else Qt.Unchecked)
@@ -99,12 +134,59 @@ class SettingsPage(QWidget):
         s.confirm_commands, s.autostart = self.confirm.isChecked(), self.auto.isChecked()
         s.reduce_motion, s.show_terminal = self.motion.currentData(), self.terminal.isChecked()
         s.city = self.city.text().strip()[:80] or "Tashkent"
+        s.ai_enabled, s.ai_effort, s.ai_context_messages = self.ai_on.isChecked(), self.ai_effort.currentData(), self.ai_ctx.value()
+        model = self.ai_model.currentText().strip()
+        s.ai_model = "" if model == ai_chat.DEFAULT_MODEL else model
+        s.ai_max_tokens, s.ai_timeout_s, s.ai_fallback, s.voice_rate = self.ai_tokens.value(), self.ai_timeout.value(), self.ai_fb.isChecked(), self.rate.value()
         s.allowed_apps = {self.apps.item(i).data(Qt.UserRole): self.apps.item(i).checkState() == Qt.Checked for i in range(self.apps.count())}
         return s
 
     def save(self) -> None:
         self.collect(self.s)
         self.saved.emit()
+
+    # ---- AI kalit va ulanish testi
+    def _refresh_key_status(self) -> None:
+        key, source = credentials.get_api_key()
+        if key:
+            where = {"file": "the private secrets file", }.get(source, f"environment variable {source.split(':', 1)[-1]}")
+            self.ai_key_status.setText(f"<span style='color:#2ee6a6'>● API key configured</span> — from {where}. The key is never shown or logged.")
+        else:
+            self.ai_key_status.setText("<span style='color:#ffb020'>● No API key configured.</span> Get one at console.anthropic.com, paste it above and press “Save key”, "
+                                       "or set the ANTHROPIC_API_KEY environment variable and restart.")
+
+    def _save_key(self) -> None:
+        try:
+            credentials.save_api_key(self.ai_key.text())
+        except ValueError as e:
+            self.ai_key_status.setText(f"<span style='color:#ff4d6d'>{html.escape(str(e))}</span>")
+            return
+        self.ai_key.clear()
+        self._refresh_key_status()
+
+    def _remove_key(self) -> None:
+        credentials.clear_api_key()
+        self._refresh_key_status()
+
+    def _test_ai(self) -> None:
+        trial = self.collect(copy.copy(self.s))
+        self.ai_test_btn.setEnabled(False); self.ai_test_out.setText("Contacting the AI service…")
+
+        def work():
+            try:
+                rep = ai_chat.ChatClient(trial).test_connection()
+                self._ai_test_done.emit(("ok", f"Connected · model {rep.model or trial.ai_model or ai_chat.DEFAULT_MODEL} · {rep.seconds:.1f}s"))
+            except ai_chat.AIError as e:
+                self._ai_test_done.emit((e.kind, T(f"ai.err.{e.kind}", "en", detail=e.detail[:200], wait="")))
+            except Exception as e:  # noqa: BLE001
+                self._ai_test_done.emit(("unknown", f"{type(e).__name__}: {credentials.redact(str(e))[:200]}"))
+        threading.Thread(target=work, name="ai-test", daemon=True).start()
+
+    def _show_ai_test(self, res) -> None:
+        self.ai_test_btn.setEnabled(True)
+        kind, msg = res
+        color = "#2ee6a6" if kind == "ok" else "#ff4d6d"
+        self.ai_test_out.setText(f"<span style='color:{color}'>{html.escape(msg)}</span>")
 
     # ---- mikrofon testi
     def run_test(self) -> None:

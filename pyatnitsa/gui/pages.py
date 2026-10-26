@@ -15,9 +15,9 @@ from .icons import icon
 from .theme import C
 
 OUTCOME_COLORS = {"executed": C["ok"], "failed": C["err"], "blocked": C["warn"], "denied": C["warn"], "cancelled": C["muted"],
-                  "clarify": C["blue"], "unknown": C["dim"]}
+                  "clarify": C["blue"], "unknown": C["dim"], "answered": C["cyan"], "ai_failed": C["err"]}
 OUTCOME_LABELS = {"executed": "Executed", "failed": "Failed", "blocked": "Blocked", "denied": "Disabled", "cancelled": "Cancelled",
-                  "clarify": "Clarification", "unknown": "Not understood"}
+                  "clarify": "Clarification", "unknown": "Not understood", "answered": "AI answered", "ai_failed": "AI error"}
 
 
 def page_header(title: str, subtitle: str = "") -> QVBoxLayout:

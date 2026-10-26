@@ -41,6 +41,15 @@ class Settings:
     voice_gender: str = "male"             # male | female
     tts_engine: str = "auto"
     volume: float = 0.8
+    ai_enabled: bool = True                # suhbat AI (kalit sozlanmasa, aniq ko'rsatma beriladi)
+    ai_model: str = ""                     # bo'sh = standart (claude-opus-5-5)
+    ai_effort: str = "low"                 # low | medium | high  (suhbat uchun tez javob)
+    ai_max_tokens: int = 4096
+    ai_timeout_s: int = 60
+    ai_context_messages: int = 16
+    ai_fallback: bool = True               # Opus'da rad etilganda serverdagi qayta urinish
+    ai_notice_shown: bool = False
+    voice_rate: int = 0                    # -50..+50 (%)
     reduce_motion: str = "system"          # system | on | off
     show_terminal: bool = True
     confirm_commands: bool = True          # har bir buyruq bajarilishidan oldin tasdiq
@@ -90,6 +99,11 @@ class Settings:
             s.stt_engine = "google"
         if s.whisper_model not in ("tiny", "base", "small"):
             s.whisper_model = "base"
+        s.ai_effort = s.ai_effort if s.ai_effort in ("low", "medium", "high") else "low"
+        s.ai_max_tokens = min(32000, max(256, int(s.ai_max_tokens)))
+        s.ai_timeout_s = min(300, max(10, int(s.ai_timeout_s)))
+        s.ai_context_messages = min(60, max(2, int(s.ai_context_messages)))
+        s.voice_rate = min(50, max(-50, int(s.voice_rate)))
         if s.reduce_motion not in ("system", "on", "off"):
             s.reduce_motion = "system"
         if s.voice_gender not in ("male", "female"):

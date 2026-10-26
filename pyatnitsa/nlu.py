@@ -163,6 +163,8 @@ def resolve(word: str) -> tuple[str, tuple[str, ...], bool] | None:
     for stem in _strip(word):                      # qo'shimchalarni olib tashlab
         if stem in EXACT:
             c, l = EXACT[stem]
+            if c == "DANGER" and len(stem) <= 3:   # «дела» -> «del» kabi tasodifiy moslik (aniq «del» baribir bloklanadi)
+                continue
             tl = _tail_lang(word[len(stem):])
             return c, tuple(([] if l == "any" else [l]) + ([tl] if tl else [])), False
         for st, c, l in PREFIX:

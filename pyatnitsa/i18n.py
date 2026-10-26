@@ -289,6 +289,46 @@ _S: dict[str, tuple[str, str, str]] = {   # kalit: (uz, ru, en)
     "heard_unknown": ("Eshitdim: «{text}». Mos amalni aniqlay olmadim — bu buyruq hali qo'llab-quvvatlanmasligi mumkin. Masalan: «Chrome'ni och», «RAM holatini ko'rsat».",
                       "Я услышал: «{text}». Не смог определить нужное действие — возможно, эта команда пока не поддерживается. Например: «Открой Chrome», «Покажи состояние RAM».",
                       "I heard: “{text}”. I could not identify the intended action — the command may not be supported yet. For example: “Open Chrome”, “Show RAM status”."),
+    # ---- AI suhbat
+    "ai.err.no_key": ("AI suhbat uchun API kalit sozlanmagan. Kalitni https://console.anthropic.com saytidan oling, so'ng: Sozlamalar → AI Chat bo'limida kalitni kiriting, "
+                      "yoki Windows'da `setx ANTHROPIC_API_KEY \"kalit\"` buyrug'ini bajarib, dasturni qayta ishga tushiring. Kompyuter buyruqlari kalitsiz ham ishlaydi.",
+                      "Для AI-чата не настроен API-ключ. Получите ключ на https://console.anthropic.com, затем введите его в Настройки → AI Chat, "
+                      "или выполните в Windows `setx ANTHROPIC_API_KEY \"ключ\"` и перезапустите программу. Команды компьютера работают и без ключа.",
+                      "No API key is configured for AI chat. Get a key at https://console.anthropic.com, then enter it in Settings → AI Chat, "
+                      "or run `setx ANTHROPIC_API_KEY \"your-key\"` in Windows and restart the app. Computer commands work without a key."),
+    "ai.err.auth": ("API kalit qabul qilinmadi (noto'g'ri yoki bekor qilingan). Sozlamalar → AI Chat da kalitni tekshiring.", "API-ключ не принят (неверный или отозван). Проверьте ключ в Настройки → AI Chat.",
+                    "The API key was rejected (invalid or revoked). Check it in Settings → AI Chat."),
+    "ai.err.permission": ("Bu API kalitda so'ralgan modelga ruxsat yo'q. Sozlamalarda boshqa model tanlang.", "У этого API-ключа нет доступа к выбранной модели. Выберите другую модель в настройках.",
+                          "This API key has no access to the selected model. Choose another model in Settings."),
+    "ai.err.rate_limit": ("So'rovlar chegarasiga yetildi{wait}. Birozdan keyin qayta urinib ko'ring.", "Достигнут лимит запросов{wait}. Повторите чуть позже.", "Rate limit reached{wait}. Please try again shortly."),
+    "ai.err.billing": ("API hisobingizda mablag' yetarli emas (kredit tugagan). Anthropic Console → Billing ni tekshiring.", "На счёте API недостаточно средств. Проверьте Anthropic Console → Billing.",
+                       "Your API account has insufficient credit. Check Anthropic Console → Billing."),
+    "ai.err.model": ("Tanlangan model topilmadi. Sozlamalar → AI Chat da model nomini tekshiring.", "Выбранная модель не найдена. Проверьте название модели в Настройки → AI Chat.",
+                     "The selected model was not found. Check the model name in Settings → AI Chat."),
+    "ai.err.bad_request": ("AI so'rovi rad etildi: {detail}", "Запрос к AI отклонён: {detail}", "The AI request was rejected: {detail}"),
+    "ai.err.timeout": ("AI javob bermadi (vaqt tugadi). Qayta urinib ko'ring.", "AI не ответил вовремя. Попробуйте ещё раз.", "The AI did not respond in time. Please try again."),
+    "ai.err.network": ("AI xizmatiga ulanib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring.", "Не удалось связаться со службой AI. Проверьте интернет и повторите.",
+                       "Could not reach the AI service. Check your internet connection and try again."),
+    "ai.err.server": ("AI xizmati hozir band yoki ishlamayapti. Birozdan keyin qayta urinib ko'ring.", "Служба AI сейчас перегружена или недоступна. Повторите чуть позже.",
+                      "The AI service is busy or unavailable right now. Please try again shortly."),
+    "ai.err.too_large": ("Suhbat juda uzun. «Tozalash» tugmasi bilan yangi suhbat boshlang.", "Разговор слишком длинный. Начните новый кнопкой «Очистить».", "The conversation is too long. Clear it and start a new one."),
+    "ai.err.refusal": ("Men bu so'rovga javob bera olmayman.", "Я не могу ответить на этот запрос.", "I can't help with that request."),
+    "ai.err.empty": ("AI bo'sh javob qaytardi. Qayta urinib ko'ring.", "AI вернул пустой ответ. Попробуйте ещё раз.", "The AI returned an empty answer. Please try again."),
+    "ai.err.unknown": ("AI so'rovi bajarilmadi: {detail}", "Запрос к AI не выполнен: {detail}", "The AI request failed: {detail}"),
+    "ai.disabled": ("AI suhbat o'chirilgan (Sozlamalar → AI Chat). Kompyuter buyruqlari ishlaydi.", "AI-чат отключён (Настройки → AI Chat). Команды компьютера работают.",
+                    "AI chat is turned off (Settings → AI Chat). Computer commands still work."),
+    "ai.notice": ("Eslatma: AI suhbat yoqilgan. Yozgan/aytgan xabaringiz matni (va so'nggi suhbat) tashqi AI xizmatiga ({provider}) yuboriladi. Mikrofon audiosi AI'ga yuborilmaydi. "
+                  "Kompyuter buyruqlari AI'ga yuborilmaydi. O'chirish: Sozlamalar → AI Chat.",
+                  "Примечание: AI-чат включён. Текст ваших сообщений (и недавний разговор) отправляется внешней службе AI ({provider}). Аудио микрофона в AI не отправляется. "
+                  "Команды компьютера в AI не отправляются. Отключить: Настройки → AI Chat.",
+                  "Note: AI chat is on. The text of your messages (and the recent conversation) is sent to an external AI service ({provider}). Microphone audio is not sent to the AI. "
+                  "Computer commands are not sent to the AI. Turn it off in Settings → AI Chat."),
+    "ai.busy": ("AI hozir javob bermoqda. «To'xtatish» ni bosing yoki kuting.", "AI сейчас отвечает. Нажмите «Стоп» или подождите.", "The AI is answering right now. Press Stop or wait."),
+    "ai.stopped": ("(to'xtatildi)", "(остановлено)", "(stopped)"),
+    "ai.truncated": ("Javob uzunlik chegarasida kesildi. «Davom ettir» deb so'rashingiz mumkin.", "Ответ обрезан по лимиту длины. Можно попросить «продолжи».", "The answer was cut off at the length limit. You can ask me to continue."),
+    "tts.no_voice": ("{language} tili uchun tizimda ovoz topilmadi (yoki internet yo'q), shuning uchun javob faqat matn ko'rinishida.",
+                     "Для языка «{language}» в системе не найден голос (или нет интернета), поэтому ответ показан только текстом.",
+                     "No voice for {language} was found on this system (or there is no internet), so the answer is shown as text only."),
 }
 
 _APP_TITLES = {   # app_id: (uz, ru, en)
