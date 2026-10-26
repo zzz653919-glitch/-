@@ -1,0 +1,52 @@
+"""ПЯТНИЦА — ishga tushirish nuqtasi."""
+import logging
+import logging.handlers
+import sys
+
+from PySide6.QtWidgets import QApplication, QMessageBox
+
+from pyatnitsa import APP_NAME
+from pyatnitsa.settings import Settings, data_dir
+
+
+def main() -> int:
+    handler = logging.handlers.RotatingFileHandler(data_dir() / "pyatnitsa.log", maxBytes=500_000, backupCount=2, encoding="utf-8")
+    logging.basicConfig(level=logging.INFO, handlers=[handler], format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    log = logging.getLogger("main")
+    app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+    app.setQuitOnLastWindowClosed(True)
+
+    def excepthook(et, ev, tb):       # dastur xatodan keyin yopilib qolmasin
+        log.error("Kutilmagan xato", exc_info=(et, ev, tb))
+        try:
+            QMessageBox.warning(None, APP_NAME, f"Kutilmagan xato yuz berdi, lekin dastur ishlashda davom etadi.\n\n{ev}")
+        except Exception:  # noqa: BLE001
+            pass
+
+    sys.excepthook = excepthook
+    from pyatnitsa import health
+    from pyatnitsa.controller import Controller
+    from pyatnitsa.executor import Executor
+    from pyatnitsa.hotkey import GlobalHotkey
+    from pyatnitsa.tts import Speaker
+    from pyatnitsa.ui import STYLE, MainWindow
+
+    app.setStyleSheet(STYLE)
+    settings = Settings.load()
+    monitor = health.HealthMonitor()
+    speaker = Speaker(settings)
+    ctrl = Controller(settings, Executor(settings, monitor=monitor), speaker)
+    hotkey = GlobalHotkey()
+    win = MainWindow(settings, ctrl, monitor, hotkey, speaker)
+    if settings.global_space:
+        ok, err = hotkey.set_enabled(True)
+        if not ok:
+            settings.global_space = False
+            win.add_message("system", err)
+    win.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
