@@ -3,3 +3,9 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Til Yoli serveri
+web/server/data/
+*.db
+*.db-wal
+*.db-shm
