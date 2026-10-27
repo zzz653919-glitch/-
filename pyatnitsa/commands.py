@@ -16,7 +16,9 @@ ALLOWED_ACTIONS = frozenset({
     "open_app", "new_window", "search", "rate_usd", "convert_usd", "weather", "time",
     "health_status", "health_cpu", "health_ram", "health_disk", "health_temps", "health_gpu", "health_battery",
     "health_uptime", "health_full", "health_report", "health_top", "speedup_advice", "admin_info",
+    "find_files", "list_files", "open_file",
 })
+FILE_ACTIONS = frozenset({"find_files", "list_files", "open_file"})
 
 _APOS = "ʻʼ’‘`´′ʹ"
 _CYR = {
@@ -34,6 +36,8 @@ class Command:
     args: dict = field(default_factory=dict)
     confirm_text: str = ""
     intent: str = ""           # open_app | open_folder | web_search | get_exchange_rate | get_pc_health | get_system_info ...
+    needs_confirm: bool = True       # faqat o'qiydigan fayl qidiruvi tasdiq talab qilmaydi (ruxsat papkalarni tanlashda berilgan)
+    force_confirm: bool = False      # sozlamada tasdiq o'chiq bo'lsa ham so'raladi (ro'yxatdan tanlangan faylni ochish)
 
 
 @dataclass
@@ -108,7 +112,11 @@ def extract_amount(text: str) -> float | None:
 
 def parse(text: str) -> ParseResult:
     """Matn (ovoz yoki klaviatura) -> xavfsiz buyruqlar ro'yxati yoki aniqlashtiruvchi savol."""
-    from . import nlu
+    from . import fileintent, nlu
     res = nlu.parse(text)
+    # Fayl buyruqlari: NLU qarori ustidan faqat fayl niyati aniq bo'lsa ustun keladi; xavfli fe'l hamma narsani to'xtatadi
+    fres = fileintent.parse(text, res)
+    if fres is not None:
+        res = fres
     assert all(c.action in ALLOWED_ACTIONS for c in res.commands)
     return res

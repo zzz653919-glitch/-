@@ -28,6 +28,16 @@ class FakePlatform(apps.Platform):
     def open_new_window(self, url):
         self.calls.append(("new", url))
 
+    def open_file(self, path):
+        if getattr(self, "open_error", None):
+            raise self.open_error
+        self.calls.append(("file", str(path)))
+
+    def start_player(self, player, path):
+        if getattr(self, "open_error", None):
+            raise self.open_error
+        self.calls.append(("player", str(player), str(path)))
+
 
 def make(tmp_path, **kw):
     plat = FakePlatform({"chrome": Path("/x/chrome.exe")}, tmp_path)

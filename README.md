@@ -70,6 +70,37 @@ Chap: **AI Assistant · Command History · System Monitoring · Diagnostics · S
 Oqim: **buyruq (ovoz yoki matn) → ekranda matn → tahlil → tasdiq → bajarish → natija ekranda va ovozda**.
 Ovozli va matnli buyruqlar *aynan bir xil* kod yo'lidan va bir xil xavfsizlik qoidalaridan o'tadi.
 
+## Fayl ruxsati, fayl qidirish va ochish (File Access)
+Пятница **faqat siz aynan ruxsat bergan papka/disklarda** fayl qidiradi va ochadi. Bitta papkaga ruxsat — butun kompyuterga ruxsat emas.
+
+**Ruxsat berish:** chap menyu → **File Access** → **Add Folder…** (Windows papka tanlash oynasi; butun diskni ham tanlash mumkin — qo'shimcha ogohlantirish chiqadi) yoki **Add standard folder** (Desktop, Documents, Downloads, Pictures, Music, Videos). Birinchi marta fayl buyrug'ini aytsangiz ham (masalan «Downloads papkasidan videoni top») ilova ruxsat so'raydi: aniq papka nomi ko'rsatilgan dialog chiqadi; «Yes» desangiz ruxsat beriladi va buyruq qayta bajariladi. **Ruxsat faqat tugma bosish orqali beriladi — ovozli buyruq o'zi ruxsat bera olmaydi.** Ro'yxat sessiyalar orasida eslab qolinadi (`settings.json` → `file_roots`), Sozlamalarda ham ko'rinadi.
+
+**Ruxsatni bekor qilish:** File Access → ro'yxatdan joyni tanlang → **Remove Access**. Ta'sir darhol: o'sha joydagi eski natijalar ham ochilmaydi. Hech narsa o'chirilmaydi, faqat ilovaning kirish huquqi olinadi.
+
+**Ovozli/matnli buyruqlar (uz · ru · en):**
+| Misol | Natija |
+|---|---|
+| «Downloads papkasidan videoni top» · «Find the video named example.mp4» · «Найди видео в папке Загрузки» | topilgan fayllar: nom, to'liq yo'l, tur, hajm, sana |
+| «Videolar papkasidagi eng yangi videoni ko'rsat» · «Покажи самое новое видео» · «find the latest video in Downloads» | eng yangi fayl (o'zgargan vaqt bo'yicha) |
+| «Rus tilidagi videolarni top» · «Покажи русские видео» | fayl/papka **nomi**ga qarab taxmin (media metama'lumoti o'qilmaydi — xabarda aytiladi) |
+| «Show me the available files in my authorized folders» | ruxsat etilgan papkalarning ichidagilar |
+| «Open the video named example.mp4» · «Открой видео example.mp4» · «Videoni och» | aniq nom bitta faylga mos kelsa — **tasdiq** so'raladi, so'ng ochiladi; bir nechta mos kelsa — ro'yxat chiqadi va **qaysi biri** deb so'raladi |
+| «2» · «birinchisini och» · «open the third one» · «открой второй» · «bekor» | ro'yxatdan tanlash; tanlangan **fayl nomi ovoz bilan o'qib beriladi** va (sozlamada tasdiq o'chiq bo'lsa ham) tasdiqlanadi |
+| «Open the video I requested» · «shu faylni qidir» | oxirgi ro'yxatga ishora; ro'yxat yo'q bo'lsa — fayl nomi so'raladi |
+| «Open that person's video» · «o'sha odamning videosini och» | «Qaysi odam/fayl?» deb so'raydi — taxmin qilib ochmaydi |
+
+Qidirish faqat **o'qiydi** va tasdiq so'ramaydi; **ochish** har doim tasdiqlanadi (aniq nom bitta faylga mos kelganda — sozlamaga ko'ra; ro'yxatdan tanlanganda — majburiy). Aniq nom topilmasa o'xshash nomlar ko'rsatiladi, lekin ular **hech qachon avtomatik ochilmaydi**.
+
+**Ochish:** video (MP4, MKV, AVI, MOV, WebM, WMV, FLV, M4V, MPG, 3GP), rasm, audio, PDF/TXT/DOCX/XLSX/PPTX/CSV kabi hujjatlar Windows'ning standart ilovasida ochiladi; xohlasangiz videolar uchun o'z pleyeringizni tanlang (File Access → Video player → Choose…, `.exe`, shell'siz ishga tushadi). Xabar «**ochish so'rovi Windows'ga yuborildi**» deydi — ilova haqiqatan ochilganini Python tekshira olmaydi, shuning uchun «ochildi/ijro etilmoqda» deb **aytilmaydi**. Fayl topilmasa, ruxsat bekor qilingan bo'lsa, o'qib bo'lmasa yoki ilova biriktirilmagan bo'lsa — aniq sabab ko'rsatiladi.
+
+**Xavfsizlik:**
+- Qidiruv matni hech qachon yo'l sifatida ishlatilmaydi (faqat fayl nomi bilan solishtiriladi); `..`, disk harflari va h.k. hech narsa ochmaydi. Ochish faqat **ko'rsatilgan natijalar** ichidan va ruxsat qayta tekshirilgach mumkin.
+- Symlink/junction orqali ruxsat etilgan papkadan chiqib bo'lmaydi; Windows ruxsat bermagan papkalar o'tkazib yuboriladi va soni aytiladi. Himoyalangan joylar (Windows, Program Files, ProgramData, AppData, ilovaning o'z ma'lumotlari, Корзина) ildiz bo'la olmaydi va qidirilmaydi; `.env`, kalit/sertifikat va parol bazalari ko'rsatilmaydi.
+- **Hech qachon ochilmaydigan turlar:** `.exe .bat .cmd .ps1 .vbs .js .msi .lnk .url .dll .jar`, makroli hujjatlar (`.docm .xlsm .pptm`), `.svg .html`, arxivlar va boshqa noma'lum turlar — ro'yxatda ko'rinishi mumkin, lekin ochilmaydi.
+- Fayllar **o'chirilmaydi, ko'chirilmaydi, nusxalanmaydi, o'zgartirilmaydi, yuborilmaydi va yuklanmaydi**: bunday buyruqlar («o'chir», «ko'chir», «nusxala», «send», «upload», «share» ...) fayl nomining ichida bo'lmasa butunlay rad etiladi. Fayl nomi/papka nomi/metama'lumot — **ma'lumot**: buyruq sifatida talqin qilinmaydi, chatda oddiy matn sifatida (HTML emas) chiziladi, boshqaruv va bidi belgilar (kengaytmani yashiruvchi RLO) olib tashlanadi.
+- Fayl ma'lumotlari AI'ga yuborilmaydi: fayl buyruqlari AI suhbat yo'liga umuman kirmaydi.
+- Administrator huquqi so'ralmaydi.
+
 ## Mikrofon va ovozli buyruq quvuri (tuzatilgan)
 **Aniqlangan asl sabablar** (kod tahlili bo'yicha; haqiqiy qurilmada tasdiqlash — «Test holati» bo'limiga qarang):
 1. `transcribe()` ichidagi `except Exception` **har qanday ichki xatoni yutib**, «buyruqni tushunmadim» deb ko'rsatardi (FLAC konverteri bloklangan, HTTP 403/429, `audioop` yo'q ...). Endi xatolar turlarga ajratilib, aniq sabab bilan ko'rsatiladi.
@@ -130,6 +161,7 @@ Eslatma: bu to'plamlarni tizim muallifi yozgan (haqiqiy foydalanuvchi emas), shu
 - **Qidiruv:** «Google'da Python darslarini qidir».
 - **Ma'lumot:** «Dollar kursini ko'rsat», «100 dollar necha so'm?» (O'zbekiston Markaziy banki, sana ko'rsatiladi), «Bugungi ob-havoni ko'rsat» (Open-Meteo, shahar — Sozlamalarda), «Hozirgi vaqtni ayt».
 - **Kompyuter holati (faqat o'qish):** «Kompyuterim holati qanday?», «To'liq diagnostika qil», «Protsessorni tekshir», «RAM holatini ko'rsat», «Diskimda qancha joy qoldi?», «Haroratlarni ko'rsat», «Qaysi dastur ko'p RAM ishlatyapti?», «Kompyuterimda qaysi dasturlar ko'p resurs ishlatyapti?», «Kompyuter holati hisobotini yarat» (hisobot faqat `%APPDATA%\Pyatnitsa\reports\` ga yoziladi), «Kompyuterni tezlashtir» (faqat tahlil va tavsiya, hech narsa o'zgarmaydi).
+- **Fayllar:** ruxsat etilgan papkalarda qidirish, ro'yxat, «eng yangi», ochish — yuqoridagi «File Access» bo'limiga qarang.
 - Tushunarsiz buyruq → hech narsa bajarilmaydi, aniqlashtiruvchi savol beriladi.
 
 ## Xavfsizlik modeli
@@ -162,7 +194,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 452 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 607 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -174,6 +206,8 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - **Boshqaruvchi:** holatlar tartibi (LISTENING → PROCESSING → INTERPRETING → CONFIRM → EXECUTING → RESPONDING), mikrofon matnga aylantirishdan oldin bo'shatilishi, past ishonchda bajarilmasligi, har bir xato turiga aniq xabar va to'g'ri holat (ERROR faqat haqiqiy xatolarda), terminal hodisalarining tartibi, tarix yozuvlari.
 - **Interfeys:** 6 sahifa navigatsiyasi, tasdiq paneli, terminal va ijro holati, tarix (matnni kiritish maydoniga qo'yish bajarmaydi), diagnostika fon oqimida, sozlamalar saqlanishi, mikrofon testi (matn va tushunilgan amal ko'rsatiladi, bajarilmaydi), kichik/katta oyna, uzun xabarlar maketni buzmasligi, reduced-motion.
 - Monitoring: haqiqiy `psutil` o'lchovlari (Linux'da), holat baholash va sabablar, mavjud bo'lmagan qiymatlar uchun «Ma'lumot mavjud emas».
+
+**Fayl ruxsati va fayllarni ochish (haqiqiy fayl tizimida, vaqtinchalik papkalarda; Windows qatlami soxta):** ruxsatlarni eslab qolish va bekor qilish, himoyalangan/xavfli ildizlarni rad etish, ruxsat berilmagan joyga hech qanday yo'l bilan (nom matni, `..`, symlink, eski natija) kirib bo'lmasligi, Windows ruxsat xatolarini sanash, nom/kengaytma/tur/til/«eng yangi» qidiruvi, kirill-lotin moslashuvi, o'xshash nomlarni avtomatik ochmaslik, noaniq moslikda ro'yxat + tanlash + nomni o'qib berish + majburiy tasdiq, o'chirilgan/ruxsati bekor qilingan faylni ochmaslik, `.exe`/makro/skript ochilmasligi, xavfli fe'llar rad etilishi, fayl nomi buyruq bo'la olmasligi, AI'ga hech narsa bormasligi, ovozdagi past ishonch, File Access sahifasi (qo'shish/bekor qilish/qidirish/ochish/xatolar/maket), ruxsat dialogi va buyruqni qayta bajarish. Xavfsizlik mantig'ining 12 ta qismi mutatsiya bilan tekshirilgan (buzilganda testlar qulaydi). **Sinalmagan (Windows'da bajariladi):** `os.startfile` bilan haqiqiy ilova ochilishi, tanlangan pleyerning ishga tushishi, junction/reparse nuqtalari, Windows papka tanlash oynasi, Known Folder yo'llari (OneDrive ko'chirgan Desktop/Documents), real Windows ruxsat xatolari va Defender bilan tezlik (Linux'da 30 600 element ≈ 0,2–0,9 s).
 
 **Mikrofon diagnostikasi (soxta qurilma bilan; haqiqiy mikrofon sinovi emas):** loopback/Stereo Mix nomlari, standart/tanlangan loopback'ni o'tkazib yuborish va ogohlantirish, faqat-loopback xatosi, kanal tushirish va o'lik kanal, 2→1 kanal zaxirasi, jonli faollik, VAD, hold-to-talk (bosish/qo'yib yuborish, qisqa bosish, oyna faolligini yo'qotish, endpoint to'xtatmasligi, haqiqiy Qt tugma hodisalari), holatlar ketma-ketligi, qurilmalar jadvali, konsol vositasi. Har bir asosiy mantiq mutatsiya bilan tekshirilgan (buzilganda testlar qulaydi).
 
@@ -211,6 +245,8 @@ pyatnitsa/nlu.py         ko'p tilli tushunish (til, maqsad, parametr, noaniqlik)
 pyatnitsa/i18n.py        uz/ru/en matnlar
 pyatnitsa/commands.py    buyruq turlari, normallashtirish, ruxsat etilgan amallar
 pyatnitsa/executor.py    ruxsat etilgan amallar ro'yxati va ijrosi
+pyatnitsa/files.py       ruxsat etilgan papkalar, xavfsiz qidirish, ochishdan oldingi tekshiruv
+pyatnitsa/fileintent.py  fayl buyruqlarini tushunish (uz/ru/en), ro'yxatdan tanlash
 pyatnitsa/apps.py        ruxsat etilgan dasturlar, Windows qatlami
 pyatnitsa/services.py    kurs va ob-havo (internet)
 pyatnitsa/health.py      PC Health Monitor (faqat o'qish)
@@ -220,7 +256,7 @@ pyatnitsa/audio.py       mikrofon, qurilma tanlash, sifat tahlili, tayyorlash, j
 pyatnitsa/stt.py         nutq dvigatellari (Google / Whisper), xato turlari
 pyatnitsa/voice_test.py  mikrofon testi
 pyatnitsa/diagnostics.py haqiqiy tizim tekshiruvlari
-pyatnitsa/gui/           kiberpank interfeys (main_window, core_widget, monitor_view, chat, terminal, pages, settings_page, theme, icons)
+pyatnitsa/gui/           kiberpank interfeys (main_window, core_widget, monitor_view, chat, terminal, pages, files_page, settings_page, theme, icons)
 pyatnitsa/ui.py          moslik uchun qisqa import
 tests/                   avtomatik testlar
 ```

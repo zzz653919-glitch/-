@@ -33,6 +33,7 @@ class _Bubble(QFrame):
                 from PySide6.QtWidgets import QPushButton
                 self.retry_btn = QPushButton("Retry"); self.retry_btn.setObjectName("primary"); self.retry_btn.setFocusPolicy(Qt.NoFocus)
                 self.retry_btn.clicked.connect(on_retry); lay.addWidget(self.retry_btn, 0, Qt.AlignLeft)
+        body.setTextFormat(Qt.PlainText)          # fayl nomi, AI matni va h.k. — ishonchsiz ma'lumot: HTML sifatida talqin qilinmaydi
         body.setWordWrap(True)
         body.setTextInteractionFlags(Qt.TextSelectableByMouse)
         body.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)

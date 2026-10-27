@@ -75,7 +75,9 @@ LEX_SRC: dict[str, dict[str, str]] = {
     "DANGER": dict(any=("ochir* udal* delet* remov* erase wipe format* restart reboot shutdown poweroff perezagruz* perezapus* viklyuch* otklyuch* "
                         "kochir* perenes* pereimen* rename move copy skopir* yubor* otprav* send ornat* ustanov* install* parol* password "
                         "zakro* close yop yopib yoping yopish kill ozgartir* izmen* change modify edit tahrir* tashla* vibros* sotri "
-                        "korzin* recycle trash del rm sleep hibernate uninstal* cmd powershell pwsh bash sudo regedit eval exec wscript cscript mshta")),
+                        "korzin* recycle trash del rm sleep hibernate uninstal* cmd powershell pwsh bash sudo regedit eval exec wscript cscript mshta "
+                        # fayllarni nusxalash/ulashish/yuklash (upload) — hech qachon bajarilmaydi
+                        "nusxa* kopir* kopiya* upload* publish* share* ulash* podel* opublik* paste")),
     # til belgisi beruvchi, lekin ma'nosiz so'zlar (ularni qidiruv so'rovidan ham chiqaramiz)
     "FUNC": dict(uz="ni ga da dan ning ishga iltimos menga meni men uchun haqida boyicha ekan ekanini internetda malumot* va hamda keyin tez tezroq hozir",
                  ru="мне пожалуйста для про на в во по из потом затем быстро срочно сейчас pozhaluysta pojaluysta", en="the please to my me of for about on and then quickly now fast asap pls plz"),

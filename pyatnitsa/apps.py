@@ -39,8 +39,12 @@ _FOLDER_GUIDS = {  # Windows Known Folder ID
     "downloads": "{374DE290-123F-4565-9164-39C4925E467B}",
     "desktop": "{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}",
     "documents": "{FDD39AD0-238F-46AF-ADB4-6C85480369C7}",
+    "pictures": "{33E28130-4E1E-4676-835A-98395C3BC3BB}",
+    "music": "{4BD8D571-6D19-48D3-BE97-422220080E43}",
+    "videos": "{18989B1D-99B5-49FC-B8E7-B2C0C5B20BD6}",
 }
-_FOLDER_NAMES = {"downloads": "Downloads", "desktop": "Desktop", "documents": "Documents"}
+_FOLDER_NAMES = {"downloads": "Downloads", "desktop": "Desktop", "documents": "Documents", "pictures": "Pictures", "music": "Music", "videos": "Videos"}
+KNOWN_FOLDERS = tuple(_FOLDER_NAMES)
 
 
 class Platform:
@@ -94,6 +98,23 @@ class Platform:
 
     def open_folder(self, path: Path) -> None:
         os.startfile(str(path))    # type: ignore[attr-defined]  # faqat Windows
+
+    def open_file(self, path: Path) -> None:
+        """Faylni bog'langan ilovada OCHADI (dastur sifatida ISHGA TUSHIRMAYDI: chaqiruvchi kengaytmani oldindan tekshiradi).
+        Windows ilovani ishga tushirish so'rovini qabul qilsa qaytadi; ilova haqiqatan ochilganini bu yerdan bilib bo'lmaydi."""
+        if sys.platform != "win32":
+            raise OSError("Fayllarni bog'langan ilovada ochish faqat Windows'da ishlaydi")
+        os.startfile(str(path))    # type: ignore[attr-defined]
+
+    def start_player(self, player: Path, path: Path) -> None:
+        """Foydalanuvchi tanlagan pleyer bilan ochadi: shell'siz, argumentlar ro'yxat sifatida. Darhol xato bilan tugasa OSError."""
+        proc = subprocess.Popen([str(player), str(path)], shell=False, close_fds=True)
+        try:
+            code = proc.wait(timeout=0.8)
+        except subprocess.TimeoutExpired:
+            return                                   # ishlab turibdi
+        if code != 0:
+            raise OSError(f"pleyer {code} kodi bilan tugadi")
 
     def open_url(self, url: str) -> None:
         p = urlparse(url)

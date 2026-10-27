@@ -13,6 +13,7 @@ from .. import APP_NAME, __version__, controller as C, health, motion
 from ..settings import Settings, set_autostart
 from .chat import ChatView
 from .core_widget import AICore
+from .files_page import FilesPage
 from .icons import icon
 from .monitor_view import MetricsView, MonitorBridge
 from .pages import AboutPage, DiagnosticsPage, HistoryPage, page_header
@@ -33,7 +34,7 @@ STATE_HINT = {
     "responding": "Writing the answer…",
     "error": "Something went wrong — details are in the conversation and terminal",
 }
-PAGES = [("assistant", "AI Assistant"), ("history", "Command History"), ("monitor", "System Monitoring"),
+PAGES = [("assistant", "AI Assistant"), ("history", "Command History"), ("files", "File Access"), ("monitor", "System Monitoring"),
          ("diagnostics", "Diagnostics"), ("settings", "Settings"), ("about", "About")]
 
 
@@ -122,12 +123,13 @@ class MainWindow(QMainWindow):
         self.history = HistoryPage()
         self.diag = DiagnosticsPage(self.monitor, on_event=self.ctrl.log_event)
         self.settings_page = SettingsPage(self.settings, can_test=self._can_test_mic, ai=self.ctrl.ai)
+        self.files_page = FilesPage(self.ctrl.executor.files, self.ctrl.executor.platform, self.settings, open_cb=self.ctrl.open_path, log_cb=self.ctrl.log_event)
         self.monitor_view = MetricsView(self.bridge, compact=False)
         mon = QWidget(); ml = QVBoxLayout(mon); ml.setContentsMargins(0, 0, 0, 0); ml.setSpacing(12)
         ml.addLayout(page_header("SYSTEM MONITORING", "Live values read from this computer. “Unavailable / Not supported” means the sensor or driver does not provide it."))
         sa = QScrollArea(); sa.setWidgetResizable(True); sa.setWidget(self.monitor_view); ml.addWidget(sa, 1)
-        for key, widget in (("assistant", self._build_assistant()), ("history", self.history), ("monitor", mon), ("diagnostics", self.diag),
-                            ("settings", self.settings_page), ("about", AboutPage())):
+        for key, widget in (("assistant", self._build_assistant()), ("history", self.history), ("files", self.files_page), ("monitor", mon),
+                            ("diagnostics", self.diag), ("settings", self.settings_page), ("about", AboutPage())):
             host = QWidget(); hl = QVBoxLayout(host); hl.setContentsMargins(26, 20, 22, 18); hl.addWidget(widget)
             self.stack.addWidget(host); self.pages[key] = host
 
@@ -219,12 +221,27 @@ class MainWindow(QMainWindow):
         self.voice_stop.clicked.connect(c.stop_speaking)
         c.aiStream.connect(self._on_ai_stream)
         c.retryChanged.connect(lambda _on: self._sync_buttons())
+        c.fileAccessNeeded.connect(self._on_file_access_needed)
+        c.message.connect(self._mirror_to_files_page)
+        self.files_page.accessChanged.connect(c.forget_files)
+        self.files_page.accessChanged.connect(self.settings_page.refresh_files)
+        self.settings_page.openFilesPage.connect(lambda: self.show_page("files"))
         self.history.reuse.connect(self._reuse_command)
         self.history.cleared.connect(lambda: c.log_event("info", "SYSTEM", "Command history cleared"))
         self.settings_page.saved.connect(self.apply_settings)
         self.settings_page.clearHistory.connect(self.history.clear)
         self.settings_page.clearChat.connect(self.clear_chat)
         self.bridge.updated.connect(lambda: self.updated_lbl.setText("Live · updated " + __import__("time").strftime("%H:%M:%S")))
+
+    # ======================================================================= fayllar
+    def _on_file_access_needed(self, kind: str, hint: str, retry_text: str) -> None:
+        """Buyruq ruxsat berilmagan papkani so'radi: «File Access» sahifasi ochiladi va aniq ruxsat so'raladi. Berilsa buyruq qayta bajariladi."""
+        self.show_page("files")
+        self.files_page.request_grant(hint, lambda: self.ctrl.submit_text(retry_text))
+
+    def _mirror_to_files_page(self, role: str, text: str) -> None:
+        if role == "assistant" and getattr(self, "current", "") == "files" and text:
+            self.files_page.set_status(text.splitlines()[0][:300])
 
     # ======================================================================= sahifalar
     def show_page(self, key: str, animate: bool = True) -> None:

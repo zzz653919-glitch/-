@@ -19,6 +19,7 @@ class SettingsPage(QWidget):
     saved = Signal()
     clearHistory = Signal()
     clearChat = Signal()
+    openFilesPage = Signal()
 
     _level = Signal(float)
     _status = Signal(str)
@@ -74,6 +75,13 @@ class SettingsPage(QWidget):
         self._state, self._speech = "idle", False
         self._set_status("idle")
         self._test_done.connect(self._show_report)
+        # ---- File Access (qisqa ko'rinish; boshqarish — «File Access» sahifasida)
+        fl = QLabel("FILE ACCESS"); fl.setObjectName("section"); form.addRow(fl)
+        self.files_info = QLabel(); self.files_info.setObjectName("sub"); self.files_info.setWordWrap(True); self.files_info.setTextFormat(Qt.PlainText)
+        self.files_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.files_btn = QPushButton("Manage in File Access…"); self.files_btn.clicked.connect(self.openFilesPage.emit)
+        form.addRow(self.files_info); form.addRow(self.files_btn)
+        self.refresh_files()
         # ---- AI Chat
         al = QLabel("AI CHAT"); al.setObjectName("section"); form.addRow(al)
         self.ai_on = QCheckBox("Enable AI conversation (questions, explanations, follow-ups)")
@@ -196,6 +204,11 @@ class SettingsPage(QWidget):
         kind, msg = res
         color = "#2ee6a6" if kind == "ok" else "#ff4d6d"
         self.ai_test_out.setText(f"<span style='color:{color}'>{html.escape(msg)}</span>")
+
+    def refresh_files(self) -> None:
+        roots = self.s.file_roots
+        self.files_info.setText("Пятница can access only these locations (nothing else on this computer):\n" + "\n".join(f"• {r}" for r in roots) if roots
+                                else "No folders are authorized. Пятница cannot search or open any of your files until you add a folder.")
 
     # ---- mikrofon testi
     def run_test(self) -> None:

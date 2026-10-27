@@ -56,6 +56,8 @@ class Settings:
     autostart: bool = False                # standart: o'chiq
     city: str = "Tashkent"
     allowed_apps: dict[str, bool] = field(default_factory=dict)
+    file_roots: list[str] = field(default_factory=list)   # foydalanuvchi AYNAN ruxsat bergan papkalar/disklar (qolgan hech narsaga kirilmaydi)
+    video_player: str = ""                 # ixtiyoriy: videolarni ochadigan dastur (.exe); bo'sh = Windows standarti
 
     # ---- saqlash / yuklash -------------------------------------------------
     @staticmethod
@@ -87,6 +89,9 @@ class Settings:
             elif isinstance(default, float):
                 ok = isinstance(val, (int, float)) and not isinstance(val, bool)
                 val = float(val) if ok else val
+            elif isinstance(default, list):
+                ok = isinstance(val, list) and all(isinstance(v, str) and v.strip() for v in val)
+                val = list(dict.fromkeys(val)) if ok else val
             elif isinstance(default, dict):
                 ok = isinstance(val, dict) and all(
                     isinstance(k, str) and isinstance(v, bool) for k, v in val.items())
@@ -113,6 +118,7 @@ class Settings:
         if s.stt_language not in {v for _, v in STT_LANGUAGES}:
             s.stt_language = "auto"
         s.city = s.city.strip()[:80] or "Tashkent"
+        s.video_player = s.video_player.strip()
         return s
 
     def save(self, path: Path | None = None) -> None:

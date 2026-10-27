@@ -33,6 +33,11 @@ def _draw(name: str, p: QPainter, s: float) -> None:
             r = math.radians(k * 45)
             p.drawLine(QPointF(c + math.cos(r) * s * 0.3, c + math.sin(r) * s * 0.3), QPointF(c + math.cos(r) * s * 0.44, c + math.sin(r) * s * 0.44))
         p.drawEllipse(QPointF(c, c), s * 0.32, s * 0.32)
+    elif name == "files":                         # papka
+        path = QPainterPath(QPointF(s * 0.1, s * 0.3))
+        for x, y in ((0.1, 0.8), (0.9, 0.8), (0.9, 0.34), (0.48, 0.34), (0.4, 0.22), (0.1, 0.22)):
+            path.lineTo(s * x, s * y)
+        path.closeSubpath(); p.drawPath(path)
     elif name == "about":                         # «i»
         p.drawEllipse(QPointF(c, c), s * 0.4, s * 0.4)
         p.drawLine(QPointF(c, s * 0.44), QPointF(c, s * 0.7)); p.drawPoint(QPointF(c, s * 0.3))

@@ -12,7 +12,7 @@ import time
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
-from . import ai_chat, audio, commands, router, stt
+from . import ai_chat, audio, commands, fileintent, files as fs, router, stt
 from .ai_chat import AIError
 from .audio import VoiceError
 from .executor import Executor, Result
@@ -26,17 +26,19 @@ THINKING, STREAMING = "thinking", "streaming"
 LABELS = {IDLE: "Kutmoqda", LISTENING: "Tinglayapti", CHECKING: "Nutq matnga aylantirilmoqda", INTERPRETING: "Buyruq tahlil qilinmoqda",
           CONFIRM: "Tasdiq kutilmoqda", RUNNING: "Bajarilmoqda", DONE: "Tayyor",
           THINKING: "AI o'ylamoqda", STREAMING: "AI javob bermoqda"}
-_OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
+_OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info", "open_file"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
 _REAL_FAILURES = ("mic.", "stt.network", "stt.failed", "stt.lib_missing", "stt.whisper")   # bular ERROR holati; qolganlari («nutq yo'q» va h.k.) oddiy javob
 
 INTENT_NAMES = {"open_app": "OPEN_APPLICATION", "open_folder": "OPEN_FOLDER", "web_search": "WEB_SEARCH",
                 "get_exchange_rate": "GET_EXCHANGE_RATE", "get_pc_health": "GET_PC_HEALTH", "get_system_info": "GET_SYSTEM_INFO",
-                "get_weather": "GET_WEATHER"}
+                "get_weather": "GET_WEATHER", "find_file": "FIND_FILE", "open_file": "OPEN_FILE", "list_files": "LIST_FILES"}
 
 
 def _ack_key(action: str) -> str | None:
     if action in _OPEN_ACTIONS:
         return None
+    if action in commands.FILE_ACTIONS:
+        return "ack.files"
     return {"rate_usd": "ack.rate_usd", "convert_usd": "ack.convert_usd", "weather": "ack.weather"}.get(action, "ack.health")
 
 
@@ -58,6 +60,7 @@ class Controller(QObject):
     record = Signal(dict)                  # tugallangan buyruq yozuvi (tarix sahifasi uchun)
     aiStream = Signal(str, str)            # thinking_on | thinking_off | start | delta | end | stopped | error  (+ matn)
     retryChanged = Signal(bool)
+    fileAccessNeeded = Signal(str, str, str)   # no_roots | scope_denied, papka (bo'lishi mumkin), qayta yuboriladigan matn — oyna ruxsat so'raydi
     _ai_first = Signal(int)
     _ai_delta = Signal(int, str)
     _ai_done = Signal(int, object)
@@ -90,6 +93,7 @@ class Controller(QObject):
         self._retry: tuple | None = None
         self._last_recording = None
         self._pending: list[commands.Command] = []
+        self._choices: list[fs.FileEntry] = []        # oxirgi fayl ro'yxati: «2», «birinchisini och», «ochib ber» shundan tanlaydi
         self._cur: dict | None = None
         self._limit = QTimer(self, singleShot=True, interval=audio.MAX_SECONDS * 1000)
         self._limit.timeout.connect(self._auto_stop)
@@ -395,6 +399,11 @@ class Controller(QObject):
         self._cur = {"time": time.time(), "source": source, "text": text, "intents": [], "outcome": "", "summary": ""}
         if source == "text":
             self.log_event("info", "TEXT", "Command received")
+        if self._choices:                             # oxirgi fayl ro'yxatidan tanlash: «2», «birinchisini och», «bekor»
+            ch = fileintent.parse_choice(text, len(self._choices))
+            if ch is not None:
+                self._handle_choice(ch)
+                return
         res = res or commands.parse(text)
         route = router.route(text, res, has_history=bool(self.ai and len(self.ai.history)))
         self.log_event("info", "AI", f"Routed: {route.category} ({route.reason})")
@@ -424,7 +433,17 @@ class Controller(QObject):
                 self._reply(denied)
                 self._finish_record("denied", denied)
                 return
-        if self.settings.confirm_commands:
+        for c in res.commands:               # fayl buyruqlari: ruxsat etilgan papka yo'q / nom kerak — qidirishdan oldin
+            issue = self.executor.file_issue(c, self.lang)
+            if issue:
+                self.log_event("warn", "SECURITY", f"File access: {issue.kind}")
+                self._reply(issue.message)
+                self._finish_record("denied", issue.message)
+                if issue.kind in ("no_roots", "scope_denied"):
+                    self.fileAccessNeeded.emit(issue.kind, str(issue.hint or ""), text)
+                return
+        force = any(c.force_confirm for c in res.commands)
+        if (self.settings.confirm_commands and any(c.needs_confirm for c in res.commands)) or force:
             self._pending = list(res.commands)
             self.message.emit("assistant", self._ask_text() + " " + T("confirm_hint", self.lang))
             self.log_event("active", "AI", f"Awaiting user confirmation ({len(res.commands)} action{'s' if len(res.commands) > 1 else ''})")
@@ -628,11 +647,91 @@ class Controller(QObject):
         self._set_retry(None)
         self.log_event("info", "SYSTEM", "Conversation context cleared")
 
+    # ------------------------------------------------------------ fayllar
+    def _handle_choice(self, ch: fileintent.Choice) -> None:
+        """«2», «birinchisini och», «ochib ber», «bekor»: ro'yxatdagi faylni tanlash. Tanlangan fayl nomi o'qib beriladi va tasdiqlanadi."""
+        lang = self.lang
+        self._cur["intents"] = ["OPEN_FILE"]
+        if ch.kind == "cancel":
+            self._choices = []
+            self.log_event("info", "SYSTEM", "File selection cancelled; nothing was opened")
+            self._reply(T("files.choice_cancelled", lang))
+            self._finish_record("cancelled", "File selection cancelled")
+            return
+        n = len(self._choices)
+        idx = 0 if (ch.index is None and n == 1) else ch.index
+        if idx is None or not 0 <= idx < n:
+            msg = T("files.bad_choice", lang, n=n)
+            self._reply(msg)
+            self._finish_record("clarify", msg)
+            return
+        entry = self._choices[idx]
+        self.log_event("info", "AI", f"File chosen from the list: #{idx + 1}")
+        if not entry.openable:
+            msg = T("files.open.type_blocked", lang, name=entry.display, ext=entry.ext[:10])
+            self._reply(msg, ok=False)
+            self._finish_record("failed", msg)
+            return
+        self._prepare_open(entry, forced=True)
+
+    def _prepare_open(self, entry: fs.FileEntry, forced: bool) -> None:
+        """Faylni ochishdan oldin: nomi va joyi ko'rsatiladi (noaniq so'rovda ovoz bilan o'qib beriladi) va tasdiq so'raladi."""
+        lang = self.lang
+        ask = T("files.ask.open", lang, name=entry.display, folder=fs.safe_display(str(entry.parent), 120))
+        cmd = commands.Command("open_file", {"path": str(entry.path)}, ask, intent="open_file", needs_confirm=True, force_confirm=forced)
+        self._choices = []
+        if not (self.settings.confirm_commands or forced):
+            self._run([cmd])
+            return
+        self._pending = [cmd]
+        self.message.emit("assistant", self._ask_text() + " " + T("confirm_hint", lang))
+        if forced:
+            self.speaker.say(T("files.say.confirm", lang, name=entry.display), lang)
+        self.log_event("active", "AI", "Awaiting user confirmation (1 action)")
+        self._set(CONFIRM)
+
+    def _after_files(self, r: Result) -> bool:
+        """Fayl natijasidan keyin: ro'yxatni eslab qoladi; ochish so'ralgan bo'lsa — bitta aniq fayl -> tasdiq, ko'p/o'xshash -> tanlash. True = oqimni o'zi davom ettirdi."""
+        lang = self.lang
+        entries = list(r.files or [])
+        self._choices = entries
+        if r.then != "open" or not entries:
+            return False
+        if len(entries) == 1 and not r.fuzzy:
+            e = entries[0]
+            if not e.openable:
+                msg = T("files.open.type_blocked", lang, name=e.display, ext=e.ext[:10])
+                self._finish_record("failed", msg)
+                self._reply(msg, ok=False)
+                return True
+            self.message.emit("assistant", r.message)
+            self._prepare_open(e, forced=False)
+            return True
+        self._finish_record("clarify", T("files.choose", lang, n=len(entries)))
+        self._reply(r.message + "\n\n" + T("files.choose", lang, n=len(entries)), True, T("files.say.choose", lang, n=len(entries)))
+        return True
+
+    def open_path(self, path: str) -> None:
+        """«File Access» sahifasidagi «Open File» tugmasi: foydalanuvchining aniq harakati. Baribir ijrochi tekshiruvlaridan o'tadi."""
+        if self.busy or self.state == LISTENING or self.ai_busy or not self._guard():
+            return
+        self.last_ok = True
+        name = fs.safe_display(path.replace("\\", "/").rsplit("/", 1)[-1])
+        self._cur = {"time": time.time(), "source": "ui", "text": f"Open file: {name}", "intents": ["OPEN_FILE"], "outcome": "", "summary": ""}
+        self._run([commands.Command("open_file", {"path": path}, T("files.ask.open", self.lang, name=name, folder="…"), intent="open_file")])
+
+    def forget_files(self) -> None:
+        """Ruxsat bekor qilinganda: ro'yxat va tanlash holati tozalanadi."""
+        self._choices = []
+        self.executor.files.recent.clear()
+
     def _on_executed(self, results: list[Result]) -> None:
         for r in results:
             first = r.message.splitlines()[0] if r.message else ""
             self.log_event("success" if r.ok else "error", "SUCCESS" if r.ok else "ERROR", first)
         ok_all = all(r.ok for r in results)
+        if len(results) == 1 and results[0].files is not None and self._after_files(results[0]):
+            return
         self._finish_record("executed" if ok_all else "failed", results[0].message.splitlines()[0] if results and results[0].message else "")
         text = "\n\n".join(r.message for r in results)
         spoken = " ".join((r.spoken or r.message.splitlines()[0]) for r in results)[:500]
@@ -641,6 +740,9 @@ class Controller(QObject):
     # ------------------------------------------------------------ yopish
     def shutdown(self) -> None:
         self._closed = True
+        ev = getattr(self.executor, "cancel_event", None)
+        if ev is not None:
+            ev.set()                                  # davom etayotgan fayl qidiruvi to'xtaydi
         if self.ai:
             self.ai.cancel()
         self._limit.stop(); self._idle.stop()
