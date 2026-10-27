@@ -201,12 +201,37 @@ class FakeEngine:
         return self.result
 
 
-@pytest.mark.parametrize("sig,key", [(np.zeros(48000), "voice.silent"), (np.random.default_rng(5).normal(0, 20, 48000), "voice.no_speech"), (np.zeros(500) + 300, "voice.too_short")])
+@pytest.mark.parametrize("sig,key", [(np.zeros(48000), "voice.silent"), (np.zeros(500) + 300, "voice.too_short")])
 def test_unusable_audio_never_reaches_the_engine(sig, key):
     eng = FakeEngine([stt.Heard("och chrome", "uz-UZ", 0.9)])
     with pytest.raises(NotUnderstood) as e:
         stt.recognize(rec_from(sig), settings(), eng)
     assert e.value.key == key and eng.calls == 0
+
+
+NOISE = np.random.default_rng(5).normal(0, 20, 48000)
+
+
+def test_vad_no_speech_is_advisory_for_google_so_a_wrong_vad_cannot_block_real_speech():
+    eng = FakeEngine([stt.Heard("och chrome", "uz-UZ", 0.9)])
+    out = stt.recognize(rec_from(NOISE), settings(), eng)
+    assert eng.calls == 1 and out.candidates[0].text == "och chrome" and out.quality.verdict == "no_speech"
+
+
+def test_vad_no_speech_and_empty_recognition_reports_no_speech():
+    eng = FakeEngine([])
+    with pytest.raises(NotUnderstood) as e:
+        stt.recognize(rec_from(NOISE), settings(), eng)
+    assert e.value.key == "voice.no_speech" and eng.calls == 1
+
+
+def test_vad_no_speech_never_reaches_whisper_which_hallucinates_on_noise():
+    class FakeWhisper(FakeEngine):
+        name = "whisper"
+    eng = FakeWhisper([stt.Heard("Thank you.", "en", 0.9)])
+    with pytest.raises(NotUnderstood) as e:
+        stt.recognize(rec_from(NOISE), settings(), eng)
+    assert e.value.key == "voice.no_speech" and eng.calls == 0
 
 
 def test_good_audio_returns_candidates_and_quality():

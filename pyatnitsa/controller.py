@@ -80,6 +80,8 @@ class Controller(QObject):
         self.is_active = lambda: True      # ilova oynasi ochiq va faolmi (UI o'rnatadi)
         self._recorder = None
         self._stopping = False
+        self._warned: set[str] = set()
+        self._held, self._hold_t0 = False, 0.0           # Space bosib turilgan (hold-to-talk)
         self._closed = False
         self._t0 = 0.0
         self._ai_rid = 0
@@ -195,6 +197,34 @@ class Controller(QObject):
                 self.cancel(silent=True)
             self._start_listening()
 
+    HOLD_MIN_S = 0.35            # shundan uzoq bosib turilsa — hold-to-talk; qisqa bosish — avvalgidek yoqish/o'chirish
+
+    def space_pressed(self) -> None:
+        """Space (yoki mikrofon tugmasi) BOSILDI. Tinglash boshlanadi; qo'yib yuborilganda to'xtashi uchun bosilganlik eslab qolinadi."""
+        was_listening = self.state == LISTENING
+        self.toggle_listening()
+        self._held = self.state == LISTENING and not was_listening
+        self._hold_t0 = time.monotonic()
+
+    def space_released(self, force: bool = False) -> None:
+        """Space QO'YIB YUBORILDI: bosib turilgan bo'lsa yozuv to'xtaydi va gap qayta ishlanadi. Qisqa bosish (<HOLD_MIN_S)
+        tinglashni davom ettiradi (ikkinchi bosish to'xtatadi). `force` — oyna faolligini yo'qotganda (qo'yib yuborish hodisasi kelmaydi)."""
+        if not self._held:
+            return
+        self._held = False
+        if self.state == LISTENING and not self._stopping and (force or time.monotonic() - self._hold_t0 >= self.HOLD_MIN_S):
+            self._begin_stop()
+
+    def _warn_device(self, rec) -> None:
+        """Windows standart kirishi (yoki tanlangan qurilma) Stereo Mix / loopback bo'lsa — jim emas, aniq xabar (har turi bir marta)."""
+        key = getattr(rec, "warning", "")
+        if key in ("default_loopback", "selected_loopback") and key not in self._warned:
+            self._warned.add(key)
+            using = getattr(rec, "device", "")
+            name = self.settings.microphone if key == "selected_loopback" else audio.default_input_name()
+            self.message.emit("system", T(f"mic.warn.{key}", self.lang, name=name or "?", using=using))
+            self.log_event("warn", "VOICE", f"Input device warning: {key} ({name}); using '{using}'")
+
     def _start_listening(self) -> None:
         self.speaker.stop()
         try:
@@ -211,6 +241,7 @@ class Controller(QObject):
             self._start_failed("mic.open_failed", T("mic.open_failed", self.lang, detail=str(e)[:160]), str(e))
             return
         self._recorder = rec
+        self._warn_device(rec)
         self._t0 = time.monotonic()
         self._limit.start()
         self.last_ok = True
@@ -233,7 +264,7 @@ class Controller(QObject):
             self._stop_listening()
 
     def _on_endpoint(self) -> None:
-        if self.state == LISTENING and not self._stopping:
+        if self.state == LISTENING and not self._stopping and not self._held:      # Space bosib turilganda to'xtatuvchi — faqat qo'yib yuborish
             self.log_event("info", "VOICE", "End of speech detected (silence); stopping automatically")
             self._stop_listening_now()
 
@@ -248,6 +279,7 @@ class Controller(QObject):
 
     def _stop_listening(self) -> None:
         self._stopping = False
+        self._held = False
         if self.state != LISTENING or self._recorder is None:
             return
         self._limit.stop()

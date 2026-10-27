@@ -105,6 +105,7 @@ class ChatInput(QPlainTextEdit):
     """Enter — yuborish, Shift+Enter — yangi qator. Bo'sh maydonda Space — mikrofonni almashtirish so'rovi (matn yozilmaydi)."""
     sendRequested = Signal()
     micToggleRequested = Signal()
+    micReleased = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -126,3 +127,9 @@ class ChatInput(QPlainTextEdit):
                 self.micToggleRequested.emit()
             return                       # bo'sh maydonda bosh bo'shliq yozilmaydi: bu mikrofon tugmasi
         super().keyPressEvent(e)
+
+    def keyReleaseEvent(self, e):
+        if e.key() == Qt.Key_Space and not e.isAutoRepeat() and not self.toPlainText():
+            self.micReleased.emit()
+            return
+        super().keyReleaseEvent(e)

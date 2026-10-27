@@ -62,7 +62,7 @@ Chap: **AI Assistant · Command History · System Monitoring · Diagnostics · S
 ## Boshqaruv
 | Amal | Usul |
 |---|---|
-| Tinglashni boshlash / to'xtatish | **Space** (oyna faol bo'lganda; matn yozayotganda emas, lekin **bo'sh** kiritish maydonida ham ishlaydi) yoki «Start listening» tugmasi |
+| Tinglash | **Space'ni bosib turing — gapiring — qo'yib yuboring** (hold-to-talk: qo'yib yuborilganda yozuv to'xtaydi va gap qayta ishlanadi). 0,35 s dan qisqa bosish — avvalgidek yoqish/o'chirish (ikkinchi Space to'xtatadi). Oyna faolligini yo'qotsa yozuv to'xtaydi. Matn yozayotganda emas, lekin **bo'sh** kiritish maydonida ham ishlaydi; «Start listening» tugmasi — bosib yoqish/o'chirish |
 | Matnli buyruq | Pastdagi chat: Enter — yuborish, Shift+Enter — yangi qator |
 | Tasdiqlash / bekor qilish | Enter yoki «Ha, bajar» / Esc yoki «Bekor qilish» |
 | Ovoz balandligi | Slayder; Sozlamalar (⚙) — til, mikrofon, ovoz, tarix, ruxsat etilgan dasturlar |
@@ -82,6 +82,14 @@ Ovozli va matnli buyruqlar *aynan bir xil* kod yo'lidan va bir xil xavfsizlik qo
 **Quvur:** Space → qurilma tekshiruvi → yozish (LISTENING faqat oqim ochilgach) → Space/(ixtiyoriy) jimlikda to'xtash → mikrofon bo'shatiladi → PROCESSING (sifat tahlili → 16 kHz → dvigatel, fon oqimida) → INTERPRETING → tasdiq → EXECUTING → natija tekshirilib ko'rsatiladi. Bir vaqtda faqat bitta yozuv (qulf). Bo'sh/jim/past ishonchli (<0,40) natijada buyruq **bajarilmaydi**.
 
 **Aniq xabarlar (uz/ru/en):** «Mikrofon topilmadi…», «Mikrofon hech qanday tovush yozmadi», «Nutq aniqlanmadi», «Mikrofon ishlayapti, lekin ovoz juda past», «Nutqni tanish xizmatiga ulanib bo'lmadi», «Nutqni tanish ishlamadi (sabab)», «Aniq eshitilmadi — takrorlang», «Eshitdim: «…»…».
+
+### «Tashqaridagi ovozim tanilmaydi, kompyuter ichidagi tovush tanilyapti» — diagnostika
+Bunday belgi odatda **noto'g'ri kirish qurilmasi** (Stereo Mix / «What U Hear» / Loopback / Monitor / «CABLE Output») bo'lishidan kelib chiqadi: u mikrofon emas, kompyuterning o'z chiqish ovozini «kirish» sifatida beradi. Endi:
+- Bunday qurilmalar **hech qachon tanlanmaydi** va Sozlamalardagi ro'yxatda ko'rinmaydi. Windows'ning standart kirishi (yoki eski sozlamada saqlangan nom) shunday qurilma bo'lsa, ilova jismoniy mikrofonni ishlatadi va chatda aniq ogohlantiradi. Faqat loopback qurilmalar bo'lsa — alohida xato (`mic.loopback_only`).
+- Ikki kanalli qurilmalar (mikrofon massivi) 2 kanalda ochiladi va mono'ga tushiriladi; kanallardan biri «o'lik» bo'lsa faqat jonlisi olinadi (aks holda daraja -6 dB ga tushadi).
+- Nutq chegarasi (VAD): yozuvda nutq ritmi (bo'g'in/so'z) bo'lsa, jimlik chetlari bo'lmasa ham (Space bosib turib darrov gapirish) nutq topiladi; o'zgarmas shovqin (ventilyator) nutq hisoblanmaydi. VAD Google uchun **maslahat**: «nutq yo'q» desa ham ovoz kuchaytirilib Google'ga beriladi (Whisper'ga berilmaydi — u shovqinda gap to'qiydi).
+- **Diagnostika** — Settings → MICROPHONE TEST: «List input devices» (indeks, nom, API, kanal, `LOOPBACK`, `Windows default`, `IN USE`), jonli holat **Idle / Recording / Processing** + «speech detected», daraja, hisobotda qurilma indeksi, oqim ochilish vaqti, nutq faolligi %, tanilgan matn, aniq xato. Konsolda: `python -m pyatnitsa.mic_check --list`, `python -m pyatnitsa.mic_check [--device 3] [--seconds 4] [--no-stt]`.
+- Mikrofon oqimi **faqat Space bosilganda ochiladi** (doimiy tinglash yo'q: Windows'dagi «mikrofon ishlatilmoqda» belgisi faqat yozuv paytida). Oqim ochilishi uchun ketgan vaqt (odatda 50–300 ms) hisobotda ko'rsatiladi; LISTENING faqat oqim ochilgach chiqadi — shundan keyin gapiring.
 
 **Mikrofon testi** (Settings → Microphone test): 4 s yozadi, jonli daraja, qurilma/chastota/peak/shovqin/nutq davomiyligi, tanigan matn (+ muqobillar), **qanday amal sifatida tushunilgani** — hech narsa bajarilmaydi. Hali saqlanmagan tanlovlar (qurilma, til, dvigatel) bilan sinaydi.
 
@@ -154,7 +162,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 406 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 452 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -166,6 +174,8 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - **Boshqaruvchi:** holatlar tartibi (LISTENING → PROCESSING → INTERPRETING → CONFIRM → EXECUTING → RESPONDING), mikrofon matnga aylantirishdan oldin bo'shatilishi, past ishonchda bajarilmasligi, har bir xato turiga aniq xabar va to'g'ri holat (ERROR faqat haqiqiy xatolarda), terminal hodisalarining tartibi, tarix yozuvlari.
 - **Interfeys:** 6 sahifa navigatsiyasi, tasdiq paneli, terminal va ijro holati, tarix (matnni kiritish maydoniga qo'yish bajarmaydi), diagnostika fon oqimida, sozlamalar saqlanishi, mikrofon testi (matn va tushunilgan amal ko'rsatiladi, bajarilmaydi), kichik/katta oyna, uzun xabarlar maketni buzmasligi, reduced-motion.
 - Monitoring: haqiqiy `psutil` o'lchovlari (Linux'da), holat baholash va sabablar, mavjud bo'lmagan qiymatlar uchun «Ma'lumot mavjud emas».
+
+**Mikrofon diagnostikasi (soxta qurilma bilan; haqiqiy mikrofon sinovi emas):** loopback/Stereo Mix nomlari, standart/tanlangan loopback'ni o'tkazib yuborish va ogohlantirish, faqat-loopback xatosi, kanal tushirish va o'lik kanal, 2→1 kanal zaxirasi, jonli faollik, VAD, hold-to-talk (bosish/qo'yib yuborish, qisqa bosish, oyna faolligini yo'qotish, endpoint to'xtatmasligi, haqiqiy Qt tugma hodisalari), holatlar ketma-ketligi, qurilmalar jadvali, konsol vositasi. Har bir asosiy mantiq mutatsiya bilan tekshirilgan (buzilganda testlar qulaydi).
 
 **AI suhbat bo'yicha (haqiqatan sinalgan):**
 - Rasmiy `anthropic` SDK **haqiqiy HTTP/SSE orqali lokal soxta server** bilan: oqimli matn, so'rov shakli (model, effort, tizim ko'rsatmasi, kontekst), `fallbacks` yuborilishi va rad etilsa tashlab qayta urinish, kalitni muhitdan o'qish, kalit yo'qligi, 401/403/404/429(+Retry-After)/529/500/400(kredit)/413 xaritalash, timeout, ulanib bo'lmasligi, refusal/bo'sh/`max_tokens` javoblari, **bekor qilish** (birinchi token kutilayotganda ham darhol; oqim o'rtasida — qisman matn saqlanadi).

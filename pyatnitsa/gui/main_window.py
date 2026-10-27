@@ -211,7 +211,8 @@ class MainWindow(QMainWindow):
         self.mic_btn.clicked.connect(c.toggle_listening)
         self.send_btn.clicked.connect(self.send_text)
         self.input.sendRequested.connect(self.send_text)
-        self.input.micToggleRequested.connect(c.toggle_listening)
+        self.input.micToggleRequested.connect(c.space_pressed)
+        self.input.micReleased.connect(c.space_released)
         self.vol.valueChanged.connect(self._on_volume)
         self.stop_btn.clicked.connect(c.cancel_ai)
         self.retry_btn.clicked.connect(c.retry)
@@ -375,12 +376,16 @@ class MainWindow(QMainWindow):
                 typing = isinstance(fw, (QLineEdit, QTextEdit, QComboBox, QSpinBox)) or (isinstance(fw, QPlainTextEdit) and not fw.isReadOnly())
             if key == Qt.Key_Space and not typing and not isinstance(fw, QPushButton):
                 if not ev.isAutoRepeat():
-                    self.ctrl.toggle_listening()
+                    self.ctrl.space_pressed()
                 return True
             if key in (Qt.Key_Return, Qt.Key_Enter) and not typing and self.ctrl.state == C.CONFIRM:
                 self.ctrl.confirm(); return True
             if key == Qt.Key_Escape and self.ctrl.state == C.CONFIRM:
                 self.ctrl.cancel(); return True
+        if ev.type() == QEvent.KeyRelease and ev.key() == Qt.Key_Space and not ev.isAutoRepeat() and QApplication.activeWindow() is self:
+            self.ctrl.space_released()                          # ChatInput o'zining micReleased'ini yuboradi; takror chaqiruv zararsiz (_held)
+        elif ev.type() == QEvent.WindowDeactivate and obj is self:
+            self.ctrl.space_released(force=True)                # oyna faolligini yo'qotdi: qo'yib yuborish hodisasi kelmaydi — mikrofon ochiq qolmasin
         return super().eventFilter(obj, ev)
 
     # ======================================================================= sozlamalar

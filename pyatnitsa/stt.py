@@ -197,13 +197,13 @@ def recognize(rec: audio.Recording, settings, engine=None) -> Outcome:
         raise NotUnderstood("voice.too_short")
     if q.verdict == "silent":
         raise NotUnderstood("voice.silent")
-    if q.verdict == "no_speech":
-        raise NotUnderstood("voice.no_speech")
     eng = engine or make_engine(settings)
+    if q.verdict == "no_speech" and eng.name == "whisper":
+        raise NotUnderstood("voice.no_speech")        # Whisper shovqinda gap «to'qib chiqaradi» — unga bunday audio berilmaydi
     lang = getattr(eng, "language", settings.stt_language)
-    log.info("Recognition: engine=%s language=%s", eng.name, lang)
+    log.info("Recognition: engine=%s language=%s%s", eng.name, lang, " (VAD: nutq topilmadi — Google'ning o'ziga ham beriladi)" if q.verdict == "no_speech" else "")
     heard = eng.transcribe(samples)
     if not heard:
-        raise NotUnderstood("voice.too_quiet" if q.quiet else "stt.empty")
+        raise NotUnderstood("voice.no_speech" if q.verdict == "no_speech" else "voice.too_quiet" if q.quiet else "stt.empty")
     log.info("Recognized (%d candidate%s): %s", len(heard), "s" if len(heard) != 1 else "", " | ".join(f"{h.lang}:{h.text[:80]}" for h in heard))
     return Outcome(heard, q, eng.name, lang)

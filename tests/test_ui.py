@@ -193,7 +193,7 @@ def test_mic_test_shows_recognized_text_and_interpretation_without_executing(win
             sig = 3000 * np.sin(2 * np.pi * 220 * t) * ((t > 0.5) & (t < 1.5)) + np.random.default_rng(0).normal(0, 20, t.size)
             return audio.Recording(sig.astype("<i2").tobytes(), 16000, "Fake Mic")
     orig = voice_test.run_mic_test
-    monkeypatch.setattr(voice_test, "run_mic_test", lambda s, secs, on_level, stop: orig(s, 0.2, on_level, stop, recorder_factory=Rec,
+    monkeypatch.setattr(voice_test, "run_mic_test", lambda s, secs, on_level, stop, **kw: orig(s, 0.2, on_level, stop, recorder_factory=Rec, **kw,
                         recognizer=lambda rec, s: stt.Outcome([stt.Heard("Open Chrome", "en-US", 0.9)], audio.analyze(rec), "fake", "auto")))
     w.navs["settings"].click(); w.settings_page.test_btn.click()
     assert not w.settings_page.test_btn.isEnabled()

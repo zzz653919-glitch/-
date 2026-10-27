@@ -21,6 +21,8 @@ class SettingsPage(QWidget):
     clearChat = Signal()
 
     _level = Signal(float)
+    _status = Signal(str)
+    _activity = Signal(bool)
     _test_done = Signal(object)
     _ai_test_done = Signal(object)
 
@@ -61,8 +63,16 @@ class SettingsPage(QWidget):
         self.test_out.setObjectName("sub"); self.test_out.setWordWrap(True); self.test_out.setTextFormat(Qt.RichText)
         self.test_out.setTextInteractionFlags(Qt.TextSelectableByMouse)
         tl = QLabel("MICROPHONE TEST"); tl.setObjectName("section")
-        form.addRow(tl); form.addRow(self.test_btn); form.addRow(self.test_level); form.addRow(self.test_out)
+        self.test_state = QLabel(); self.test_state.setObjectName("sub"); self.test_state.setTextFormat(Qt.RichText)
+        self.dev_btn = QPushButton("List input devices"); self.dev_btn.clicked.connect(self.show_devices)
+        self.dev_out = QLabel(); self.dev_out.setObjectName("sub"); self.dev_out.setWordWrap(True); self.dev_out.setTextFormat(Qt.RichText)
+        self.dev_out.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        form.addRow(tl); form.addRow(self.dev_btn); form.addRow(self.dev_out)
+        form.addRow(self.test_btn); form.addRow(self.test_state); form.addRow(self.test_level); form.addRow(self.test_out)
         self._level.connect(lambda v: self.test_level.setValue(int(v * 100)))
+        self._status.connect(self._set_status); self._activity.connect(self._set_activity)
+        self._state, self._speech = "idle", False
+        self._set_status("idle")
         self._test_done.connect(self._show_report)
         # ---- AI Chat
         al = QLabel("AI CHAT"); al.setObjectName("section"); form.addRow(al)
@@ -197,14 +207,65 @@ class SettingsPage(QWidget):
         self.test_btn.setEnabled(False); self.test_btn.setText("Recording… speak now")
         self.test_out.setText("Recording for 4 seconds…")
         self._stop_test.clear()
+        self._speech = False
 
         def work():
             try:
-                rep = voice_test.run_mic_test(trial, 4.0, self._level.emit, self._stop_test)
+                rep = voice_test.run_mic_test(trial, 4.0, self._level.emit, self._stop_test,
+                                              on_status=self._status.emit, on_activity=self._activity.emit)
             except Exception as e:  # noqa: BLE001
                 rep = voice_test.MicReport(error_key="stt.failed", error_detail=f"{type(e).__name__}: {e}")
             self._test_done.emit(rep)
         threading.Thread(target=work, name="mic-test", daemon=True).start()
+
+    _STATE_COLOR = {"idle": "#8aa0bd", "recording": "#ff4d6d", "processing": "#ffb020"}
+
+    def _set_status(self, state: str) -> None:
+        self._state = state
+        self._render_status()
+
+    def _set_activity(self, on: bool) -> None:
+        self._speech = on
+        self._render_status()
+
+    def _render_status(self) -> None:
+        label = {"idle": "Idle", "recording": "Recording", "processing": "Processing"}.get(self._state, self._state)
+        speech = ""
+        if self._state == "recording":
+            speech = "  ·  <span style='color:%s'>%s</span>" % (("#2ee6a6", "speech detected") if self._speech else ("#8aa0bd", "no speech"))
+        self.test_state.setText(f"Status: <span style='color:{self._STATE_COLOR.get(self._state, '#8aa0bd')}'>● {label}</span>{speech}")
+
+    def show_devices(self) -> None:
+        """Barcha kirish qurilmalari indeks bilan; loopback / Stereo Mix belgilanadi (u mikrofon emas, ilova uni tanlamaydi)."""
+        try:
+            rows = voice_test.device_table(self.mic.currentData())
+        except audio.AudioError as e:
+            msg = T(e.key, "en", detail=e.detail[:200]) if has(e.key) else e.key
+            self.dev_out.setText(f"<span style='color:#ff4d6d'>{html.escape(msg)}</span>")
+            return
+        if not rows:
+            self.dev_out.setText("<span style='color:#ff4d6d'>No input devices found. Check Windows → Settings → System → Sound → Input.</span>")
+            return
+        out = ["<table cellspacing='4'><tr style='color:#8aa0bd'><td>#</td><td>Device</td><td>API</td><td>Ch</td><td></td></tr>"]
+        for r in rows:
+            loop = r["kind"] == "loopback"
+            note = []
+            if r["default"]:
+                note.append("Windows default")
+            if r["used"]:
+                note.append("IN USE")
+            if loop:
+                note.append("LOOPBACK — not a microphone, never used")
+            color = "#ff4d6d" if loop else ("#2ee6a6" if r["used"] else "#e8f1ff")
+            out.append(f"<tr style='color:{color}'><td>{r['index']}</td><td>{html.escape(r['name'])}</td><td>{html.escape(r['hostapi'])}</td>"
+                       f"<td>{r['channels']}</td><td>{html.escape(' · '.join(note))}</td></tr>")
+        out.append("</table>")
+        used = next((r for r in rows if r["used"]), None)
+        if used is None:
+            out.append("<span style='color:#ff4d6d'>No physical microphone found (only loopback devices).</span>")
+        elif used["warning"] in ("default_loopback", "selected_loopback"):
+            out.append("<span style='color:#ffb020'>The Windows default / selected input is a loopback device — the app uses the microphone above instead.</span>")
+        self.dev_out.setText("".join(out))
 
     def _show_report(self, r: "voice_test.MicReport") -> None:
         self.test_btn.setEnabled(True); self.test_btn.setText("Test microphone (4 s)"); self.test_level.setValue(0)
@@ -212,10 +273,15 @@ class SettingsPage(QWidget):
         def row(k, v, color="#e8f1ff"):
             rows.append(f"<tr><td style='color:#8aa0bd;padding-right:12px'>{k}</td><td style='color:{color}'>{html.escape(str(v))}</td></tr>")
         if r.device:
-            row("Device", f"{r.device} · {r.rate} Hz · mono 16-bit")
+            idx = f"#{r.device_index} · " if r.device_index is not None else ""
+            row("Device", f"{idx}{r.device} · {r.rate} Hz · 16-bit · stream opened in {r.open_ms:.0f} ms")
+            if r.default_device and r.default_device != r.device:
+                row("Windows default", r.default_device, "#ffb020")
+            if r.warning in ("default_loopback", "selected_loopback"):
+                row("Warning", "the Windows default / selected input is a loopback (system-audio) device, not a microphone — it was skipped", "#ffb020")
         q = r.quality
         if q:
-            row("Recorded", f"{r.seconds:.1f} s · speech detected: {q.speech_s:.1f} s")
+            row("Recorded", f"{r.seconds:.1f} s · speech detected: {q.speech_s:.1f} s · live activity {r.activity * 100:.0f}%")
             lvl_ok = q.peak_db > -36
             row("Level", f"peak {q.peak_db:.0f} dBFS · noise {q.noise_db:.0f} dBFS" + ("" if lvl_ok else "  — quiet (will be boosted)"), "#e8f1ff" if lvl_ok else "#ffb020")
             if q.clipped:

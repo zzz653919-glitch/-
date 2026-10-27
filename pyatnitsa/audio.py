@@ -58,6 +58,18 @@ def rms_to_level(rms: float) -> float:
 _HOSTAPI_RANK = {"MME": 0, "Windows DirectSound": 1, "Windows WASAPI": 2, "Windows WDM-KS": 3}
 
 
+# Bular mikrofon EMAS: kompyuterning o'z chiqish ovozini (dinamik, video, musiqa) "kirish" sifatida qaytaradi.
+# Ular tanlansa, ilova kompyuter ichidagi tovushni eshitadi, tashqaridagi ovozingizni esa yo'q — aynan shu muammo.
+_LOOPBACK_MARKERS = ("stereo mix", "stereomix", "stereo mixer", "what u hear", "what you hear", "wave out", "waveout", "loopback",
+                     "monitor of", ".monitor", "loop-back", "cable output", "voicemeeter out", "virtual cable",
+                     "стерео микшер", "стереомикшер", "микшер", "что вы слышите", "mixage stéréo", "stereomischung", "mezcla estéreo")
+
+
+def is_loopback_name(name: str) -> bool:
+    n = (name or "").lower()
+    return any(m in n for m in _LOOPBACK_MARKERS)
+
+
 @dataclass
 class DeviceInfo:
     index: int
@@ -66,6 +78,14 @@ class DeviceInfo:
     channels: int
     default_rate: float
     is_default: bool = False
+
+    @property
+    def loopback(self) -> bool:
+        return is_loopback_name(self.name)
+
+    @property
+    def kind(self) -> str:
+        return "loopback" if self.loopback else "microphone"
 
 
 def list_devices() -> list[DeviceInfo]:
@@ -87,9 +107,10 @@ def list_devices() -> list[DeviceInfo]:
 
 
 def list_input_devices() -> list[str]:
-    """Interfeys uchun nomlar (takrorlarsiz, standart qurilma birinchi). Xato bo'lsa bo'sh ro'yxat."""
+    """Interfeys uchun nomlar (takrorlarsiz, standart qurilma birinchi). Loopback / Stereo Mix ro'yxatga kiritilmaydi.
+    Xato bo'lsa bo'sh ro'yxat."""
     try:
-        devs = sorted(list_devices(), key=lambda d: (not d.is_default, d.index))
+        devs = sorted((d for d in list_devices() if not d.loopback), key=lambda d: (not d.is_default, d.index))
     except AudioError:
         return []
     names: list[str] = []
@@ -99,17 +120,49 @@ def list_input_devices() -> list[str]:
     return names
 
 
-def resolve_device(name: str | None, devices: list[DeviceInfo]) -> DeviceInfo | None:
-    """Nom bo'yicha qurilma; bir nom bir necha host API'da bo'lsa, eng mos keladigani (MME > DirectSound > WASAPI) tanlanadi."""
+_MIC_HINTS = ("microphone", "mic", "array", "микрофон", "headset", "webcam", "usb")
+
+
+def _pick_physical(cands: list[DeviceInfo]) -> DeviceInfo:
+    return min(cands, key=lambda d: (not any(h in d.name.lower() for h in _MIC_HINTS), _HOSTAPI_RANK.get(d.hostapi, 9), d.index))
+
+
+def choose_device(name: str | None, devices: list[DeviceInfo]) -> tuple[DeviceInfo | None, str]:
+    """-> (qurilma, ogohlantirish). Loopback / Stereo Mix hech qachon tanlanmaydi (kompyuter ichki tovushini yozib qo'yadi).
+    ogohlantirish: "" | "selected_loopback" | "default_loopback" | "missing" | "only_loopback"."""
     if not devices:
-        return None
+        return None, ""
+    physical = [d for d in devices if not d.loopback]
+    if not physical:
+        return None, "only_loopback"
+    warn = ""
     if name:
-        same = [d for d in devices if d.name == name]
+        same = [d for d in physical if d.name == name]
         if same:
-            return min(same, key=lambda d: (_HOSTAPI_RANK.get(d.hostapi, 9), d.index))
-        log.warning("Tanlangan mikrofon topilmadi (%s); standart ishlatiladi", name)
+            return min(same, key=lambda d: (_HOSTAPI_RANK.get(d.hostapi, 9), d.index)), ""
+        warn = "selected_loopback" if any(d.name == name for d in devices) else "missing"
+        log.warning("Tanlangan mikrofon ishlatilmaydi (%s: %s); jismoniy mikrofon tanlanadi", warn, name)
     default = [d for d in devices if d.is_default]
-    return default[0] if default else min(devices, key=lambda d: (_HOSTAPI_RANK.get(d.hostapi, 9), d.index))
+    if default and not default[0].loopback:
+        return default[0], warn
+    if default and default[0].loopback:
+        warn = warn or "default_loopback"
+        log.warning("Windows standart kirish qurilmasi '%s' mikrofon emas (loopback); jismoniy mikrofon tanlanadi", default[0].name)
+    return _pick_physical(physical), warn
+
+
+def resolve_device(name: str | None, devices: list[DeviceInfo]) -> DeviceInfo | None:
+    """Nom bo'yicha qurilma; bir nom bir necha host API'da bo'lsa, eng mos keladigani (MME > DirectSound > WASAPI) tanlanadi.
+    Loopback qurilmalar hech qachon qaytarilmaydi."""
+    return choose_device(name, devices)[0]
+
+
+def default_input_name() -> str:
+    """Windows'ning standart kirish qurilmasi nomi (aniqlanmasa bo'sh)."""
+    try:
+        return next((d.name for d in list_devices() if d.is_default), "")
+    except AudioError:
+        return ""
 
 
 # ----------------------------------------------------------------------------- yozuv
@@ -156,6 +209,46 @@ class EndpointDetector:
         return self._speech >= self.min_speech_s and self._quiet >= self.silence_s
 
 
+class ActivityMeter:
+    """Jonli «hozir nutq bor» ko'rsatkichi (diagnostika uchun). Shovqin darajasi tez pasayadi, sekin ko'tariladi;
+    daraja uning ~2,5 barobaridan oshsa va mutlaq pastki chegaradan (~-52 dBFS) yuqori bo'lsa — faol. Qaror qabul qilmaydi."""
+
+    def __init__(self, hang_s: float = 0.30):
+        self.floor: float | None = None
+        self.hang_s, self._hang = hang_s, 0.0
+        self.active = False
+
+    def update(self, rms: float, dt: float) -> bool:
+        if self.floor is None:
+            self.floor = max(rms, 20.0)
+        elif rms < self.floor:
+            self.floor = max(rms, 5.0)
+        else:
+            self.floor *= 1.0 + 0.1 * dt                   # ~10%/s: uzoq turgan o'zgarmas shovqin ham «fon» bo'lib qoladi
+        if rms > max(self.floor * 2.5, 80.0):
+            self._hang = self.hang_s
+        else:
+            self._hang = max(0.0, self._hang - dt)
+        self.active = self._hang > 0.0
+        return self.active
+
+
+def downmix(raw: bytes, channels: int) -> tuple[bytes, list[float]]:
+    """Ko'p kanalli int16 -> mono. Kanallardan biri «o'lik» bo'lsa (ba'zi mikrofon massivlarida), faqat jonli kanal olinadi —
+    aks holda o'rtacha -6 dB ga pasayadi yoki 0 chiqadi. -> (mono bytes, har bir kanal RMS)."""
+    if channels <= 1:
+        return raw, []
+    np = _np()
+    a = np.frombuffer(raw[: len(raw) // (2 * channels) * 2 * channels], dtype="<i2").reshape(-1, channels).astype(np.float32)
+    if a.size == 0:
+        return b"", [0.0] * channels
+    rms = [float(np.sqrt(np.mean(a[:, c] ** 2))) for c in range(channels)]
+    top = max(rms)
+    live = [c for c in range(channels) if rms[c] >= 0.2 * top] if top > 0 else list(range(channels))
+    mono = a[:, live].mean(axis=1)
+    return np.clip(mono, -32768, 32767).astype("<i2").tobytes(), rms
+
+
 class Recorder:
     def __init__(self, device_name: str | None = None, endpoint: EndpointDetector | None = None):
         self.device_name = device_name
@@ -168,7 +261,13 @@ class Recorder:
         self._overflows = 0
         self._held = False
         self._ended = False
+        self._channels = 1
+        self._meter = ActivityMeter()
+        self.warning = ""               # choose_device() ogohlantirishi (masalan default_loopback)
+        self.open_ms = 0.0              # oqimni ochish uchun ketgan vaqt (bosish bilan birinchi tovush orasidagi kechikish)
+        self.device_index: int | None = None
         self.on_level: Callable[[float], None] | None = None
+        self.on_activity: Callable[[bool], None] | None = None
         self.on_endpoint: Callable[[], None] | None = None
 
     @property
@@ -206,10 +305,14 @@ class Recorder:
         devices = list_devices()
         if not devices:
             raise AudioError("mic.not_found")
-        dev = resolve_device(self.device_name, devices)
-        assert dev is not None
+        dev, self.warning = choose_device(self.device_name, devices)
+        if dev is None:
+            raise AudioError("mic.loopback_only", ", ".join(d.name for d in devices))
         np = _np()
+        t_open = time.perf_counter()
         self._chunks, self._overflows, self._ended = [], 0, False
+        self._meter = ActivityMeter()
+        last_active = [False]
 
         def cb(indata, frames, time_info, status):      # PortAudio oqimi
             if status:
@@ -218,9 +321,17 @@ class Recorder:
             self._chunks.append(raw)
             try:
                 arr = np.frombuffer(raw, dtype="<i2").astype(np.float32)
+                ch = self._channels
+                if ch > 1 and arr.size:                  # daraja — eng baland kanaldan (o'lik kanal ko'rsatkichni pasaytirmasin)
+                    arr = arr[: arr.size // ch * ch].reshape(-1, ch)
+                    arr = arr[:, int(np.argmax(np.sqrt(np.mean(arr * arr, axis=0))))]
                 rms = float(np.sqrt(np.mean(arr * arr))) if arr.size else 0.0
                 if self.on_level:
                     self.on_level(rms_to_level(rms))
+                act = self._meter.update(rms, arr.size / self._rate)
+                if self.on_activity and act != last_active[0]:
+                    last_active[0] = act
+                    self.on_activity(act)
                 if self.endpoint and not self._ended and arr.size and self.endpoint.update(rms, arr.size / self._rate):
                     self._ended = True
                     if self.on_endpoint:
@@ -230,18 +341,22 @@ class Recorder:
 
         last: Exception | None = None
         rates = list(dict.fromkeys([TARGET_RATE, int(dev.default_rate), 44100, 48000]))
+        chans = [2, 1] if dev.channels >= 2 else [1]          # ikki kanalli massivda ikkalasini ham olamiz; ochilmasa mono
         for rate in rates:
-            try:
-                stream = sd.RawInputStream(samplerate=rate, device=dev.index, channels=1, dtype="int16", latency="high",
-                                           blocksize=int(rate * 0.05), callback=cb)
-                stream.start()
-                self._stream, self._rate, self._device = stream, rate, dev.name
-                self._t0 = time.time()
-                log.info("Mikrofon ochildi: '%s' (index %d, %s), %d Hz, mono int16", dev.name, dev.index, dev.hostapi, rate)
-                return
-            except Exception as e:  # noqa: BLE001
-                last = e
-                log.warning("Mikrofon %d Hz da ochilmadi: %s", rate, e)
+            for ch in chans:
+                try:
+                    self._channels = ch
+                    stream = sd.RawInputStream(samplerate=rate, device=dev.index, channels=ch, dtype="int16", latency="high",
+                                               blocksize=int(rate * 0.05), callback=cb)
+                    stream.start()
+                    self._stream, self._rate, self._device, self.device_index = stream, rate, dev.name, dev.index
+                    self._t0 = time.time()
+                    self.open_ms = (time.perf_counter() - t_open) * 1000.0
+                    log.info("Mikrofon ochildi: '%s' (index %d, %s), %d Hz, %d kanal int16, ochilish %.0f ms", dev.name, dev.index, dev.hostapi, rate, ch, self.open_ms)
+                    return
+                except Exception as e:  # noqa: BLE001
+                    last = e
+                    log.warning("Mikrofon %d Hz / %d kanal da ochilmadi: %s", rate, ch, e)
         text = str(last)
         if any(k in text for k in ("-9999", "Unanticipated host error", "Undefined external error", "access", "denied")):
             raise AudioError("mic.permission", text) from last
@@ -258,7 +373,10 @@ class Recorder:
                     log.exception("Mikrofonni yopishda xato")
         finally:
             self._release()
-        rec = Recording(b"".join(self._chunks), self._rate, self._device, self._t0, time.time(), self._overflows)
+        raw, chan_rms = downmix(b"".join(self._chunks), self._channels)
+        if chan_rms:
+            log.info("Kanallar RMS: %s", ", ".join(f"{to_db(r):.0f} dBFS" for r in chan_rms))
+        rec = Recording(raw, self._rate, self._device, self._t0, time.time(), self._overflows)
         self._chunks = []
         log.info("Yozuv tugadi: %.2f s, %d Hz, qurilma '%s', overflow=%d", rec.seconds, rec.rate, rec.device, rec.overflows)
         return rec
@@ -299,6 +417,12 @@ def _speech_mask(rms):
         return np.zeros(0, dtype=bool)
     floor = float(np.percentile(rms, 10))
     thr = max(floor * 3.0, 60.0)
+    hi = float(np.percentile(rms, 90))
+    if hi >= 2.0 * max(floor, 1.0):
+        # Yozuvda ovoz balandligi o'zgaradi (bo'g'in/so'z ritmi), demak nutq bor. Agar yozuv deyarli faqat nutqdan iborat bo'lsa
+        # (qisqa gap, Space bosib turib gapirish), 10-percentil «shovqin» emas, nutqning o'zi bo'ladi va 3x chegara hamma
+        # narsani kesib tashlardi. Shuning uchun chegara baland kadrlarning ~35% idan oshmaydi.
+        thr = max(min(thr, 0.35 * hi), 60.0)
     mask = rms > thr
     # qisqa pauzalar (<0,6 s) nutqning ichida deb hisoblanadi; ~100 ms kengaytiriladi
     idx = np.flatnonzero(mask)
@@ -351,7 +475,7 @@ def preprocess(rec: Recording) -> tuple["object", Quality]:
         end = min(len(x), (last + 1) * n + int(0.40 * rec.rate))
         x = x[start:end]
     peak = float(np.max(np.abs(x))) or 1.0
-    if peak < 16000 and q.verdict == "ok":        # past ovozni ko'tarish (ko'pi bilan +30 dB)
+    if peak < 16000 and q.verdict in ("ok", "no_speech"):        # past ovozni ko'tarish (ko'pi bilan +30 dB)
         gain = min(0.89 * 32767 / peak, 31.6)
         x = x * gain
         q.gain_db = 20 * math.log10(gain)
