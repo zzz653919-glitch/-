@@ -103,15 +103,16 @@ class TaskStore:
                 v = str(v)[:5000]
             elif k == "due":
                 v = fmt_due(v) if not isinstance(v, str) else v
-            elif k == "priority" and v not in PRIORITIES:
-                raise ValueError("priority")
+            elif k == "priority":
+                if v not in PRIORITIES:
+                    raise ValueError("priority")
             elif k == "status":
                 if v not in STATUSES:
                     raise ValueError("status")
                 sets.append("completed_at=?"); vals.append(self.now().strftime(DT_FMT) if v == "done" and cur.status != "done" else ("" if v != "done" else cur.completed_at))
             elif k == "category":
                 v = " ".join(str(v).split())[:40]
-            elif k not in ("title",):
+            else:
                 raise ValueError(k)
             sets.append(f"{k}=?"); vals.append(v)
         sets.append("updated=?"); vals.append(self.now().strftime(DT_FMT))

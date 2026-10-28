@@ -79,6 +79,17 @@ class NoteStore:
                             (nid, title, str(body)[:MAX_BODY], json.dumps(_clean_tags(tags), ensure_ascii=False), stamp, stamp, " ".join(category.split())[:40]))
             return self.get(nid)
 
+    def add_auto(self, title: str, body: str = "", tags=None, category: str = "") -> tuple[Note, str]:
+        """Mavjud qayd ustiga yozmaydi: nom band bo'lsa «(2)», «(3)» ... qo'shiladi. -> (qayd, asl_nom_band_bo'lsa_asl_nom_aks_holda_"")."""
+        base, k = " ".join(str(title).split())[:110], 1
+        t = base
+        while True:
+            try:
+                return self.add(t, body, tags, category), (base if k > 1 else "")
+            except NoteExists:
+                k += 1
+                t = f"{base} ({k})"
+
     def update(self, nid: str, title: str | None = None, body: str | None = None, tags=None, pinned: bool | None = None, category: str | None = None) -> Note | None:
         with self.db._lock:
             n = self.get(nid)

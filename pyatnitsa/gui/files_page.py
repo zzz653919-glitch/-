@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem,
-                               QMenu, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QComboBox, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+                               QMenu, QProgressBar, QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from .. import apps, files as fs
 from ..settings import Settings
@@ -22,12 +23,15 @@ REASONS = {
     "exists": "This location is already authorized.",
 }
 STD_FOLDERS = [("Desktop", "desktop"), ("Documents", "documents"), ("Downloads", "downloads"), ("Pictures", "pictures"), ("Music", "music"), ("Videos", "videos")]
-TYPE_FILTERS = [("All files", ""), ("Videos", "video"), ("Images", "image"), ("Audio", "audio"), ("Documents", "document"), ("Other", "other")]
+TYPE_FILTERS = [("All files", ""), ("Videos", "video"), ("Images", "image"), ("Audio", "audio"), ("Documents", "document"), ("Code", "code"), ("Other", "other")]
+DATE_FILTERS = [("Any time", 0), ("Last 24 hours", 1), ("Last 7 days", 7), ("Last 30 days", 30), ("Last year", 365)]
+SIZE_FILTERS = [("Any size", (None, None)), ("Larger than 1 MB", (1 << 20, None)), ("Larger than 100 MB", (100 << 20, None)), ("Larger than 1 GB", (1 << 30, None)), ("Smaller than 1 MB", (None, 1 << 20))]
 
 
 class FilesPage(QWidget):
     accessChanged = Signal()           # ruxsat qo'shildi/bekor qilindi (oyna ro'yxatni tozalaydi, terminalga yozadi)
     _done = Signal(object)
+    _progress = Signal(int, int)
 
     def __init__(self, access: fs.FileAccess, platform: apps.Platform, settings: Settings, open_cb=None, log_cb=None):
         super().__init__()
@@ -77,19 +81,32 @@ class FilesPage(QWidget):
         srow = QHBoxLayout(); srow.setSpacing(8)
         self.query = QLineEdit(); self.query.setPlaceholderText("File name or part of it (leave empty to list the newest files of the chosen type)")
         self.kind = QComboBox(); [self.kind.addItem(n, v) for n, v in TYPE_FILTERS]
+        self.when = QComboBox(); [self.when.addItem(n, v) for n, v in DATE_FILTERS]; self.when.setToolTip("Modified within…")
+        self.size = QComboBox(); [self.size.addItem(n, v) for n, v in SIZE_FILTERS]
+        self.exact = QCheckBox("Exact name"); self.exact.setToolTip("Match the whole file name (with or without extension) instead of a part of it.")
         self.search_btn = QPushButton("Search"); self.search_btn.setObjectName("primary"); self.search_btn.setIcon(icon("files", C["cyan"], 16))
         self.cancel_btn = QPushButton("Cancel"); self.cancel_btn.hide()
-        srow.addWidget(self.query, 1); srow.addWidget(self.kind); srow.addWidget(self.search_btn); srow.addWidget(self.cancel_btn)
+        srow.addWidget(self.query, 1); srow.addWidget(self.search_btn); srow.addWidget(self.cancel_btn)
         sl.addLayout(srow)
+        frow = QHBoxLayout(); frow.setSpacing(8)
+        for w in (self.kind, self.when, self.size, self.exact):
+            frow.addWidget(w)
+        frow.addStretch(1)
+        sl.addLayout(frow)
+        self.busy = QProgressBar(); self.busy.setRange(0, 0); self.busy.hide()             # noaniq jarayon ko'rsatkichi: qidiruv davom etmoqda
+        self.busy_lbl = QLabel(); self.busy_lbl.setObjectName("dim"); self.busy_lbl.hide()
+        sl.addWidget(self.busy); sl.addWidget(self.busy_lbl)
         self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(["Name", "Location", "Type", "Size", "Modified"])
+        self.table.setHorizontalHeaderLabels(["Name", "Type", "Location", "Modified", "Size"])
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows); self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers); self.table.verticalHeader().hide(); self.table.setShowGrid(False)
-        hh = self.table.horizontalHeader(); hh.setSectionResizeMode(0, QHeaderView.Stretch); hh.setSectionResizeMode(1, QHeaderView.Stretch)
-        for c in (2, 3, 4):
+        hh = self.table.horizontalHeader(); hh.setSectionResizeMode(0, QHeaderView.Stretch); hh.setSectionResizeMode(2, QHeaderView.Stretch)
+        for c in (1, 3, 4):
             hh.setSectionResizeMode(c, QHeaderView.ResizeToContents)
         self.empty = QLabel(); self.empty.setObjectName("empty"); self.empty.setAlignment(Qt.AlignCenter); self.empty.setWordWrap(True)
         sl.addWidget(self.table, 1); sl.addWidget(self.empty, 1)
+        self.path_lbl = QLabel(); self.path_lbl.setObjectName("dim"); self.path_lbl.setWordWrap(True); self.path_lbl.setTextFormat(Qt.PlainText)
+        self.path_lbl.setTextInteractionFlags(Qt.TextSelectableByMouse); sl.addWidget(self.path_lbl)
         orow = QHBoxLayout()
         self.status = QLabel(); self.status.setObjectName("sub"); self.status.setWordWrap(True); self.status.setTextFormat(Qt.PlainText)
         self.open_btn = QPushButton("Open File"); self.open_btn.setObjectName("primary"); self.open_btn.setIcon(icon("play", C["cyan"], 16)); self.open_btn.setEnabled(False)
@@ -98,7 +115,8 @@ class FilesPage(QWidget):
         lay.addWidget(sp, 1)
 
         self.roots.itemSelectionChanged.connect(lambda: self.rm_btn.setEnabled(bool(self.roots.selectedItems())))
-        self.table.itemSelectionChanged.connect(lambda: self.open_btn.setEnabled(bool(self.table.selectedItems())))
+        self.table.itemSelectionChanged.connect(self._on_select)
+        self._progress.connect(lambda n, f: self.busy_lbl.setText(f"{n:,} items checked · {f} found so far"))
         self.table.itemDoubleClicked.connect(lambda _i: self.open_selected())
         self.search_btn.clicked.connect(self.search)
         self.query.returnPressed.connect(self.search)
@@ -221,13 +239,16 @@ class FilesPage(QWidget):
         self._rid += 1
         rid, ev = self._rid, threading.Event()
         self._cancel = ev
-        q = fs.Query(self.query.text().strip()[:200], frozenset({k for k in (self.kind.currentData(),) if k}), limit=200)
-        self.search_btn.setEnabled(False); self.cancel_btn.show()
+        lo, hi = self.size.currentData()
+        days = self.when.currentData()
+        q = fs.Query(self.query.text().strip()[:200], frozenset({k for k in (self.kind.currentData(),) if k}), limit=200, min_size=lo, max_size=hi,
+                     after=(time.time() - days * 86400) if days else None, exact=self.exact.isChecked())
+        self.search_btn.setEnabled(False); self.cancel_btn.show(); self.busy.show(); self.busy_lbl.setText("Starting…"); self.busy_lbl.show()
         self.set_status("Searching…", "neutral")
 
         def work():
             try:
-                out = self.access.search(q, None, cancel=ev)
+                out = self.access.search(q, None, cancel=ev, on_progress=self._progress.emit)
             except Exception as e:  # noqa: BLE001
                 out = e
             self._done.emit((rid, out))
@@ -240,7 +261,7 @@ class FilesPage(QWidget):
         rid, out = payload
         if rid != self._rid:
             return                                             # eskirgan natija
-        self.cancel_btn.hide(); self.search_btn.setEnabled(bool(self.access.roots()))
+        self.cancel_btn.hide(); self.busy.hide(); self.busy_lbl.hide(); self.search_btn.setEnabled(bool(self.access.roots()))
         if isinstance(out, Exception):
             self.set_status(f"Search failed: {type(out).__name__}: {out}", "err")
             return
@@ -255,6 +276,10 @@ class FilesPage(QWidget):
             notes.append("result incomplete (limit or time reached) — refine the name")
         if out.fuzzy:
             notes.append("no exact match — showing similar names")
+        names = [e.name.lower() for e in self._entries]
+        dup = len({n for n in names if names.count(n) > 1})
+        if dup:
+            notes.append(f"{dup} file name(s) appear in several folders — check the Location column")
         base = f"{len(self._entries)} result(s) · {out.scanned} items checked in {out.elapsed:.1f} s"
         self.set_status(base + ("  ·  " + "; ".join(notes) if notes else ""), "warn" if notes else ("ok" if self._entries else "neutral"))
         if not self._entries:
@@ -264,7 +289,7 @@ class FilesPage(QWidget):
         self.table.setRowCount(0)
         for e in entries:
             r = self.table.rowCount(); self.table.insertRow(r)
-            vals = [e.display, fs.safe_display(str(e.parent), 260), e.kind if e.kind != "other" else (e.ext or "file"), fs.fmt_size(e.size), fs.fmt_date(e.mtime)]
+            vals = [e.display, e.kind if e.kind != "other" else (e.ext or "file"), fs.safe_display(str(e.parent), 260), fs.fmt_date(e.mtime), fs.fmt_size(e.size)]
             for c, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 if c == 0:
@@ -272,8 +297,13 @@ class FilesPage(QWidget):
                 self.table.setItem(r, c, it)
         self.table.setVisible(bool(entries)); self.empty.setVisible(not entries)
 
+    def _on_select(self) -> None:
+        path = self.selected_path()
+        self.open_btn.setEnabled(bool(path))
+        self.path_lbl.setText(f"Selected: {fs.safe_display(path, 400)}" if path else "")
+
     def _show_empty(self, text: str) -> None:
-        self.table.setRowCount(0); self.table.setVisible(False)
+        self.table.setRowCount(0); self.table.setVisible(False); self.path_lbl.setText("")
         self.empty.setText(text); self.empty.setVisible(True)
 
     # ------------------------------------------------------------------ ochish

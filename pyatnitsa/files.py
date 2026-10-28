@@ -187,6 +187,7 @@ class Query:
     min_size: int | None = None                   # bayt
     max_size: int | None = None
     after: float | None = None                    # o'zgargan vaqt (epoch) shundan keyin
+    exact: bool = False                           # nom (yoki kengaytmasiz nom) aynan shunday bo'lishi kerak
 
 
 @dataclass
@@ -360,7 +361,7 @@ class FileAccess:
 
     # ---- qidirish
     def search(self, q: Query, roots: list[Path] | None = None, cancel: threading.Event | None = None,
-               budget_s: float = BUDGET_S, max_entries: int = MAX_ENTRIES) -> SearchOutcome:
+               budget_s: float = BUDGET_S, max_entries: int = MAX_ENTRIES, on_progress=None) -> SearchOutcome:
         out = SearchOutcome()
         t0 = time.monotonic()
         allowed = self.roots()
@@ -408,6 +409,8 @@ class FileAccess:
                         out.denied += 1
                         break
                     out.scanned += 1
+                    if on_progress is not None and out.scanned % 400 == 0:
+                        on_progress(out.scanned, len(hits) + len(heap))               # interfeys jarayonni ko'rsatadi (fon oqimidan chaqiriladi)
                     if out.scanned > max_entries or (out.scanned % 256 == 0 and (time.monotonic() - t0 > budget_s or (cancel is not None and cancel.is_set()))):
                         out.cancelled = bool(cancel is not None and cancel.is_set())
                         out.truncated = out.truncated or not out.cancelled
@@ -455,6 +458,8 @@ class FileAccess:
                             continue
                     stem_n = " ".join(_tokens(name.rsplit(".", 1)[0] if "." in name else name))
                     score = _score(qtokens, qjoined, " ".join(_tokens(name)), stem_n)
+                    if q.exact and qtokens and score < 4.0:
+                        continue                                                       # aniq nom rejimi: o'xshash nomlar ko'rsatilmaydi
                     try:
                         st = entry.stat(follow_symlinks=False)
                         size, mtime = st.st_size, st.st_mtime
@@ -486,7 +491,7 @@ class FileAccess:
         else:
             hits.sort(key=lambda h: (-h[0], -h[1]))
             entries = [fe for _s, _m, fe in hits]
-        if not entries and qtokens and fuzzy_pool and not out.cancelled:
+        if not entries and qtokens and fuzzy_pool and not out.cancelled and not q.exact:
             ranked = sorted(((_fuzzy(qjoined, s), fe) for s, fe in fuzzy_pool), key=lambda r: -r[0])
             entries = [fe for r, fe in ranked if r >= 0.72][:10]
             out.fuzzy = bool(entries)

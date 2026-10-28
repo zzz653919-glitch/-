@@ -12,6 +12,14 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _isolated_home(tmp_path, monkeypatch):
+    """Har test o'zining PYATNITSA_HOME papkasida ishlaydi: SQLite ombori, sozlamalar va zaxiralar testlar orasida aralashmaydi."""
+    home = tmp_path / "pyat-home"
+    home.mkdir()
+    monkeypatch.setenv("PYATNITSA_HOME", str(home))
+
+
+@pytest.fixture(autouse=True)
 def _dispose_qt_objects_on_main_thread(monkeypatch):
     """Testda yaratilgan har bir Controller test oxirida asosiy oqimda yopiladi va o'chiriladi.
     Aks holda uning QTimer'lari tsiklik axlatda qolib, GC ularni tasodifan boshqa oqimda yo'q qiladi:

@@ -237,6 +237,20 @@ class Database:
                 n += c.execute(f"DELETE FROM {t}").rowcount
         return n
 
+    def backup_to(self, dest: Path | str) -> Path:
+        """Joriy bazaning izchil nusxasini foydalanuvchi tanlagan faylga yozadi (mavjud faylni ustiga yozmaydi — chaqiruvchi tasdiqlaydi)."""
+        dest = Path(dest)
+        out = sqlite3.connect(str(dest))
+        try:
+            with self._lock:
+                self._conn.backup(out)
+        finally:
+            out.close()
+        return dest
+
+    def counts(self) -> dict[str, int]:
+        return {t: self.query(f"SELECT COUNT(*) FROM {t}")[0][0] for t in ("reminders", "tasks", "notes", "study_log", "study_items")}
+
     def user_version(self) -> int:
         return self.query("PRAGMA user_version")[0][0]
 

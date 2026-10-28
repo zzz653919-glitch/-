@@ -3,17 +3,22 @@ from __future__ import annotations
 
 import html
 
-from PySide6.QtCore import QEasingCurve, QEvent, QPropertyAnimation, Qt
+from PySide6.QtCore import QEasingCurve, QEvent, QPropertyAnimation, Qt, QTimer
 from PySide6.QtGui import QColor, QLinearGradient, QPainter, QPen, QPixmap, QRadialGradient
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGraphicsDropShadowEffect, QGraphicsOpacityEffect, QHBoxLayout, QLabel,
                                QLineEdit, QMainWindow, QPlainTextEdit, QProgressBar, QPushButton, QScrollArea, QSlider, QSpinBox, QStackedWidget,
-                               QTextEdit, QVBoxLayout, QWidget)
+                               QSystemTrayIcon, QTextEdit, QVBoxLayout, QWidget)
 
 from .. import APP_NAME, __version__, controller as C, health, motion
 from ..settings import Settings, set_autostart
 from .chat import ChatView
 from .core_widget import AICore
+from .dashboard_page import DashboardPage
 from .files_page import FilesPage
+from .notes_page import NotesPage
+from .reminders_page import RemindersPage
+from .study_page import StudyPage
+from .tasks_page import TasksPage
 from .icons import icon
 from .monitor_view import MetricsView, MonitorBridge
 from .pages import AboutPage, DiagnosticsPage, HistoryPage, page_header
@@ -34,8 +39,10 @@ STATE_HINT = {
     "responding": "Writing the answer…",
     "error": "Something went wrong — details are in the conversation and terminal",
 }
-PAGES = [("assistant", "AI Assistant"), ("history", "Command History"), ("files", "File Access"), ("monitor", "System Monitoring"),
-         ("diagnostics", "Diagnostics"), ("settings", "Settings"), ("about", "About")]
+PAGES = [("dashboard", "Home"), ("assistant", "AI Assistant"), ("files", "File Finder"), ("reminders", "Reminders"), ("tasks", "Tasks"), ("notes", "Notes"),
+         ("study", "English Study"), ("history", "Command History"), ("monitor", "System Monitoring"), ("diagnostics", "Diagnostics"),
+         ("settings", "Settings & Permissions"), ("about", "About")]
+DATA_PAGES = ("dashboard", "reminders", "tasks", "notes", "study")
 
 
 class Backdrop(QWidget):
@@ -96,12 +103,21 @@ class MainWindow(QMainWindow):
         root = Backdrop(); self.setCentralWidget(root)
         h = QHBoxLayout(root); h.setContentsMargins(0, 0, 0, 0); h.setSpacing(0)
         h.addWidget(self._build_sidebar())
-        self.stack = QStackedWidget(); h.addWidget(self.stack, 1)
+        center = QWidget(); cv = QVBoxLayout(center); cv.setContentsMargins(0, 0, 0, 0); cv.setSpacing(0)
+        self.toast_area = QVBoxLayout(); self.toast_area.setContentsMargins(26, 10, 22, 0); self.toast_area.setSpacing(6)
+        cv.addLayout(self.toast_area)
+        self.stack = QStackedWidget(); cv.addWidget(self.stack, 1)
+        h.addWidget(center, 1)
+        self._toasts: list[QFrame] = []
+        self._tray = None
         self._build_pages()
         h.addWidget(self._build_rightbar())
 
         self._wire()
-        self.show_page("assistant", animate=False)
+        self.show_page("dashboard", animate=False)
+        self._tick = QTimer(self, interval=60_000)              # sana, "kechikkan" belgilari va hisoblar yangilanib turadi
+        self._tick.timeout.connect(lambda: self._refresh_page(self.current))
+        self._tick.start()
         self._on_state()
         QApplication.instance().installEventFilter(self)
         ctrl.log_event("info", "SYSTEM", "Assistant initialized")
@@ -122,13 +138,17 @@ class MainWindow(QMainWindow):
         self.pages: dict[str, QWidget] = {}
         self.history = HistoryPage()
         self.diag = DiagnosticsPage(self.monitor, on_event=self.ctrl.log_event)
-        self.settings_page = SettingsPage(self.settings, can_test=self._can_test_mic, ai=self.ctrl.ai)
+        self.settings_page = SettingsPage(self.settings, can_test=self._can_test_mic, ai=self.ctrl.ai, ex=self.ctrl.executor)
+        ex = self.ctrl.executor
+        self.dashboard = DashboardPage(ex); self.reminders_page = RemindersPage(ex); self.tasks_page = TasksPage(ex); self.notes_page = NotesPage(ex); self.study_page = StudyPage(ex)
+        self.data_pages = {"dashboard": self.dashboard, "reminders": self.reminders_page, "tasks": self.tasks_page, "notes": self.notes_page, "study": self.study_page}
         self.files_page = FilesPage(self.ctrl.executor.files, self.ctrl.executor.platform, self.settings, open_cb=self.ctrl.open_path, log_cb=self.ctrl.log_event)
         self.monitor_view = MetricsView(self.bridge, compact=False)
         mon = QWidget(); ml = QVBoxLayout(mon); ml.setContentsMargins(0, 0, 0, 0); ml.setSpacing(12)
         ml.addLayout(page_header("SYSTEM MONITORING", "Live values read from this computer. “Unavailable / Not supported” means the sensor or driver does not provide it."))
         sa = QScrollArea(); sa.setWidgetResizable(True); sa.setWidget(self.monitor_view); ml.addWidget(sa, 1)
-        for key, widget in (("assistant", self._build_assistant()), ("history", self.history), ("files", self.files_page), ("monitor", mon),
+        for key, widget in (("dashboard", self.dashboard), ("assistant", self._build_assistant()), ("files", self.files_page), ("reminders", self.reminders_page),
+                            ("tasks", self.tasks_page), ("notes", self.notes_page), ("study", self.study_page), ("history", self.history), ("monitor", mon),
                             ("diagnostics", self.diag), ("settings", self.settings_page), ("about", AboutPage())):
             host = QWidget(); hl = QVBoxLayout(host); hl.setContentsMargins(26, 20, 22, 18); hl.addWidget(widget)
             self.stack.addWidget(host); self.pages[key] = host
@@ -222,6 +242,15 @@ class MainWindow(QMainWindow):
         c.aiStream.connect(self._on_ai_stream)
         c.retryChanged.connect(lambda _on: self._sync_buttons())
         c.fileAccessNeeded.connect(self._on_file_access_needed)
+        c.dataChanged.connect(self._on_data_changed)
+        c.navigate.connect(lambda key: self.show_page(key) if key in self.pages else None)
+        c.reminderFired.connect(self._on_reminder)
+        for page in self.data_pages.values():
+            page.changed.connect(c.dataChanged.emit)
+        self.settings_page.dataCleared.connect(c.dataChanged.emit)
+        c.dataChanged.connect(lambda _k: self.settings_page.refresh_data())
+        self.dashboard.openPage.connect(self._dash_open)
+        self.dashboard.openNote.connect(lambda nid: (self.show_page("notes"), self.notes_page.select(nid)))
         c.message.connect(self._mirror_to_files_page)
         self.files_page.accessChanged.connect(c.forget_files)
         self.files_page.accessChanged.connect(self.settings_page.refresh_files)
@@ -243,12 +272,73 @@ class MainWindow(QMainWindow):
         if role == "assistant" and getattr(self, "current", "") == "files" and text:
             self.files_page.set_status(text.splitlines()[0][:300])
 
+    # ======================================================================= ma'lumot sahifalari va eslatma bildirishnomalari
+    def _refresh_page(self, key: str) -> None:
+        page = self.data_pages.get(key)
+        if page is not None:
+            page.refresh()
+
+    def _on_data_changed(self, kind: str) -> None:
+        """Bir joyda o'zgargan ma'lumot (ovoz, jadval, dashboard) hamma tegishli sahifada yangilanadi."""
+        for page in self.data_pages.values():
+            if kind in page.watches:
+                page.refresh()
+
+    def _dash_open(self, target: str) -> None:
+        if target == "notes:new":
+            self.show_page("notes"); self.notes_page.create()
+        elif target in self.pages:
+            self.show_page(target)
+
+    def _on_reminder(self, r) -> None:
+        """Eslatma vaqti keldi: oyna ichida banner (+ tizim trayi, ixtiyoriy ovoz). Sarlavha jurnalga yozilmaydi."""
+        from ..i18n import T
+        lang = self.ctrl.lang
+        text = T("rem.fired", lang, title=r.title)
+        while len(self._toasts) >= 3:
+            self._drop_toast(self._toasts[0])
+        toast = QFrame(); toast.setObjectName("toast")
+        row = QHBoxLayout(toast); row.setContentsMargins(14, 8, 12, 8)
+        lbl = QLabel(text); lbl.setTextFormat(Qt.PlainText); lbl.setWordWrap(True)
+        row.addWidget(lbl, 1)
+        if not r.recur:                                              # takrorlanuvchi eslatma allaqachon keyingi vaqtga o'tgan
+            done = QPushButton("Done"); done.setObjectName("primary")
+            snooze = QPushButton("Snooze 10 min")
+            done.clicked.connect(lambda: (self.ctrl.executor.reminders.complete(r.id), self.ctrl.dataChanged.emit("reminders"), self._drop_toast(toast)))
+            snooze.clicked.connect(lambda: (self.ctrl.executor.reminders.postpone(r.id, minutes=10), self.ctrl.dataChanged.emit("reminders"), self._drop_toast(toast)))
+            row.addWidget(done); row.addWidget(snooze)
+        dismiss = QPushButton("Dismiss"); dismiss.clicked.connect(lambda: self._drop_toast(toast)); row.addWidget(dismiss)
+        self.toast_area.addWidget(toast); self._toasts.append(toast)
+        self.add_message("system", text)
+        if self.settings.notifications:
+            self._tray_notify(r.title)
+        self.speaker.say(text, lang)
+
+    def _drop_toast(self, toast: QFrame) -> None:
+        if toast in self._toasts:
+            self._toasts.remove(toast)
+        toast.setParent(None); toast.deleteLater()
+
+    def _tray_notify(self, title: str) -> None:
+        """Windows bildirishnomasi (tizim trayi). Qo'llab-quvvatlanmasa (yoki Windows «Focus assist» yoqilgan bo'lsa) — oyna ichidagi banner baribir ko'rinadi."""
+        if self._tray is None:
+            self._tray = False
+            if QSystemTrayIcon.isSystemTrayAvailable():
+                self._tray = QSystemTrayIcon(icon("reminders", COL["cyan"], 32), self)
+                self._tray.setToolTip(APP_NAME); self._tray.show()
+        if self._tray:
+            self._tray.showMessage(APP_NAME, title, QSystemTrayIcon.Information, 10000)
+
     # ======================================================================= sahifalar
     def show_page(self, key: str, animate: bool = True) -> None:
         for k, b in self.navs.items():
             b.setChecked(k == key); b.set_active(k == key)
         page = self.pages[key]
+        if getattr(self, "current", "") == "notes" and key != "notes":
+            self.notes_page.flush()                                  # saqlanmagan qayd o'zgarishi yo'qolmasin
         self.stack.setCurrentWidget(page)
+        self.current = key
+        self._refresh_page(key)
         self.rightbar.setVisible(key != "monitor" and self._right_fits())
         if animate and not self.reduced:
             eff = QGraphicsOpacityEffect(page); page.setGraphicsEffect(eff)
@@ -442,6 +532,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, e):
         try:
             QApplication.instance().removeEventFilter(self)
+            self.notes_page.flush()
             self.ctrl.shutdown(); self.bridge.stop(join=True); self.speaker.close(); self.settings.save()
         finally:
             super().closeEvent(e)

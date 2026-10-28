@@ -38,6 +38,28 @@ def _draw(name: str, p: QPainter, s: float) -> None:
         for x, y in ((0.1, 0.8), (0.9, 0.8), (0.9, 0.34), (0.48, 0.34), (0.4, 0.22), (0.1, 0.22)):
             path.lineTo(s * x, s * y)
         path.closeSubpath(); p.drawPath(path)
+    elif name == "home":                          # uy
+        path = QPainterPath(QPointF(s * 0.12, s * 0.5)); path.lineTo(c, s * 0.16); path.lineTo(s * 0.88, s * 0.5)
+        p.drawPath(path); p.drawRect(QRectF(s * 0.24, s * 0.5, s * 0.52, s * 0.34)); p.drawLine(QPointF(c, s * 0.84), QPointF(c, s * 0.62))
+    elif name == "reminders":                     # qo'ng'iroq
+        path = QPainterPath(QPointF(s * 0.2, s * 0.7)); path.cubicTo(s * 0.26, s * 0.62, s * 0.28, s * 0.5, s * 0.28, s * 0.4)
+        path.cubicTo(s * 0.28, s * 0.22, s * 0.72, s * 0.22, s * 0.72, s * 0.4); path.cubicTo(s * 0.72, s * 0.5, s * 0.74, s * 0.62, s * 0.8, s * 0.7); path.closeSubpath()
+        p.drawPath(path); p.drawArc(QRectF(s * 0.42, s * 0.74, s * 0.16, s * 0.12), 180 * 16, 180 * 16)
+    elif name == "tasks":                         # belgilangan ro'yxat
+        for i in range(3):
+            y = s * (0.28 + i * 0.22)
+            p.drawLine(QPointF(s * 0.14, y), QPointF(s * 0.22, y + s * 0.05)); p.drawLine(QPointF(s * 0.22, y + s * 0.05), QPointF(s * 0.3, y - s * 0.06))
+            p.drawLine(QPointF(s * 0.42, y), QPointF(s * 0.86, y))
+    elif name == "notes":                         # varaq
+        p.drawRoundedRect(QRectF(s * 0.22, s * 0.12, s * 0.56, s * 0.76), s * 0.06, s * 0.06)
+        for i in range(3):
+            p.drawLine(QPointF(s * 0.32, s * (0.34 + i * 0.16)), QPointF(s * 0.68, s * (0.34 + i * 0.16)))
+    elif name == "study":                         # ochiq kitob
+        p.drawLine(QPointF(c, s * 0.28), QPointF(c, s * 0.82))
+        path = QPainterPath(QPointF(c, s * 0.28)); path.cubicTo(s * 0.36, s * 0.2, s * 0.2, s * 0.22, s * 0.12, s * 0.26); path.lineTo(s * 0.12, s * 0.74); path.cubicTo(s * 0.2, s * 0.7, s * 0.36, s * 0.7, c, s * 0.82)
+        p.drawPath(path)
+        path = QPainterPath(QPointF(c, s * 0.28)); path.cubicTo(s * 0.64, s * 0.2, s * 0.8, s * 0.22, s * 0.88, s * 0.26); path.lineTo(s * 0.88, s * 0.74); path.cubicTo(s * 0.8, s * 0.7, s * 0.64, s * 0.7, c, s * 0.82)
+        p.drawPath(path)
     elif name == "about":                         # «i»
         p.drawEllipse(QPointF(c, c), s * 0.4, s * 0.4)
         p.drawLine(QPointF(c, s * 0.44), QPointF(c, s * 0.7)); p.drawPoint(QPointF(c, s * 0.3))

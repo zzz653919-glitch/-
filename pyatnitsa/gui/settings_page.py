@@ -6,12 +6,13 @@ import html
 import threading
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QSlider, QSpinBox, QProgressBar, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
+from PySide6.QtWidgets import (QFileDialog, QSlider, QSpinBox, QProgressBar, QCheckBox, QComboBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem,
                                QPushButton, QScrollArea, QVBoxLayout, QWidget)
 
 from .. import ai_chat, apps, audio, credentials, stt, voice_test
 from ..i18n import T, app_title, has
 from ..settings import STT_LANGUAGES, TTS_ENGINES, Settings
+from . import common
 from .pages import page_header
 
 
@@ -20,6 +21,7 @@ class SettingsPage(QWidget):
     clearHistory = Signal()
     clearChat = Signal()
     openFilesPage = Signal()
+    dataCleared = Signal(str)
 
     _level = Signal(float)
     _status = Signal(str)
@@ -27,11 +29,12 @@ class SettingsPage(QWidget):
     _test_done = Signal(object)
     _ai_test_done = Signal(object)
 
-    def __init__(self, settings: Settings, can_test=lambda: (True, ""), ai=None):
+    def __init__(self, settings: Settings, can_test=lambda: (True, ""), ai=None, ex=None):
         super().__init__()
         self.s = settings
         self._can_test = can_test
         self._ai = ai
+        self._ex = ex
         self._stop_test = threading.Event()
         lay = QVBoxLayout(self); lay.setContentsMargins(0, 0, 0, 0); lay.setSpacing(12)
         top = QHBoxLayout(); top.addLayout(page_header("SETTINGS", "Changes are applied when you press Save."), 1)
@@ -75,7 +78,28 @@ class SettingsPage(QWidget):
         self._state, self._speech = "idle", False
         self._set_status("idle")
         self._test_done.connect(self._show_report)
-        # ---- File Access (qisqa ko'rinish; boshqarish — «File Access» sahifasida)
+        # ---- Ruxsatlar (aniq va halol: nima qachon ishlatiladi)
+        pl = QLabel("PERMISSIONS"); pl.setObjectName("section"); form.addRow(pl)
+        self.perm_mic = QLabel("Microphone: opens only while you hold SPACE (or press the microphone button) and closes when you release it. There is no background listening; recordings are never saved.")
+        self.perm_clip = QLabel("Clipboard: never read or changed by Пятница.")
+        self.perm_net = QLabel("Network: only what you use — the AI service (when enabled and a key is set), exchange rate and weather commands, and web searches you ask for. Notes, tasks, reminders and study data stay on this computer.")
+        for lb in (self.perm_mic, self.perm_clip, self.perm_net):
+            lb.setObjectName("sub"); lb.setWordWrap(True); form.addRow(lb)
+        self.notify = QCheckBox("Show desktop notifications for reminders (Windows system tray; in-app banners always appear)")
+        form.addRow("", self.notify)
+        # ---- Mahalliy ma'lumotlar
+        dl = QLabel("LOCAL DATA"); dl.setObjectName("section"); form.addRow(dl)
+        self.data_info = QLabel(); self.data_info.setObjectName("sub"); self.data_info.setWordWrap(True); self.data_info.setTextFormat(Qt.PlainText)
+        self.data_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        form.addRow(self.data_info)
+        self.data_msg = QLabel(); self.data_msg.setObjectName("sub"); self.data_msg.setWordWrap(True); self.data_msg.setTextFormat(Qt.PlainText)
+        self.clear_btns = {}
+        for key, label in (("reminders", "Clear all reminders…"), ("tasks", "Clear all tasks…"), ("notes", "Clear all notes…"), ("study", "Clear study progress…")):
+            b = QPushButton(label); b.clicked.connect(lambda _=False, k=key: self.clear_data(k)); self.clear_btns[key] = b; form.addRow(b)
+        self.export_btn = QPushButton("Export a backup copy of my data…"); self.export_btn.clicked.connect(self.export_backup); form.addRow(self.export_btn)
+        form.addRow(self.data_msg)
+        self.refresh_data()
+        # ---- File Access (qisqa ko'rinish; boshqarish — «File Finder» sahifasida)
         fl = QLabel("FILE ACCESS"); fl.setObjectName("section"); form.addRow(fl)
         self.files_info = QLabel(); self.files_info.setObjectName("sub"); self.files_info.setWordWrap(True); self.files_info.setTextFormat(Qt.PlainText)
         self.files_info.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -134,7 +158,7 @@ class SettingsPage(QWidget):
         self.voice.setChecked(s.voice_enabled); self.gender.setCurrentIndex(max(0, self.gender.findData(s.voice_gender)))
         self.tts.setCurrentIndex(max(0, self.tts.findData(s.tts_engine))); self.confirm.setChecked(s.confirm_commands)
         self.motion.setCurrentIndex(max(0, self.motion.findData(s.reduce_motion))); self.terminal.setChecked(s.show_terminal)
-        self.auto.setChecked(s.autostart); self.city.setText(s.city)
+        self.auto.setChecked(s.autostart); self.city.setText(s.city); self.notify.setChecked(s.notifications)
         self.ai_on.setChecked(s.ai_enabled); self.ai_model.setCurrentText(s.ai_model or ai_chat.DEFAULT_MODEL)
         self.ai_effort.setCurrentIndex(max(0, self.ai_effort.findData(s.ai_effort))); self.ai_ctx.setValue(s.ai_context_messages)
         self.ai_tokens.setValue(s.ai_max_tokens); self.ai_timeout.setValue(s.ai_timeout_s); self.ai_fb.setChecked(s.ai_fallback)
@@ -155,6 +179,7 @@ class SettingsPage(QWidget):
         model = self.ai_model.currentText().strip()
         s.ai_model = "" if model == ai_chat.DEFAULT_MODEL else model
         s.ai_max_tokens, s.ai_timeout_s, s.ai_fallback, s.voice_rate = self.ai_tokens.value(), self.ai_timeout.value(), self.ai_fb.isChecked(), self.rate.value()
+        s.notifications = self.notify.isChecked()
         s.allowed_apps = {self.apps.item(i).data(Qt.UserRole): self.apps.item(i).checkState() == Qt.Checked for i in range(self.apps.count())}
         return s
 
@@ -204,6 +229,48 @@ class SettingsPage(QWidget):
         kind, msg = res
         color = "#2ee6a6" if kind == "ok" else "#ff4d6d"
         self.ai_test_out.setText(f"<span style='color:{color}'>{html.escape(msg)}</span>")
+
+    # ---- mahalliy ma'lumotlar: hisob, tozalash, zaxira
+    def refresh_data(self) -> None:
+        if self._ex is None:
+            self.data_info.setText("Local data store is not available.")
+            for b in (*self.clear_btns.values(), self.export_btn):
+                b.setEnabled(False)
+            return
+        db, c = self._ex.db, self._ex.db.counts()
+        where = str(db.path) if db.path else "memory only (not saved)"
+        self.data_info.setText(f"Stored locally: {c['reminders']} reminder(s), {c['tasks']} task(s), {c['notes']} note(s), {c['study_log']} study record(s), {c['study_items']} study item(s).\n"
+                               f"Database: {where} (schema v{db.user_version()}). A backup copy is made automatically before any upgrade of the database."
+                               + (f"\n{db.notice}" if db.notice else ""))
+
+    def clear_data(self, key: str) -> None:
+        if self._ex is None:
+            return
+        ex = self._ex
+        label, n, run = {"reminders": ("reminders", len(ex.reminders.all()), ex.reminders.clear), "tasks": ("tasks", len(ex.tasks.all()), ex.tasks.clear),
+                         "notes": ("notes", len(ex.notes.all()), ex.notes.clear), "study": ("study records and difficult-word items", len(ex.study.history(100000)) + len(ex.study.items()), ex.study.clear_progress)}[key]
+        if n == 0:
+            common.status_style(self.data_msg, f"There are no {label} to clear.", "neutral")
+            return
+        if not common.ask(self, "Clear local data", f"Permanently delete {n} {label}?\n\nThis cannot be undone. Consider exporting a backup first.", yes="Delete everything"):
+            return
+        run()
+        common.status_style(self.data_msg, f"Deleted: {label}.", "ok")
+        self.refresh_data()
+        self.dataCleared.emit(key if key != "study" else "study")
+
+    def export_backup(self) -> None:
+        if self._ex is None:
+            return
+        path, _ = QFileDialog.getSaveFileName(self, "Export backup", "pyatnitsa-backup.db", "SQLite database (*.db)")
+        if not path:
+            return
+        try:
+            self._ex.db.backup_to(path)
+        except Exception as e:  # noqa: BLE001
+            common.status_style(self.data_msg, f"Backup failed: {type(e).__name__}: {e}", "err")
+            return
+        common.status_style(self.data_msg, f"Backup saved: {path}", "ok")
 
     def refresh_files(self) -> None:
         roots = self.s.file_roots

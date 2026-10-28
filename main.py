@@ -41,6 +41,7 @@ def main() -> int:
     ctrl = Controller(settings, Executor(settings, monitor=monitor), speaker, ai=ChatService(settings))
     win = MainWindow(settings, ctrl, monitor, speaker)
     win.show()
+    ctrl.start_scheduler()                     # eslatmalarni tekshirish (faqat ilova ochiq paytida)
     return app.exec()
 
 

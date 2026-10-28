@@ -101,6 +101,23 @@ Qidirish faqat **o'qiydi** va tasdiq so'ramaydi; **ochish** har doim tasdiqlanad
 - Fayl ma'lumotlari AI'ga yuborilmaydi: fayl buyruqlari AI suhbat yo'liga umuman kirmaydi.
 - Administrator huquqi so'ralmaydi.
 
+## Mahsuldorlik moduli: eslatmalar, vazifalar, qaydlar, ingliz tili rejasi, Home paneli
+Chap menyu: **Home · Assistant · File Finder · Reminders · Tasks · Notes · English Study · History · Monitor · Diagnostics · Settings & Permissions · About**. Hammasi lokal SQLite bazada (`pyatnitsa.db`, foydalanuvchi papkasida); yangi pip bog'liqlik yo'q (`sqlite3` — standart kutubxona).
+
+**Imkoniyatlar**
+- **Reminders:** sana/vaqt, takrorlanish (har N daqiqa/kun/hafta/oy, ish kunlari), tahrirlash, kechiktirish (1 soat/ertaga), bajarildi, o'chirish (tasdiq bilan), kutilayotgan/kechikkan/bajarilgan ko'rinishlar. Muddat kelganda ilova ichida banner (Done · Snooze 10 min · Dismiss), tizim tray bildirishnomasi (Settings'da o'chirish mumkin) va chatda xabar. Ilova yopiq paytda o'tgan eslatma keyingi ishga tushishda **bir marta** ko'rsatiladi. Eslatmalar faqat ilova ishlab turganda chiqadi (fon xizmati yo'q).
+- **Tasks:** sarlavha, tavsif, muddat, ustuvorlik (Low/Medium/High), holat (To Do/In Progress/Completed), kategoriya; qidiruv, filtrlar, Today/Week/Overdue ko'rinishlari, progress; o'chirish tasdiq bilan.
+- **Notes:** sarlavha, kategoriya, teglar, qidiruv, avtomatik saqlash (holat ko'rsatiladi), oddiy formatlash (qalin/kursiv/sarlavha/ro'yxat), vaqt belgilari; bir xil nomli qayd ustiga **yozilmaydi** (ogohlantiradi).
+- **English Study:** standart reja 60 daqiqa (lug'at 15 · grammatika 15 · tinglash 15 · o'qish 10 · yozish/takrorlash 5), o'zgartirish mumkin; kunlik ro'yxat — **faqat siz belgilagan** faoliyat yoziladi; streak va haftalik daraja faqat haqiqiy yozuvlardan; tarix; qiyin so'z/grammatika ro'yxati; ixtiyoriy kunlik/takrorlash eslatmalari. Bu reja IELTS bali yoki muddatini va'da qilmaydi.
+- **Home:** sana, bugungi eslatma/vazifa, kechikkanlar, tezkor qayd, o'quv progressi, yaratish tugmalari; vazifa/eslatma/o'quv faoliyatini shu yerning o'zida bajarilgan deb belgilash mumkin.
+
+**Buyruqlar (uz · ru · en; matn yoki Space ushlab turib ovoz):** «Ertaga soat 16:00 da vazifamni eslat» · «Remind me to study English at 7 PM» · «Har kuni soat 19:00 da ingliz tilini o'rganishni eslat» · «Add a task to finish my Python homework» · «Bugungi vazifalarimni ko'rsat» · «Show my overdue tasks» · «Mark my English homework as completed» · «Create a note called English Vocabulary» · «Start my English study plan» · «I finished English vocabulary». Vaqt noaniq bo'lsa («soat 9 da» — ertalabmi/kechqurunmi?) Пятница so'raydi va javobingiz bilan davom etadi; o'tmishdagi vaqtga jimgina eslatma qo'ymaydi. Yaratilgan ma'lumot to'g'ridan-to'g'ri sahifalarda ko'rinadi.
+
+**Maxfiylik va ma'lumot:** hammasi faqat shu kompyuterda; AI'ga yoki internetga yuborilmaydi. Bazani yangilashdan oldin `*.bak-vN-vaqt` zaxira nusxasi olinadi; buzilgan baza `*.corrupt-…` deb saqlab qo'yilib yangisi ochiladi (foydalanuvchiga ko'rsatiladi). **Settings & Permissions → Local data:** soni, joylashuvi, bo'limlar bo'yicha tozalash (tasdiq bilan) va zaxira nusxani eksport qilish. Bir xil eslatma/vazifa tasodifan ikki marta qo'shilmaydi.
+
+## File Finder (yangilangan)
+**File Finder** sahifasi: qidiruv maydoni, tur filtri (Video · Images · Documents · Audio · Code · Other), o'zgargan sana va hajm filtri, «Exact name», ruxsat berilgan papkalarni boshqarish (qo'shish — Windows papka oynasi; olib tashlash — ta'sir darhol), natijalar (nom · tur · joy · sana · hajm), tanlangan faylning to'liq yo'li, **Open File**, **Cancel Search** va jarayon ko'rsatkichi. Qidiruv fon oqimida — interfeys qotmaydi. Bir nomli bir nechta fayl topilsa, hammasi joyi bilan ko'rsatiladi. Videolarni topish: «Eng yangi videoni topib och», «Find my latest video and open it», «Найди видео с названием example» — bir nechta moslik bo'lsa ro'yxat chiqadi va qaysi birini ochishni siz tanlaysiz (taxmin qilinmaydi).
+
 ## Mikrofon va ovozli buyruq quvuri (tuzatilgan)
 **Aniqlangan asl sabablar** (kod tahlili bo'yicha; haqiqiy qurilmada tasdiqlash — «Test holati» bo'limiga qarang):
 1. `transcribe()` ichidagi `except Exception` **har qanday ichki xatoni yutib**, «buyruqni tushunmadim» deb ko'rsatardi (FLAC konverteri bloklangan, HTTP 403/429, `audioop` yo'q ...). Endi xatolar turlarga ajratilib, aniq sabab bilan ko'rsatiladi.
@@ -194,7 +211,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 607 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 776 ta avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -232,6 +249,8 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - Avtomatik ochilish (reestr), `build.bat` bilan .exe yig'ish, Windows batareya/PowerShell/nvidia-smi sensorlari, tizim jurnali.
 - Interfeysning Windows'dagi ko'rinishi (skrinshotlar Linux offscreen'da olingan).
 
+**Mahsuldorlik moduli testlari (haqiqiy SQLite, offscreen Qt):** migratsiya/zaxira/buzilgan baza, barcha omborlar, vaqt tahlili (uz/ru/en, noaniqlik, takrorlanish), buyruq→amal→sahifa yangilanishi, tasdiq va aniqlashtirish davomi, eslatma banneri (Done/Snooze/Dismiss, 3 tadan ko'p emas, tray yo'q/o'chiq holat), dialog tekshiruvi, qaydlar avto-saqlash va nom to'qnashuvi, o'quv streak'i faqat yozuvdan, ma'lumotni tozalash/eksport. Testlar ikkita haqiqiy xatoni topdi va tuzatildi (reja dialogi yaratilishda qulashi; vazifa tahririda ustuvorlik rad etilishi) va dialog sana konstruktori xatosini. **Sinalmagan (Windows'da):** haqiqiy tray bildirishnomasi ko'rinishi, ilova yopiq paytda eslatma (qo'llab-quvvatlanmaydi), haqiqiy ovoz bilan buyruq aytish, papka tanlash oynasi.
+
 ## Loyiha tuzilishi
 ```
 main.py                  ishga tushirish
@@ -247,6 +266,10 @@ pyatnitsa/commands.py    buyruq turlari, normallashtirish, ruxsat etilgan amalla
 pyatnitsa/executor.py    ruxsat etilgan amallar ro'yxati va ijrosi
 pyatnitsa/files.py       ruxsat etilgan papkalar, xavfsiz qidirish, ochishdan oldingi tekshiruv
 pyatnitsa/fileintent.py  fayl buyruqlarini tushunish (uz/ru/en), ro'yxatdan tanlash
+pyatnitsa/db.py          SQLite: migratsiya, zaxira, buzilgan bazani karantin, xotira zaxirasi
+pyatnitsa/reminders.py, tasks.py, notes.py, study.py   mahsuldorlik omborlari
+pyatnitsa/timeparse.py   sana/vaqt/takrorlanishni tushunish (uz/ru/en), noaniqlikda so'rash
+pyatnitsa/taskintent.py, toolsintent.py   eslatma/vazifa/qayd/o'quv va media buyruqlarini tushunish
 pyatnitsa/apps.py        ruxsat etilgan dasturlar, Windows qatlami
 pyatnitsa/services.py    kurs va ob-havo (internet)
 pyatnitsa/health.py      PC Health Monitor (faqat o'qish)
@@ -256,7 +279,7 @@ pyatnitsa/audio.py       mikrofon, qurilma tanlash, sifat tahlili, tayyorlash, j
 pyatnitsa/stt.py         nutq dvigatellari (Google / Whisper), xato turlari
 pyatnitsa/voice_test.py  mikrofon testi
 pyatnitsa/diagnostics.py haqiqiy tizim tekshiruvlari
-pyatnitsa/gui/           kiberpank interfeys (main_window, core_widget, monitor_view, chat, terminal, pages, files_page, settings_page, theme, icons)
+pyatnitsa/gui/           kiberpank interfeys (main_window, dashboard_page, reminders_page, tasks_page, notes_page, study_page, dialogs, common, core_widget, monitor_view, chat, terminal, pages, files_page, settings_page, theme, icons)
 pyatnitsa/ui.py          moslik uchun qisqa import
 tests/                   avtomatik testlar
 ```

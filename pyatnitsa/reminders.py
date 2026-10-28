@@ -80,6 +80,10 @@ class ReminderStore:
         rows = self.db.query("SELECT * FROM reminders WHERE id=?", (rid,))
         return _row(rows[0]) if rows else None
 
+    def by_source(self, source_key: str) -> Reminder | None:
+        rows = self.db.query("SELECT * FROM reminders WHERE source_key=?", (source_key,))
+        return _row(rows[0]) if rows else None
+
     def update(self, rid: str, title: str | None = None, due: datetime | None = None, recur: dict | None | bool = False) -> Reminder | None:
         with self.db._lock:
             r = self.get(rid)

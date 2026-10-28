@@ -33,14 +33,15 @@ def win(tmp_path):
     ctrl = C.Controller(st, Executor(st, plat, mon), FakeSpeaker(), FakeRecorder, lambda r, l: "Chrome'ni och", post_roll_ms=0)
     w = MainWindow(st, ctrl, mon, ctrl.speaker)
     w.show(); w.activateWindow(); app.processEvents()
+    w.show_page('assistant', animate=False); app.processEvents()
     yield app, w, ctrl, plat
     app.removeEventFilter(w); w.bridge.stop(join=True); mon.stop(); ctrl.shutdown()
     w.hide(); w.deleteLater(); app.processEvents()
 
 
-def test_all_six_pages_open_and_nav_shows_active_page(win):
+def test_all_pages_open_and_nav_shows_active_page(win):
     app, w, *_ = win
-    for key in ("assistant", "history", "monitor", "diagnostics", "settings", "about"):
+    for key in list(w.navs):
         w.navs[key].click(); app.processEvents()
         assert w.stack.currentWidget() is w.pages[key]
         assert [k for k, b in w.navs.items() if b.isChecked()] == [key]

@@ -62,15 +62,28 @@ QFrame#bubbleErr {{ background: rgba(255, 77, 109, 0.10); border: 1px solid rgba
 QLabel#bubbleHead {{ color: {C['muted']}; font-size: 11px; letter-spacing: 1px; }}
 QLabel#bubbleSys {{ color: {C['dim']}; font-size: 12px; }}
 
-QPlainTextEdit, QLineEdit, QComboBox, QListWidget, QTableWidget, QSpinBox {{
+QPlainTextEdit, QTextEdit, QLineEdit, QComboBox, QListWidget, QTableWidget, QSpinBox, QDateTimeEdit, QDateEdit, QTimeEdit {{
     background: rgba(6, 11, 22, 0.9); border: 1px solid {C['border']}; border-radius: 10px; padding: 7px;
     selection-background-color: rgba(0, 229, 255, 0.35); selection-color: #fff; }}
 QSpinBox {{ min-width: 110px; padding-right: 22px; }}
 QSpinBox::up-button, QSpinBox::down-button {{ width: 18px; border: none; background: transparent; }}
 QSpinBox::up-arrow, QSpinBox::down-arrow {{ width: 8px; height: 8px; }}
-QPlainTextEdit:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus {{ border: 1px solid {C['cyan']}; }}
+QPlainTextEdit:focus, QTextEdit:focus, QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDateTimeEdit:focus, QTimeEdit:focus {{ border: 1px solid {C['cyan']}; }}
 QComboBox::drop-down {{ border: none; width: 22px; }}
 QComboBox QAbstractItemView {{ background: {C['bg2']}; border: 1px solid {C['border']}; selection-background-color: rgba(0,229,255,0.25); }}
+QDateTimeEdit, QDateEdit, QTimeEdit {{ min-width: 150px; padding-right: 22px; }}
+QDateTimeEdit::drop-down, QDateEdit::drop-down {{ width: 20px; border: none; }}
+QCalendarWidget QWidget {{ background: {C['bg2']}; color: {C['text']}; }}
+QCalendarWidget QAbstractItemView {{ selection-background-color: rgba(0,229,255,0.3); }}
+QMenu {{ background: {C['bg2']}; border: 1px solid {C['border']}; padding: 4px; }}
+QMenu::item {{ padding: 6px 18px; border-radius: 6px; }}
+QMenu::item:selected {{ background: rgba(0, 229, 255, 0.18); }}
+QTabWidget::pane {{ border: 1px solid {C['border']}; border-radius: 10px; top: -1px; }}
+QTabBar::tab {{ background: transparent; color: {C['muted']}; padding: 8px 16px; border-bottom: 2px solid transparent; }}
+QTabBar::tab:selected {{ color: {C['cyan']}; border-bottom: 2px solid {C['cyan']}; }}
+QListWidget::item {{ padding: 6px; border-radius: 6px; }}
+QListWidget::item:selected {{ background: rgba(0, 229, 255, 0.18); }}
+QFrame#toast {{ background: rgba(255, 176, 32, 0.14); border: 1px solid {C['warn']}; border-radius: 12px; }}
 QPlainTextEdit#terminal {{ font-family: {FONT_MONO}; font-size: 12px; background: rgba(2, 5, 10, 0.92); }}
 QHeaderView::section {{ background: {C['bg2']}; color: {C['muted']}; border: none; border-bottom: 1px solid {C['border']}; padding: 6px; }}
 QTableWidget {{ gridline-color: #111b30; }}

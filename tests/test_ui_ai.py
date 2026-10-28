@@ -35,6 +35,7 @@ def env(tmp_path, monkeypatch):
                         post_roll_ms=0, ai=ChatService(st, client))
     w = MainWindow(st, ctrl, mon, spk)
     w.show(); w.activateWindow(); app.processEvents()
+    w.show_page('assistant', animate=False); app.processEvents()
     yield app, w, ctrl, client, spk
     app.removeEventFilter(w); w.bridge.stop(join=True); mon.stop(); ctrl.shutdown(); w.hide(); w.deleteLater(); app.processEvents()
 

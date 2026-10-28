@@ -53,12 +53,12 @@ def rows(page):
 
 def test_files_page_exists_with_all_controls_and_navigation(fw):
     app, w, ctrl, plat, fa, tree, st = fw
-    assert w.navs["files"].text() == "File Access" and w.stack.currentWidget() is w.pages["files"]
+    assert w.navs["files"].text() == "File Finder" and w.stack.currentWidget() is w.pages["files"]
     p = w.files_page
     for widget in (p.roots, p.add_btn, p.std_btn, p.rm_btn, p.query, p.kind, p.search_btn, p.table, p.open_btn, p.status, p.perm):
         assert widget is not None
     assert [p.kind.itemText(i) for i in range(p.kind.count())][:5] == ["All files", "Videos", "Images", "Audio", "Documents"]
-    for key in ("assistant", "history", "files", "monitor", "diagnostics", "settings", "about"):      # barcha 7 sahifa
+    for key in list(w.navs):                                                                           # barcha sahifalar
         w.navs[key].click(); app.processEvents()
         assert w.stack.currentWidget() is w.pages[key]
 
@@ -124,7 +124,7 @@ def test_search_shows_name_location_type_and_open_file_works(fw):
     p.query.setText("holiday"); p.search_btn.click()
     assert pump(app, lambda: p.table.rowCount() == 2, t=5)
     r = rows(p)
-    assert {x[0] for x in r} == {"holiday_2025.mp4", "holiday_old.mkv"} and all(str(tree) in x[1] for x in r) and {x[2] for x in r} == {"video"}
+    assert {x[0] for x in r} == {"holiday_2025.mp4", "holiday_old.mkv"} and all(str(tree) in x[2] for x in r) and {x[1] for x in r} == {"video"}
     assert not p.open_btn.isEnabled()
     p.table.selectRow(0)
     assert p.open_btn.isEnabled()
@@ -144,7 +144,7 @@ def test_type_filter_and_empty_query(fw):
     assert pump(app, lambda: p.table.rowCount() == 1, t=5) and rows(p)[0][0] == "song.mp3"
     p.kind.setCurrentIndex(p.kind.findData("video")); p.query.setText("")
     p.query.returnPressed.emit()
-    assert pump(app, lambda: p.table.rowCount() >= 6, t=5) and {x[2] for x in rows(p)} == {"video"}
+    assert pump(app, lambda: p.table.rowCount() >= 6, t=5) and {x[1] for x in rows(p)} == {"video"}
 
 
 def test_nothing_found_message(fw):

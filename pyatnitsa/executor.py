@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import apps, files as fs, health, services
 from .db import Database
-from .notes import NoteExists, NoteStore
+from .notes import NoteStore
 from .reminders import FMT as REM_FMT, ReminderStore, describe_recur
 from .study import StudyStore
 from .tasks import TaskStore
@@ -444,16 +444,8 @@ class Executor:
 
     # ---- qaydlar
     def _note_add(self, cmd: Command, lang: str) -> Result:
-        title, body = cmd.args["title"], cmd.args.get("body", "")
-        base, k = title, 1
-        while True:
-            try:
-                note = self.notes.add(title, body, category=cmd.args.get("category", ""))
-                break
-            except NoteExists:                                # mavjud qayd ustiga HECH QACHON yozilmaydi — yangi nom beriladi
-                k += 1
-                title = f"{base} ({k})"
-        msg = T("note.added", lang, title=note.title) if k == 1 else T("note.added_dup", lang, old=base, title=note.title)
+        note, old = self.notes.add_auto(cmd.args["title"], cmd.args.get("body", ""), category=cmd.args.get("category", ""))   # mavjud qayd ustiga HECH QACHON yozilmaydi
+        msg = T("note.added", lang, title=note.title) if not old else T("note.added_dup", lang, old=old, title=note.title)
         return Result(True, msg, msg, changed="notes")
 
     def _notes_show(self, cmd: Command, lang: str) -> Result:
