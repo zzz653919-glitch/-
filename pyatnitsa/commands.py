@@ -17,6 +17,8 @@ ALLOWED_ACTIONS = frozenset({
     "health_status", "health_cpu", "health_ram", "health_disk", "health_temps", "health_gpu", "health_battery",
     "health_uptime", "health_full", "health_report", "health_top", "speedup_advice", "admin_info",
     "find_files", "list_files", "open_file",
+    "reminder_add", "reminders_show", "note_add", "notes_show", "media",
+    "task_add", "tasks_show", "task_complete", "study_show", "study_done", "study_progress",
 })
 FILE_ACTIONS = frozenset({"find_files", "list_files", "open_file"})
 
@@ -49,6 +51,7 @@ class ParseResult:
     lang: str = "uz"           # javob tili
     langs: list[str] = field(default_factory=list)   # gapda aniqlangan tillar
     confidence: float = 0.0
+    draft: str = ""            # clarify: keyingi javob shu matnga qo'shib qayta tahlil qilinadi («9 ertalabmi, kechqurunmi?» -> «ertalab»)
 
 
 def basic(text: str) -> str:
@@ -110,13 +113,25 @@ def extract_amount(text: str) -> float | None:
     return val
 
 
+# Tahlil konteksti: joriy vaqt (testlarda almashtiriladi).
+_CTX: dict = {"now": None}
+
+
+def set_context(now=None) -> None:
+    _CTX["now"] = now
+
+
 def parse(text: str) -> ParseResult:
-    """Matn (ovoz yoki klaviatura) -> xavfsiz buyruqlar ro'yxati yoki aniqlashtiruvchi savol."""
-    from . import fileintent, nlu
+    """Matn (ovoz yoki klaviatura) -> xavfsiz buyruqlar ro'yxati yoki aniqlashtiruvchi savol.
+    Tartib: NLU (xavfli so'z bloki) -> fayllar -> eslatma/vazifa/qayd/o'quv -> media. Xavfli fe'l hamma yerda to'xtatadi."""
+    from datetime import datetime
+    from . import fileintent, nlu, taskintent, toolsintent
     res = nlu.parse(text)
-    # Fayl buyruqlari: NLU qarori ustidan faqat fayl niyati aniq bo'lsa ustun keladi; xavfli fe'l hamma narsani to'xtatadi
-    fres = fileintent.parse(text, res)
-    if fres is not None:
-        res = fres
+    now = (_CTX["now"] or datetime.now)()
+    for fn in (lambda: fileintent.parse(text, res), lambda: taskintent.parse(text, now, res), lambda: toolsintent.parse(text, res)):
+        r = fn()
+        if r is not None:
+            res = r
+            break
     assert all(c.action in ALLOWED_ACTIONS for c in res.commands)
     return res

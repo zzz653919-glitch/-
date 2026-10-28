@@ -32,7 +32,10 @@ APPS: dict[str, AppSpec] = {a.id: a for a in (
     AppSpec("explorer", "Fayl menejeri", "exe"),
     AppSpec("youtube", "YouTube", "url"),
     AppSpec("search", "Google'da qidiruv", "url"),
+    AppSpec("winsettings", "Windows Sozlamalari", "uri"),
 )}
+URIS = {"winsettings": "ms-settings:"}                       # qat'iy: faqat shu URI sxemasi ochiladi
+MEDIA_KEYS = {"play_pause": 0xB3, "next": 0xB0, "prev": 0xB1, "stop": 0xB2, "vol_up": 0xAF, "vol_down": 0xAE, "mute": 0xAD}   # Windows virtual-key kodlari
 
 URLS = {"youtube": "https://www.youtube.com/", "browser": "https://www.google.com/"}
 _FOLDER_GUIDS = {  # Windows Known Folder ID
@@ -115,6 +118,40 @@ class Platform:
             return                                   # ishlab turibdi
         if code != 0:
             raise OSError(f"pleyer {code} kodi bilan tugadi")
+
+    def open_uri(self, app_id: str) -> None:
+        """Faqat `URIS` dagi qat'iy URI (masalan `ms-settings:`)."""
+        uri = URIS.get(app_id)
+        if not uri:
+            raise ValueError("Ruxsat etilmagan URI")
+        if sys.platform != "win32":
+            raise OSError("Windows Sozlamalari faqat Windows'da ochiladi")
+        os.startfile(uri)    # type: ignore[attr-defined]
+
+    def media_key(self, name: str) -> None:
+        """Windows media tugmasini bosadi (ijro/pauza, keyingi, oldingi, ovoz). Faol media dastur javob berganini BILIB BO'LMAYDI."""
+        vk = MEDIA_KEYS.get(name)
+        if vk is None:
+            raise ValueError("Noma'lum media buyrug'i")
+        if sys.platform != "win32":
+            raise OSError("Media tugmalari faqat Windows'da ishlaydi")
+        import ctypes
+        user32 = ctypes.windll.user32
+        user32.keybd_event(vk, 0, 0, 0)
+        user32.keybd_event(vk, 0, 2, 0)       # KEYEVENTF_KEYUP
+
+    def open_in_notepad(self, path: Path) -> None:
+        """Kod/matn faylini Notepad'da ko'rish uchun ochadi (hech qachon ishga tushirmaydi)."""
+        exe = self.find_executable("notepad")
+        if not exe:
+            raise OSError("Notepad topilmadi")
+        proc = subprocess.Popen([str(exe), str(path)], shell=False, close_fds=True)
+        try:
+            code = proc.wait(timeout=0.6)
+        except subprocess.TimeoutExpired:
+            return
+        if code != 0:
+            raise OSError(f"Notepad {code} kodi bilan tugadi")
 
     def open_url(self, url: str) -> None:
         p = urlparse(url)

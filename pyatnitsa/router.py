@@ -38,10 +38,14 @@ class Route:
 
 # ----------------------------------------------------------------------------- til
 _EN = set("the is are was were what why how who when where which can could would should please you your my me i do does did not this that it a an of to in on "
-          "for with and hello hi hey thanks thank explain tell help give example learn english about from have has will yes no good morning".split())
+          "for with and hello hi hey thanks thank explain tell help give example learn english about from have has will yes no good morning "
+          "remind reminder reminders tomorrow today tonight task tasks note notes study plan finished completed mark add create show called named vocabulary grammar "
+          "listening reading writing progress overdue homework week every day at am pm minutes hours later find open latest video file files".split())
 _UZ = set("men sen siz biz u bu shu va ham lekin uchun bilan nima nega qanday qaysi kim qachon qayer qayerda bor yoq yoqmi ha yaxshi rahmat salom iltimos ber ayt "
           "tushuntir misol haqida menga sizga bugun hozir uni buni nechta qancha kerak mumkin boladi bolsa yaxshimisan qil qilib ol ham hali endi nimaga "
-          "oldingi gapimizni davom ettir menimcha bilasanmi aytib yordam o'rgan organ".split())
+          "oldingi gapimizni davom ettir menimcha bilasanmi aytib yordam o'rgan organ "
+          "eslat eslatma eslatmalarni vazifa vazifam vazifamni vazifalarimni qayd qaydlar ertaga soat keyin bajarildi belgila tugatdim ingliz tili reja rejamni "
+          "dori ichish ichishni topib och top qidir".split())
 
 
 def detect_language(text: str) -> str:
@@ -54,6 +58,7 @@ def detect_language(text: str) -> str:
     words = re.findall(r"[a-z']+", normalize_keep_apostrophe(low))
     en = sum(w in _EN for w in words)
     uz = sum(w.replace("'", "") in _UZ or w in _UZ for w in words)
+    uz += sum(1 for w in words if len(w) > 5 and w.rstrip("'").endswith(("ishni", "imni", "ingni", "larni", "lari", "ning", "dan", "ishga")) and w not in _EN)   # o'zbekcha qo'shimchalar
     if cyr and (not lat or cyr >= lat):
         return "uz" if uz else "ru"        # kirill ustun; lotincha o'zbekcha so'zlar bo'lsa — aralash (o'zbekcha)
     if cyr and lat:
@@ -151,6 +156,8 @@ def route(text: str, parsed: ParseResult | None = None, has_history: bool = Fals
             return Route(QUESTION_ANSWERING, "problem statement mentions an app", lang, parse=res)
         info = all(c.action in _INFO_ACTIONS for c in res.commands)
         return Route(CURRENT_INFORMATION if info else COMPUTER_COMMAND, "validated command", lang, parse=res)
+    if res.kind == "clarify" and getattr(res, "draft", ""):      # eslatma/vazifa/qayd: vaqt yoki nom yetishmaydi — javob shu so'rovga qo'shiladi (AI'ga yuborilmaydi)
+        return Route(CLARIFICATION_REQUIRED, "needs more details", lang, parse=res)
     # 3) xavfli / ruxsat etilmagan buyruq — mavjud rad etish xabari (savol shaklida bo'lsa — tushuntirish; AI baribir hech narsa bajarmaydi)
     if res.kind == "blocked" and (qmark or explain):
         return Route(QUESTION_ANSWERING, "question about a risky action (explanation only)", lang, parse=res)

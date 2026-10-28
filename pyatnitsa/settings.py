@@ -58,6 +58,9 @@ class Settings:
     allowed_apps: dict[str, bool] = field(default_factory=dict)
     file_roots: list[str] = field(default_factory=list)   # foydalanuvchi AYNAN ruxsat bergan papkalar/disklar (qolgan hech narsaga kirilmaydi)
     video_player: str = ""                 # ixtiyoriy: videolarni ochadigan dastur (.exe); bo'sh = Windows standarti
+    speaker: str | None = None             # ovoz chiqish qurilmasi (None = tizim standarti)
+    theme: str = "dark"                    # dark | light
+    notifications: bool = True             # eslatma bildirishnomalari (oyna ichida va tizim trayida)
 
     # ---- saqlash / yuklash -------------------------------------------------
     @staticmethod
@@ -82,7 +85,7 @@ class Settings:
             if key not in raw:
                 continue
             val = raw[key]
-            if key == "microphone":
+            if key in ("microphone", "speaker"):
                 ok = val is None or isinstance(val, str)
             elif isinstance(default, bool):
                 ok = isinstance(val, bool)
@@ -119,6 +122,8 @@ class Settings:
             s.stt_language = "auto"
         s.city = s.city.strip()[:80] or "Tashkent"
         s.video_player = s.video_player.strip()
+        if s.theme not in ("dark", "light"):
+            s.theme = "dark"
         return s
 
     def save(self, path: Path | None = None) -> None:

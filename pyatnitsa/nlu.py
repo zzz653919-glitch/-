@@ -70,6 +70,7 @@ LEX_SRC: dict[str, dict[str, str]] = {
     "NOTEPAD": dict(any="notepad* noutpad* nautpad* bloknot* блокнот* zametk* заметк* muharrir* redaktor* editor"),
     "EXPLORER": dict(any="explorer* provodnik* проводник*"),
     "YOUTUBE": dict(any="youtube* yutub* yutyub* ютуб*"),
+    "WINSET": dict(uz="sozlamalar* parametrlar*", ru="настройк* параметр*", en="settings"),
     "UNSUP": dict(any="telegram* whatsapp* vatsap* viber* instagram* facebook* spotify* zoom* skype* discord* steam* word excel powerpoint* outlook*"),
     # xavfli amallar (tilidan qat'i nazar rad etiladi)
     "DANGER": dict(any=("ochir* udal* delet* remov* erase wipe format* restart reboot shutdown poweroff perezagruz* perezapus* viklyuch* otklyuch* "
@@ -85,9 +86,9 @@ LEX_SRC: dict[str, dict[str, str]] = {
 }
 CONJ = {"va", "hamda", "keyin", "potom", "zatem", "and", "then", "i"}      # «и» -> «i» (translit)
 VERBS = {"OPEN", "SEARCH", "SHOW", "CHECK", "CREATE", "SPEEDUP"}
-APP_OBJ = ["CHROME", "BROWSER", "CALC", "NOTEPAD", "EXPLORER", "YOUTUBE", "DOWNLOADS", "DESKTOP", "DOCUMENTS"]
+APP_OBJ = ["CHROME", "BROWSER", "CALC", "NOTEPAD", "EXPLORER", "YOUTUBE", "DOWNLOADS", "DESKTOP", "DOCUMENTS", "WINSET"]
 APP_ID = {"CHROME": "chrome", "BROWSER": "browser", "CALC": "calculator", "NOTEPAD": "notepad", "EXPLORER": "explorer",
-          "YOUTUBE": "youtube", "DOWNLOADS": "downloads", "DESKTOP": "desktop", "DOCUMENTS": "documents"}
+          "YOUTUBE": "youtube", "DOWNLOADS": "downloads", "DESKTOP": "desktop", "DOCUMENTS": "documents", "WINSET": "winsettings"}
 BIGRAMS = [("ish", "stol", "DESKTOP"), ("rabo", "stol", "DESKTOP"), ("fayl", "menej", "EXPLORER"), ("file", "manag", "EXPLORER"),
            ("grafik", "kart", "GPU"), ("video", "card", "GPU"), ("turn", "off", "DANGER"), ("shut", "down", "DANGER"),
            ("log", "off", "DANGER"), ("qayta", "ishga", "DANGER"), ("qayta", "yoq", "DANGER"), ("qayta", "yukla", "DANGER"), ("sign", "out", "DANGER"), ("tizim", "fayl", "ADMIN"), ("sistemn", "fayl", "ADMIN"),

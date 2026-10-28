@@ -23,10 +23,15 @@ OPEN_PRE = ("otkr", "zapust", "vklyuch", "vosproizv", "posmotr", "smotr", "ijro"
 SHOW_EX = {"ber", "bering", "royxat", "list", "show", "display", "spisok", "vivedi", "chiqar", "chiqaring", "showing", "see"}
 SHOW_PRE = ("korsat", "pokaj", "pokaz", "chiqar", "vivod")
 LATEST_WORDS = {"oxirgi", "oxirgisi", "songgi", "latest", "newest", "svejiy", "svejie", "noveyshiy", "noveyshee"}
+LANG_EXT = {"python": "py", "pyton": "py", "paython": "py", "piton": "py", "javascript": "js", "java": "java", "typescript": "ts", "html": "html", "css": "css", "json": "json",
+            "sql": "sql", "php": "php", "golang": "go"}
+PROJECT_WORDS = {"project", "projects", "proyekt", "proyekti", "proekt", "proekti", "loyiha", "loyihalar", "loyihani"}
+CONTAIN_EX = {"containing", "contains", "contain", "sozi", "sozini", "sozli", "sozni"}
 KIND_PRE = {
     "video": ("video", "film", "kino", "klip", "rolik", "movie", "clip", "vidyo", "vidio"),
     "image": ("rasm", "surat", "foto", "photo", "image", "picture", "kartin", "izobraj", "snimok", "screenshot", "skrinshot"),
     "audio": ("musiq", "qoshiq", "audio", "muzik", "pesn", "music", "song"),
+    "code": ("kod", "code", "skript", "script", "source"),
     "document": ("hujjat", "dokument", "document"),
 }
 FILE_PRE = ("fayl", "file")
@@ -46,10 +51,10 @@ WEB_PRE = ("google", "gugl", "youtube", "yutub", "yutyub", "internet", "brauzer"
 WEB_SUB = ("gugl", "google", "youtube", "yutub", "internet", "brauzer", "browser", "chrome")      # «Погугли», «Googleda» kabi shakllar ham
 NOT_KIND_PRE = ("videokart", "videoplat", "videoadapt", "videopam")                                  # videokarta — qurilma, video fayl emas
 ALIAS_EXACT = {"downloads": "downloads", "download": "downloads", "desktop": "desktop"}
-ALIAS_PRE = {"downloads": ("download", "daunlod", "yuklama", "yuklab", "yuklan", "zagruz"), "desktop": ("desktop", "dekstop", "dasktop")}
+ALIAS_PRE = {"downloads": ("download", "daunlod", "yuklama", "yuklab", "yuklan", "zagruz", "skachan"), "desktop": ("desktop", "dekstop", "dasktop")}
 AMBIG_ALIAS = {  # folder so'zi yonida bo'lsagina papka nomi (aks holda tur so'zi)
-    "documents": {"documents", "dokumenti", "dokumentlar", "hujjatlar", "dokumentu"},
-    "pictures": {"pictures", "rasmlar", "suratlar", "izobrajeniya", "kartinki", "fotografii"},
+    "documents": {"documents", "dokumenti", "dokumentlar", "hujjatlar", "hujjat", "dokumentu", "document"},
+    "pictures": {"pictures", "picture", "rasmlar", "rasm", "suratlar", "surat", "izobrajeniya", "kartinki", "fotografii"},
     "music": {"music", "musiqa", "musiqalar", "muzika", "muziki"},
     "videos": {"videos", "videolar", "video", "vidyo"},
 }
@@ -58,7 +63,7 @@ STOP = set(("ni ga da dan ning dagi idagi iltimos menga meni men mening mani uch
             "mne pozhaluysta dlya pro na v vo po iz potom zatem imenem nazvaniem nazvanie nazivaetsya moi moy moim moih moyom moego moya "
             "mesta mestah mestax dostupnie dostupnix dostupnih imeyushiesya "
             "the a an please to my me of for about on and then named called from in at with any some available i is are there want need can you could "
-            "stored saved local locally pc").split())
+            "stored saved local locally pc olingan olinganlar s so project projects proyekt proyekti proekt proekti loyiha loyihalar loyihani word words sozi sozini sozli sozni slovo slovom containing contains contain").split())
 
 
 def _starts(t: str, pre: tuple[str, ...]) -> bool:
@@ -155,8 +160,7 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
         clauses, lang, found = nlu.analyze(work)
     except Exception:  # noqa: BLE001
         return None
-    if any(cl.has("DANGER") for cl in clauses):
-        return ParseResult("blocked", message=T("blocked", lang), lang=lang, langs=sorted(found), confidence=1.0)
+    danger = any(cl.has("DANGER") for cl in clauses)      # fayl niyati aniq bo'lgandan KEYIN qo'llanadi (boshqa buyruq matni ma'lumot bo'lishi mumkin)
 
     toks = _norm_tokens(work)
     if not toks and not data:
@@ -183,6 +187,7 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
     latest = bool(re.search(r"\beng (yangi|song|oxirgi)", joined) or re.search(r"\bsam(iy|oe|yy|ie|aya) (nov|svej|posled)", joined)
                   or "most recent" in joined or any(t in LATEST_WORDS or t.startswith("posledn") for t in toks))
     kinds: set[str] = set()
+    lang_word = False
     f_find = f_open = f_show = filenoun = ref = req = person = False
     langf = ""
     query: list[str] = []
@@ -192,6 +197,9 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
         if latest and (t in ("eng", "yangi", "samiy", "samoe", "samyy", "samie", "samaya", "noviy", "novoe", "novie", "novuyu", "svejiy", "most", "recent", "last")
                        or t.startswith(("yangisi", "songgi", "song", "oxirgi", "posledn", "svej", "novey"))
                        or t in LATEST_WORDS):
+            continue
+        if t in LANG_EXT:
+            exts.add(LANG_EXT[t]); kinds.add("code"); lang_word = True
             continue
         if t in KNOWN_EXTS:
             exts.add(t)
@@ -221,6 +229,12 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
         elif t not in STOP:
             query.append(t)
     web = any(_is_web(t) for t in toks)
+    # «Python haqida qidir» — veb-qidiruv; dasturlash tili nomi yolg'iz fayl niyati emas: «fayl», «project», «kod» yoki «ichida ... so'zi» kerak
+    explicit_code = any(_kind_of(t) == "code" for t in toks)
+    has_contain = any(t in CONTAIN_EX or t.startswith(("soderj", "soderzh")) for t in toks)
+    has_project = any(t in PROJECT_WORDS for t in toks)
+    if lang_word and not (filenoun or explicit_code or has_contain or has_project or data):
+        return None
     indicator = bool(kinds or exts or filenoun or data)
     if web or not indicator or not (f_find or f_open or f_show or latest):
         return None
@@ -230,9 +244,16 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
         return None                                                      # faqat «fayl» + «och»: nima ochilishi noma'lum — oddiy NLU qaror qiladi
     if not data and not (kinds or exts or filenoun):
         return None
+    if danger:                                              # fayl buyrug'i + xavfli fe'l («qidir va o'chir») — hamma narsa rad etiladi
+        return ParseResult("blocked", message=T("blocked", lang), lang=lang, langs=sorted(found), confidence=1.0)
     # --- ko'p bo'lakli gap: boshqa buyruq aralashgan bo'lsa fayl yo'liga o'tmaymiz (NLU qaror qiladi)
     if prior is not None and prior.kind == "ok" and len(prior.commands) > 1:
         return None
+    contains = ""
+    if any(t in CONTAIN_EX or t.startswith(("soderj", "soderzh")) for t in toks) and query:
+        qset = set(query)                                                  # «ichida X so'zi bor»: qolgan so'zlar nom emas, fayl MAZMUNI uchun (asl yozuvda)
+        contains = " ".join(w.strip(".,;:!?\"'«»") for w in re.findall(r"\S+", work) if normalize(w).replace(" ", "") in qset)[:100]
+        query = []
     qtext = " ".join(data + query).strip()[:200]
     has_name = bool(qtext)
     langs = sorted(found)
@@ -250,7 +271,7 @@ def parse(text: str, prior: ParseResult | None = None) -> ParseResult | None:
         return ParseResult("ok", command=cmd, commands=[cmd], lang=lang, langs=langs, confidence=0.9)
 
     then = "open" if f_open else "show"
-    args = {"query": qtext, "kinds": sorted(k for k in kinds if k), "exts": sorted(exts), "folder": alias, "lang": langf, "latest": latest,
+    args = {"query": qtext, "kinds": sorted(k for k in kinds if k), "exts": sorted(exts), "folder": alias, "lang": langf, "contains": contains, "latest": latest,
             "then": then, "ref": bool(ref or req), "bare": not has_name and not exts}
     cmd = Command("find_files", args, T("files.ask.find", lang, what=_describe(args, lang), where=_where(alias, lang)),
                   intent="open_file" if then == "open" else "find_file", needs_confirm=False)

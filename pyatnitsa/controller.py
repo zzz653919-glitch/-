@@ -26,12 +26,15 @@ THINKING, STREAMING = "thinking", "streaming"
 LABELS = {IDLE: "Kutmoqda", LISTENING: "Tinglayapti", CHECKING: "Nutq matnga aylantirilmoqda", INTERPRETING: "Buyruq tahlil qilinmoqda",
           CONFIRM: "Tasdiq kutilmoqda", RUNNING: "Bajarilmoqda", DONE: "Tayyor",
           THINKING: "AI o'ylamoqda", STREAMING: "AI javob bermoqda"}
-_OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info", "open_file"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
+_OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info", "open_file", "reminder_add", "reminders_show", "note_add", "notes_show", "task_add", "tasks_show",
+                 "task_complete", "study_show", "study_done", "study_progress", "media"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
 _REAL_FAILURES = ("mic.", "stt.network", "stt.failed", "stt.lib_missing", "stt.whisper")   # bular ERROR holati; qolganlari («nutq yo'q» va h.k.) oddiy javob
 
 INTENT_NAMES = {"open_app": "OPEN_APPLICATION", "open_folder": "OPEN_FOLDER", "web_search": "WEB_SEARCH",
                 "get_exchange_rate": "GET_EXCHANGE_RATE", "get_pc_health": "GET_PC_HEALTH", "get_system_info": "GET_SYSTEM_INFO",
-                "get_weather": "GET_WEATHER", "find_file": "FIND_FILE", "open_file": "OPEN_FILE", "list_files": "LIST_FILES"}
+                "get_weather": "GET_WEATHER", "find_file": "FIND_FILE", "open_file": "OPEN_FILE", "list_files": "LIST_FILES",
+                "add_reminder": "ADD_REMINDER", "show_reminders": "SHOW_REMINDERS", "add_task": "ADD_TASK", "show_tasks": "SHOW_TASKS", "complete_task": "COMPLETE_TASK",
+                "add_note": "ADD_NOTE", "show_notes": "SHOW_NOTES", "study_plan": "STUDY_PLAN", "study_done": "STUDY_DONE", "study_progress": "STUDY_PROGRESS", "media_control": "MEDIA_CONTROL"}
 
 
 def _ack_key(action: str) -> str | None:
@@ -60,6 +63,9 @@ class Controller(QObject):
     record = Signal(dict)                  # tugallangan buyruq yozuvi (tarix sahifasi uchun)
     aiStream = Signal(str, str)            # thinking_on | thinking_off | start | delta | end | stopped | error  (+ matn)
     retryChanged = Signal(bool)
+    dataChanged = Signal(str)                  # "reminders" | "tasks" | "notes" | "study" — sahifalar ro'yxatni yangilaydi
+    navigate = Signal(str)                     # natija sahifa ochishni so'raydi (masalan "study")
+    reminderFired = Signal(object)             # vaqti kelgan eslatma (Reminder) — oyna bildirishnoma ko'rsatadi
     fileAccessNeeded = Signal(str, str, str)   # no_roots | scope_denied, papka (bo'lishi mumkin), qayta yuboriladigan matn — oyna ruxsat so'raydi
     _ai_first = Signal(int)
     _ai_delta = Signal(int, str)
@@ -93,6 +99,10 @@ class Controller(QObject):
         self._retry: tuple | None = None
         self._last_recording = None
         self._pending: list[commands.Command] = []
+        self._draft = ""                              # aniqlashtirish kutilmoqda: keyingi javob shu matnga qo'shiladi
+        self._draft_tries = 0
+        self._rem_timer = QTimer(self, interval=15000)
+        self._rem_timer.timeout.connect(self.check_reminders)
         self._choices: list[fs.FileEntry] = []        # oxirgi fayl ro'yxati: «2», «birinchisini och», «ochib ber» shundan tanlaydi
         self._cur: dict | None = None
         self._limit = QTimer(self, singleShot=True, interval=audio.MAX_SECONDS * 1000)
@@ -404,7 +414,7 @@ class Controller(QObject):
             if ch is not None:
                 self._handle_choice(ch)
                 return
-        res = res or commands.parse(text)
+        res = self._continue_draft(text, res)
         route = router.route(text, res, has_history=bool(self.ai and len(self.ai.history)))
         self.log_event("info", "AI", f"Routed: {route.category} ({route.reason})")
         if route.to_ai:
@@ -647,6 +657,43 @@ class Controller(QObject):
         self._set_retry(None)
         self.log_event("info", "SYSTEM", "Conversation context cleared")
 
+    # ------------------------------------------------------------ aniqlashtirishning davomi va eslatma rejalashtiruvchisi
+    def _continue_draft(self, text: str, res: commands.ParseResult | None) -> commands.ParseResult:
+        """«9 ertalabmi, kechqurunmi?» -> «ertalab»: javob avvalgi so'rovga qo'shib qayta tahlil qilinadi. Tegishli bo'lmasa — yangi buyruq."""
+        draft, tries = self._draft, self._draft_tries
+        self._draft, self._draft_tries = "", 0
+        if draft:
+            cancel = fileintent.parse_choice(text, 1)
+            if cancel is not None and cancel.kind == "cancel":
+                return commands.ParseResult("unknown", message=T("files.choice_cancelled", self.lang), lang=self.lang)
+            alone = res or commands.parse(text)
+            if alone.kind in ("ok", "blocked"):               # mustaqil buyruq (yoki xavfli) — javob emas: o'zi ishlanadi
+                res = alone
+            else:
+                combined = commands.parse(f"{draft} {text}")
+                if combined.kind == "ok" or (combined.kind == "clarify" and combined.draft and tries < 3):
+                    res = combined
+        res = res or commands.parse(text)
+        if res.kind == "clarify" and res.draft:
+            self._draft, self._draft_tries = res.draft, (tries + 1 if draft else 0)
+        return res
+
+    def start_scheduler(self) -> None:
+        """Eslatmalarni tekshirishni boshlaydi (oyna yaratilgandan keyin). Ilova o'chiq paytida o'tib ketganlar birinchi tekshiruvda bir marta chiqadi."""
+        self._rem_timer.start()
+        QTimer.singleShot(0, self.check_reminders)
+
+    def check_reminders(self) -> None:
+        if self._closed:
+            return
+        try:
+            for r in self.executor.reminders.fire_due():
+                self.log_event("active", "REMINDER", "Reminder time reached")     # sarlavha jurnalga yozilmaydi (shaxsiy ma'lumot)
+                self.reminderFired.emit(r)
+            self.dataChanged.emit("reminders")
+        except Exception:  # noqa: BLE001 - baza xatosi ilovani qulatmasin
+            log.exception("Eslatmalarni tekshirishda xato")
+
     # ------------------------------------------------------------ fayllar
     def _handle_choice(self, ch: fileintent.Choice) -> None:
         """«2», «birinchisini och», «ochib ber», «bekor»: ro'yxatdagi faylni tanlash. Tanlangan fayl nomi o'qib beriladi va tasdiqlanadi."""
@@ -730,6 +777,11 @@ class Controller(QObject):
             first = r.message.splitlines()[0] if r.message else ""
             self.log_event("success" if r.ok else "error", "SUCCESS" if r.ok else "ERROR", first)
         ok_all = all(r.ok for r in results)
+        for r in results:
+            if r.changed:
+                self.dataChanged.emit(r.changed)
+            if r.nav:
+                self.navigate.emit(r.nav)
         if len(results) == 1 and results[0].files is not None and self._after_files(results[0]):
             return
         self._finish_record("executed" if ok_all else "failed", results[0].message.splitlines()[0] if results and results[0].message else "")
@@ -740,6 +792,7 @@ class Controller(QObject):
     # ------------------------------------------------------------ yopish
     def shutdown(self) -> None:
         self._closed = True
+        self._rem_timer.stop()
         ev = getattr(self.executor, "cancel_event", None)
         if ev is not None:
             ev.set()                                  # davom etayotgan fayl qidiruvi to'xtaydi

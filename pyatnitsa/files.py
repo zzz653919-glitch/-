@@ -33,12 +33,18 @@ KIND_EXT: dict[str, frozenset[str]] = {
     "audio": frozenset("mp3 wav flac aac m4a ogg wma opus".split()),
     "document": frozenset("pdf txt rtf doc docx odt xls xlsx ods ppt pptx odp csv md".split()),
 }
-OPENABLE_EXT = frozenset().union(*KIND_EXT.values())
+OPENABLE_EXT = frozenset().union(*KIND_EXT.values())          # Windows'ning standart ilovasida ochiladi
+# Kod fayllari: ro'yxatda ko'rinadi va faqat NOTEPAD'da (matn sifatida) ochiladi — standart ilova (masalan python.exe) ularni ISHGA TUSHIRIB yuborishi mumkin
+CODE_EXT = frozenset("py pyw js ts tsx jsx java c h cpp hpp cs go rs rb php html htm css json yaml yml xml sql kt swift lua sh bat cmd ps1 ini toml".split())
+KIND_EXT["code"] = CODE_EXT
 KIND_OF_EXT = {e: k for k, exts in KIND_EXT.items() for e in exts}
+TEXT_EXT = CODE_EXT | frozenset("txt md csv log rtf".split())     # fayl ICHIDAN qidiriladigan matn turlari
+CONTENT_MAX_FILE = 2 * 1024 * 1024
+CONTENT_BUDGET = 300 * 1024 * 1024
 # Bu kengaytmalar ISHGA TUSHADI yoki skript/makro bajaradi — ular hech qachon ochilmaydi (ro'yxatda ko'rinishi mumkin)
 RISKY_EXT = frozenset("exe bat cmd com msi msp scr ps1 psm1 vbs vbe js jse wsf wsh hta lnk url reg jar dll sys cpl pif gadget application "
                       "appx msix docm xlsm pptm dotm xlam svg html htm xhtml chm iso py pyw sh".split())
-KINDS = ("video", "image", "audio", "document", "other")
+KINDS = ("video", "image", "audio", "document", "code", "other")
 
 SKIP_DIR_NAMES = frozenset({"$recycle.bin", "system volume information", "node_modules", ".git", "__pycache__", "$winreagent", "windows.old"})
 SENSITIVE_NAMES = frozenset({"secrets.env", ".env", ".netrc", ".npmrc", "id_rsa", "id_ed25519", "id_ecdsa", "known_hosts", "authorized_keys",
@@ -104,6 +110,14 @@ def root_problem(path: Path | str) -> str:
     return ""
 
 
+def open_mode(path: Path | str) -> str:
+    """"default" — Windows'ning standart ilovasi; "notepad" — kod fayli faqat Notepad'da (matn sifatida); "" — ochilmaydi."""
+    ext = Path(path).suffix.lower().lstrip(".")
+    if ext in OPENABLE_EXT:
+        return "default"
+    return "notepad" if ext in CODE_EXT else ""
+
+
 def safe_display(name: str, limit: int = 120) -> str:
     """Nomni ko'rsatishga tayyorlaydi: boshqaruv va bidi belgilar (kengaytmani yashiruvchi RLO va h.k.) olib tashlanadi."""
     s = "".join(ch for ch in str(name) if unicodedata.category(ch) not in ("Cc", "Cf", "Cs", "Co"))
@@ -142,6 +156,7 @@ class FileEntry:
     size: int | None
     mtime: float | None
     root: Path | None = None
+    snippet: str = ""                             # `contains` bo'yicha topilgan birinchi qator (ko'rsatish uchun)
 
     @property
     def ext(self) -> str:
@@ -157,7 +172,7 @@ class FileEntry:
 
     @property
     def openable(self) -> bool:
-        return self.kind == "folder" or self.ext in OPENABLE_EXT
+        return self.kind == "folder" or self.ext in OPENABLE_EXT or self.ext in CODE_EXT
 
 
 @dataclass
@@ -166,8 +181,12 @@ class Query:
     kinds: frozenset[str] = frozenset()           # bo'sh = istalgan fayl
     exts: frozenset[str] = frozenset()
     lang: str = ""                                # uz | ru | en — fayl/papka NOMIga qarab taxmin
+    contains: str = ""                            # matn/kod fayllari ICHIDAN qidiriladigan so'z(lar) (katta-kichik harf farqsiz)
     latest: bool = False
     limit: int = 50
+    min_size: int | None = None                   # bayt
+    max_size: int | None = None
+    after: float | None = None                    # o'zgargan vaqt (epoch) shundan keyin
 
 
 @dataclass
@@ -179,6 +198,7 @@ class SearchOutcome:
     fuzzy: bool = False                           # aniq mos kelish yo'q — o'xshash nomlar (avtomatik ochilmaydi)
     cancelled: bool = False
     elapsed: float = 0.0
+    content_checked: int = 0                      # ichidan qidirilgan fayllar soni
     roots: list[Path] = field(default_factory=list)
 
 
@@ -230,6 +250,37 @@ def lang_hint(lang: str, *texts: str) -> bool:
         return True
     toks = set(_tokens(raw))
     return bool(toks & _LANG_ALIASES.get(lang, set()))
+
+
+def _contains(entry, needle: str, out: "SearchOutcome", state: dict) -> tuple[bool, str]:
+    """Matn fayli ichida barcha so'zlar bormi (kichik-katta harf farqsiz). Katta/ikkilik fayllar va umumiy hajm chegarasi hisobga olinadi."""
+    words = [w for w in needle.lower().split() if w]
+    try:
+        st = entry.stat(follow_symlinks=False)
+        if st.st_size > CONTENT_MAX_FILE or state["bytes"] + st.st_size > CONTENT_BUDGET or not words:
+            out.truncated = out.truncated or state["bytes"] + st.st_size > CONTENT_BUDGET
+            return False, ""
+        with open(entry.path, "rb") as f:
+            data = f.read(CONTENT_MAX_FILE)
+    except OSError:
+        out.denied += 1
+        return False, ""
+    state["bytes"] += len(data)
+    out.content_checked += 1
+    if b"\x00" in data[:4096]:
+        return False, ""                                # ikkilik fayl
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        text = data.decode("cp1251", errors="ignore")
+    low = text.lower()
+    if not all(w in low for w in words):
+        return False, ""
+    pos = low.find(words[0])
+    start = low.rfind("\n", 0, pos) + 1
+    end = low.find("\n", pos)
+    line = text[start: end if end >= 0 else len(text)].strip()
+    return True, safe_display(line, 110)
 
 
 # ----------------------------------------------------------------------------- asosiy sinf
@@ -328,6 +379,7 @@ class FileAccess:
         seen_dirs: set[str] = set()
         stack = [(r, r) for r in reversed(roots)]
         win = sys.platform == "win32"
+        content_state = {"bytes": 0}
         cap = max(q.limit, 1) if q.latest else MAX_RESULTS * 5
         while stack:
             if cancel is not None and cancel.is_set():
@@ -394,6 +446,13 @@ class FileAccess:
                         continue
                     if q.lang and not lang_hint(q.lang, name, Path(entry.path).parent.name):
                         continue
+                    snippet = ""
+                    if q.contains:
+                        if ext not in TEXT_EXT:
+                            continue
+                        found, snippet = _contains(entry, q.contains, out, content_state)
+                        if not found:
+                            continue
                     stem_n = " ".join(_tokens(name.rsplit(".", 1)[0] if "." in name else name))
                     score = _score(qtokens, qjoined, " ".join(_tokens(name)), stem_n)
                     try:
@@ -401,7 +460,10 @@ class FileAccess:
                         size, mtime = st.st_size, st.st_mtime
                     except OSError:
                         size = mtime = None
-                    fe = FileEntry(Path(entry.path), name, kind, size, mtime, root)
+                    if (q.min_size is not None and (size is None or size < q.min_size)) or (q.max_size is not None and (size is None or size > q.max_size)) \
+                            or (q.after is not None and (mtime is None or mtime < q.after)):
+                        continue
+                    fe = FileEntry(Path(entry.path), name, kind, size, mtime, root, snippet)
                     if score <= 0:
                         if qtokens and len(fuzzy_pool) < 20000:
                             fuzzy_pool.append((stem_n, fe))
@@ -493,7 +555,7 @@ class FileAccess:
         ext = p.suffix.lower().lstrip(".")
         if is_sensitive(p.name):
             return None, "not_allowed"
-        if ext not in OPENABLE_EXT:
+        if ext not in OPENABLE_EXT and ext not in CODE_EXT:
             return None, "type_blocked"
         if not os.access(p, os.R_OK):
             return None, "no_access"
