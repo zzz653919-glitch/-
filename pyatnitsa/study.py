@@ -181,12 +181,25 @@ class StudyStore:
     def delete_item(self, iid: str) -> bool:
         return self.db.execute("DELETE FROM study_items WHERE id=?", (iid,)) > 0
 
+    # ---- mashq sessiyalari (viktorina/talaffuz/tinglash): faqat HAQIQATDA yakunlangan sessiyalar yoziladi
+    def record_session(self, kind: str, level: str, total: int, correct: int) -> None:
+        now = self.now()
+        self.db.execute("INSERT INTO english_sessions(kind,level,total,correct,finished_at,day) VALUES(?,?,?,?,?,?)",
+                        (kind, level, int(total), int(correct), now.strftime(DT_FMT), now.date().isoformat()))
+
+    def sessions(self, limit: int = 20) -> list[dict]:
+        return [dict(r) for r in self.db.query("SELECT kind,level,total,correct,finished_at,day FROM english_sessions ORDER BY id DESC LIMIT ?", (limit,))]
+
+    def session_stats(self) -> dict:
+        r = self.db.query("SELECT COUNT(*), COALESCE(SUM(total),0), COALESCE(SUM(correct),0) FROM english_sessions")[0]
+        return {"sessions": r[0], "questions": r[1], "correct": r[2]}
+
     def clear_progress(self) -> int:
-        """Yozilgan tarix va qiyin so'zlar o'chadi (reja saqlanadi)."""
-        return self.db.clear("study_log", "study_items")
+        """Yozilgan tarix, mashq sessiyalari va qiyin so'zlar o'chadi (reja saqlanadi)."""
+        return self.db.clear("study_log", "study_items", "english_sessions")
 
     def clear_all(self) -> int:
-        n = self.db.clear("study_log", "study_items", "study_activities")
+        n = self.db.clear("study_log", "study_items", "study_activities", "english_sessions")
         self.db.execute("DELETE FROM meta WHERE key LIKE 'study_%'")
         self.reset_plan()
         return n

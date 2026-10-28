@@ -12,7 +12,7 @@ import time
 
 from PySide6.QtCore import QObject, QTimer, Signal
 
-from . import ai_chat, audio, commands, fileintent, files as fs, router, stt
+from . import ai_chat, audio, commands, desktop, english, fileintent, files as fs, router, stt
 from .ai_chat import AIError
 from .audio import VoiceError
 from .executor import Executor, Result
@@ -27,14 +27,17 @@ LABELS = {IDLE: "Kutmoqda", LISTENING: "Tinglayapti", CHECKING: "Nutq matnga ayl
           CONFIRM: "Tasdiq kutilmoqda", RUNNING: "Bajarilmoqda", DONE: "Tayyor",
           THINKING: "AI o'ylamoqda", STREAMING: "AI javob bermoqda"}
 _OPEN_ACTIONS = {"open_app", "new_window", "search", "time", "admin_info", "open_file", "reminder_add", "reminders_show", "note_add", "notes_show", "task_add", "tasks_show",
-                 "task_complete", "study_show", "study_done", "study_progress", "media"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
+                 "task_complete", "study_show", "study_done", "study_progress", "media",
+                 "window", "screenshot", "clipboard", "ui", "youtube_search", "open_site", "english"}   # natijaning o'zi xabar — alohida «tekshiryapman» kerak emas
 _REAL_FAILURES = ("mic.", "stt.network", "stt.failed", "stt.lib_missing", "stt.whisper")   # bular ERROR holati; qolganlari («nutq yo'q» va h.k.) oddiy javob
 
 INTENT_NAMES = {"open_app": "OPEN_APPLICATION", "open_folder": "OPEN_FOLDER", "web_search": "WEB_SEARCH",
                 "get_exchange_rate": "GET_EXCHANGE_RATE", "get_pc_health": "GET_PC_HEALTH", "get_system_info": "GET_SYSTEM_INFO",
                 "get_weather": "GET_WEATHER", "find_file": "FIND_FILE", "open_file": "OPEN_FILE", "list_files": "LIST_FILES",
                 "add_reminder": "ADD_REMINDER", "show_reminders": "SHOW_REMINDERS", "add_task": "ADD_TASK", "show_tasks": "SHOW_TASKS", "complete_task": "COMPLETE_TASK",
-                "add_note": "ADD_NOTE", "show_notes": "SHOW_NOTES", "study_plan": "STUDY_PLAN", "study_done": "STUDY_DONE", "study_progress": "STUDY_PROGRESS", "media_control": "MEDIA_CONTROL"}
+                "add_note": "ADD_NOTE", "show_notes": "SHOW_NOTES", "study_plan": "STUDY_PLAN", "study_done": "STUDY_DONE", "study_progress": "STUDY_PROGRESS", "media_control": "MEDIA_CONTROL",
+                "window_control": "WINDOW_CONTROL", "screenshot": "TAKE_SCREENSHOT", "clipboard": "CLIPBOARD", "ui_control": "UI_CONTROL", "open_site": "OPEN_WEBSITE",
+                "net_check": "CHECK_INTERNET", "english": "ENGLISH_LEARNING"}
 
 
 def _ack_key(action: str) -> str | None:
@@ -99,6 +102,9 @@ class Controller(QObject):
         self._retry: tuple | None = None
         self._last_recording = None
         self._pending: list[commands.Command] = []
+        self._awaiting: list[commands.Command] = []   # tasdiq savoli berilgan; javob (ha/yo'q) KEYINGI ovozli gapda kutilmoqda
+        self._lesson = None                           # faol ingliz tili mashqi (viktorina / talaffuz / tinglash)
+        self._stt_lang = ""                           # mashq vaqtida nutqni tanish tili (masalan en-US talaffuz uchun)
         self._draft = ""                              # aniqlashtirish kutilmoqda: keyingi javob shu matnga qo'shiladi
         self._draft_tries = 0
         self._rem_timer = QTimer(self, interval=15000)
@@ -207,8 +213,8 @@ class Controller(QObject):
             self.cancel_ai()
             self._start_listening()
         elif not self.busy and not self._stopping and self._guard():
-            if self.state == CONFIRM:
-                self.cancel(silent=True)
+            if self.state == CONFIRM:                    # tasdiq savoliga OVOZ bilan javob berish: kutilayotgan amal saqlanadi, bekor qilinmaydi
+                self._awaiting, self._pending = list(self._pending), []
             self._start_listening()
 
     HOLD_MIN_S = 0.35            # shundan uzoq bosib turilsa — hold-to-talk; qisqa bosish — avvalgidek yoqish/o'chirish
@@ -263,7 +269,14 @@ class Controller(QObject):
         self.log_event("info", "VOICE", f"Listening activated (microphone: {dev}, {getattr(rec, 'rate', '?')} Hz)")
         self._set(LISTENING)
 
+    def _drop_awaiting(self, why: str = "Confirmation was not received") -> None:
+        if self._awaiting:
+            self._awaiting = []
+            self.log_event("info", "SYSTEM", why + "; nothing was executed")
+            self._finish_record("cancelled", why)
+
     def _start_failed(self, key: str, text: str, raw: str) -> None:
+        self._drop_awaiting("Microphone could not be started")
         self.log_event("error", "ERROR", f"Microphone unavailable: {raw[:200]}")
         self.message.emit("system", text)
         self.last_ok = False
@@ -315,7 +328,7 @@ class Controller(QObject):
 
     def _run_stt(self, recording) -> None:
         self._set(CHECKING)
-        lang = self.settings.stt_language
+        lang = self._stt_lang or self.settings.stt_language
         engine = self.settings.stt_engine
 
         def work():
@@ -365,6 +378,7 @@ class Controller(QObject):
         self._last_recording = None
         self._set_retry(None)
         if chosen is not None and chosen.conf is not None and chosen.conf < audio.MIN_CONFIDENCE and res.kind != "blocked":
+            self._drop_awaiting("Speech was unclear")
             self.message.emit("user", text)               # nima eshitilgani ko'rinsin, lekin bajarilmaydi
             self.log_event("warn", "VOICE", f"Low recognition confidence ({chosen.conf:.2f}); asking the user to repeat")
             self._reply(T("voice.unclear", self.lang, text=text))
@@ -378,6 +392,7 @@ class Controller(QObject):
         self.retryChanged.emit(ctx is not None)
 
     def _voice_failed(self, err: BaseException) -> None:
+        self._drop_awaiting("Speech was not recognized")
         if self._last_recording is not None:
             self._set_retry(("stt",))                # xabar yo'qolmasin: o'sha yozuvni qayta tanish mumkin
         if isinstance(err, VoiceError):
@@ -389,6 +404,15 @@ class Controller(QObject):
             self._reply(T("stt.failed", self.lang, detail=f"{type(err).__name__}: {err}"[:160]), ok=False)
 
     # ------------------------------------------------------------ matn (ikkala manba uchun umumiy)
+    def submit_typed(self, text: str) -> None:
+        """Klaviaturadan kiritilgan matn (interfeysdan). «Faqat ovoz» rejimida buyruq sifatida QABUL QILINMAYDI."""
+        if self.settings.voice_only:
+            if text.strip():
+                self.log_event("warn", "SECURITY", "Typed command rejected: voice-only mode is on")
+                self.message.emit("system", T("voice_only", self.lang))
+            return
+        self.submit_text(text)
+
     def submit_text(self, text: str) -> None:
         text = text.strip()
         if not text or self.state == LISTENING or self.busy or self._stopping or not self._guard():
@@ -406,9 +430,25 @@ class Controller(QObject):
         if self.state != INTERPRETING:           # ovozli oqimda allaqachon INTERPRETING
             self._set(INTERPRETING)
         self.message.emit("user", text)
+        if self._awaiting:                            # ovozli tasdiq: «ha» bajaradi, «yo'q» bekor qiladi, boshqa gap — yangi buyruq (eskisi bekor)
+            awaiting, self._awaiting = self._awaiting, []
+            answer = commands.yes_no(text)
+            if answer == "yes":
+                self.log_event("info", "SYSTEM", "Confirmed by voice")
+                self._pending = awaiting
+                self._run(awaiting)
+                return
+            if answer == "no":
+                self.log_event("info", "SYSTEM", "Cancelled by voice; nothing was executed")
+                self._finish_record("cancelled", "Cancelled by voice")
+                self._reply(T("cancelled", self.lang))
+                return
+            self._finish_record("cancelled", "Replaced by a new command")
         self._cur = {"time": time.time(), "source": source, "text": text, "intents": [], "outcome": "", "summary": ""}
         if source == "text":
             self.log_event("info", "TEXT", "Command received")
+        if self._lesson is not None and self._lesson_turn(text, res):
+            return
         if self._choices:                             # oxirgi fayl ro'yxatidan tanlash: «2», «birinchisini och», «bekor»
             ch = fileintent.parse_choice(text, len(self._choices))
             if ch is not None:
@@ -776,6 +816,26 @@ class Controller(QObject):
         for r in results:
             first = r.message.splitlines()[0] if r.message else ""
             self.log_event("success" if r.ok else "error", "SUCCESS" if r.ok else "ERROR", first)
+        for r in results:
+            if r.ui == "screenshot":
+                try:
+                    path = desktop.take_screenshot(desktop.screenshots_dir(), self.executor.now())
+                    r.message, r.spoken, r.ok = T("shot.ok", self.lang, path=path), T("shot.ok_say", self.lang), True
+                except Exception as e:  # noqa: BLE001
+                    log.warning("Skrinshot olinmadi", exc_info=True)
+                    r.message, r.spoken, r.ok = T("shot.fail", self.lang, err=str(e)[:120]), None, False
+            elif r.ui == "mic_status":
+                r.message = self._mic_status_text()
+        if len(results) == 1 and results[0].ui.startswith("clipboard:"):
+            self._clipboard(results[0].ui.split(":", 1)[1])
+            return
+        if len(results) == 1 and results[0].lesson:
+            self._start_lesson(*results[0].lesson)
+            return
+        if len(results) == 1 and results[0].ai_prompt and results[0].ok:
+            self.message.emit("assistant", results[0].message)
+            self._start_ai(results[0].ai_prompt, router.Route(router.GENERAL_CONVERSATION, "english-translate", self.lang), None)
+            return
         ok_all = all(r.ok for r in results)
         for r in results:
             if r.changed:
@@ -788,6 +848,100 @@ class Controller(QObject):
         text = "\n\n".join(r.message for r in results)
         spoken = " ".join((r.spoken or r.message.splitlines()[0]) for r in results)[:500]
         self._reply(text, ok_all, spoken)
+
+    # ------------------------------------------------------------ mikrofon holati, clipboard
+    def _mic_status_text(self) -> str:
+        state = "listening" if self.state == LISTENING else "idle"        # bu buyruqning o'zi bajarilayotgan paytda ham mikrofon tayyor (faqat Space bilan yoqiladi)
+        if state == "idle" and not self.last_ok:
+            state = "error"
+        dev = self.settings.microphone or T("mic.default", self.lang)
+        return T("ui.mic", self.lang, state=T(f"mic.state.{state}", self.lang), dev=dev)
+
+    def _clipboard(self, mode: str) -> None:
+        """Foydalanuvchi buyruq berib, TASDIQLAGANIDAN keyin clipboard matnini o'qiydi. Matn jurnalga yozilmaydi; AI'ga faqat explain/summarize'da yuboriladi."""
+        self.log_event("info", "CLIPBOARD", f"Clipboard read ({mode}) after user confirmation; content is not logged")
+        try:
+            text = desktop.read_clipboard()
+        except Exception:  # noqa: BLE001
+            log.warning("Clipboard o'qilmadi", exc_info=True)
+            text = None
+        lang = self.lang
+        if not text or not text.strip():
+            self._reply(T("clip.empty", lang), ok=False)
+            self._finish_record("failed", "Clipboard empty")
+            return
+        if desktop.looks_secret(text):
+            self.log_event("warn", "SECURITY", "Clipboard text looks like a secret; neither shown nor sent")
+            self._reply(T("clip.secret", lang), ok=False)
+            self._finish_record("blocked", "Clipboard looks like a secret")
+            return
+        if mode == "read":
+            shown = text[:desktop.MAX_SHOW_CHARS] + (T("clip.cut", lang) if len(text) > desktop.MAX_SHOW_CHARS else "")
+            self._reply(T("clip.show", lang, n=len(text), text=shown), spoken=T("clip.say", lang))
+            self._finish_record("executed", "Clipboard shown")
+            return
+        if len(text) > desktop.MAX_AI_CHARS:
+            self._reply(T("clip.too_long", lang, n=len(text), max=desktop.MAX_AI_CHARS), ok=False)
+            self._finish_record("failed", "Clipboard too long")
+            return
+        prompt = T(f"clip.p.{mode}", lang, text=text, language=T("lang.name", lang))
+        self.message.emit("assistant", T("clip.sending", lang, n=len(text)))
+        self._start_ai(prompt, router.Route(router.GENERAL_CONVERSATION, "clipboard", lang), None)
+
+    # ------------------------------------------------------------ ingliz tili mashqlari (har javob — alohida ovozli buyruq)
+    def _start_lesson(self, kind: str, level: str, n: int) -> None:
+        self._lesson = english.make_lesson(kind, level, self.lang, n)
+        self.log_event("info", "ENGLISH", f"Exercise started: {kind} ({level})")
+        self._deliver_turn(self._lesson.start())
+
+    def _lesson_turn(self, text: str, res: commands.ParseResult | None) -> bool:
+        """True — gap mashq javobi sifatida qabul qilindi. Aniq boshqa buyruq bo'lsa (javob tushunarsiz) mashq tugaydi va buyruq bajariladi."""
+        turn = self._lesson.answer(text)
+        if getattr(turn, "unclear", False) and self._lesson.kind != "pronunciation":
+            r = res or commands.parse(text)
+            if r.kind == "ok":
+                self.log_event("info", "ENGLISH", "Exercise ended: another command was heard")
+                self._lesson, self._stt_lang = None, ""
+                return False
+        self._deliver_turn(turn)
+        return True
+
+    def _deliver_turn(self, turn: english.Turn) -> None:
+        self._stt_lang = "" if turn.done else (turn.stt_lang or "")
+        text = turn.text
+        if turn.done:
+            text += self._finish_lesson(turn)
+        self.lang = self._lesson.lang if self._lesson else self.lang
+        self.last_ok = True
+        if turn.speak:                                 # tinglash: inglizcha gap faqat ovozda aytiladi, matnda ko'rsatilmaydi
+            if self.settings.voice_enabled:
+                self.message.emit("assistant", text)
+                self.speaker.say(turn.speak, "en")
+                self._set(DONE)
+            else:
+                self._reply(text + "\n\n" + T("eng.listen.silent", self.lang, text=turn.speak))
+        else:
+            self._reply(text)
+        self._finish_record("executed", "English exercise")
+        if turn.done:
+            self._lesson = None
+
+    def _finish_lesson(self, turn: english.Turn) -> str:
+        extra = ""
+        if turn.saved:
+            try:
+                st = self.executor.study
+                st.record_session(turn.kind, turn.level, turn.total or 0, turn.correct or 0)
+                extra += "\n" + T("eng.saved", self.lang)
+                if turn.kind == "quiz" and turn.wrong_words:
+                    added = sum(1 for w in turn.wrong_words if st.add_item("word", w, "quiz")[1])
+                    if added:
+                        extra += " " + T("eng.added", self.lang, n=added)
+                self.dataChanged.emit("study")
+            except Exception:  # noqa: BLE001
+                log.warning("Mashq natijasi yozilmadi", exc_info=True)
+        self._stt_lang = ""
+        return extra
 
     # ------------------------------------------------------------ yopish
     def shutdown(self) -> None:

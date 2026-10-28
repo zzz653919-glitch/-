@@ -137,6 +137,15 @@ def os_description() -> str:
     return f"{platform.system()} {platform.release()}"
 
 
+def cpu_name() -> str:
+    """Protsessor nomi (Windows'da PowerShell orqali, boshqacha platform.processor())."""
+    if sys.platform == "win32":
+        r = _powershell("(Get-CimInstance Win32_Processor | Select-Object -First 1 -ExpandProperty Name)", 6.0)
+        if r and r.returncode == 0 and r.stdout.strip():
+            return " ".join(r.stdout.split())
+    return platform.processor() or platform.machine() or ""
+
+
 class _Cache:
     """Sekin manbalar uchun TTL kesh."""
     def __init__(self, ttl: float, fn: Callable):

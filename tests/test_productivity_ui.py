@@ -541,7 +541,7 @@ def test_reminder_titles_are_not_written_to_the_terminal_log(pw):
 def test_settings_page_permissions_and_local_data(pw):
     s = pw.w.settings_page
     assert "only while you hold SPACE" in s.perm_mic.text() and "never read" in s.perm_clip.text() and s.notify.isChecked()
-    assert "0 reminder(s), 0 task(s), 0 note(s)" in s.data_info.text() and str(pw.db.path) in s.data_info.text() and "schema v2" in s.data_info.text()
+    assert "0 reminder(s), 0 task(s), 0 note(s)" in s.data_info.text() and str(pw.db.path) in s.data_info.text() and "schema v3" in s.data_info.text()
     pw.ex.reminders.add("x", NOW + timedelta(hours=1)); pw.ex.tasks.add("t"); pw.ex.notes.add("n")
     pw.ctrl.dataChanged.emit("notes")
     assert "1 reminder(s), 1 task(s), 1 note(s)" in s.data_info.text()
@@ -588,3 +588,38 @@ def test_database_notice_is_visible_to_the_user(tmp_path):
     sp = SettingsPage(Settings(), ex=ex)
     assert "buzilgan" in sp.data_info.text()
     d.close()
+
+
+# ================================================================== «faqat ovoz» rejimi va holat yorlig'i
+def test_voice_only_input_is_read_only_and_typing_never_runs_a_command(pw):
+    w, st = pw.w, pw.st
+    seen = []
+    pw.ctrl.message.connect(lambda r, t: seen.append((r, t)))
+    st.voice_only = True; w.apply_settings()
+    assert w.input.isReadOnly() and "Voice-only" in w.input.placeholderText()
+    w.input.setReadOnly(False)                                       # kimdir maydonni dasturiy ravishda ochib, matn kiritsa ham...
+    w.input.setPlainText("minimize this window")
+    w.send_text()
+    assert pw.plat.calls == [] and any(r == "system" and "ovozli" in t.lower() for r, t in seen) and pw.ctrl.state == C.IDLE   # ...buyruq bajarilmaydi
+    st.voice_only = False; w.apply_settings()
+    assert not w.input.isReadOnly()
+
+
+def test_status_label_uses_ready_listening_processing_executing_error(pw):
+    from pyatnitsa.gui.theme import STATE_LABELS
+    assert [STATE_LABELS[k] for k in ("standby", "listening", "processing", "executing", "error")] == ["READY", "LISTENING", "PROCESSING", "EXECUTING", "ERROR"]
+    assert STATE_LABELS["interpreting"] == "PROCESSING" and "READY" in pw.w.status.text()
+
+
+def test_settings_page_exposes_voice_only_and_english_level(pw):
+    s = pw.w.settings_page
+    assert s.voice_only.isChecked() and s.eng_level.currentText() == "A1"
+    s.voice_only.setChecked(False); s.eng_level.setCurrentText("B1"); s.save()
+    assert pw.st.voice_only is False and pw.st.english_level == "B1"
+
+
+def test_clearing_study_data_also_clears_english_exercise_history(pw):
+    pw.ex.study.record_session("quiz", "A1", 5, 4)
+    pw.w.settings_page.refresh_data()
+    pw.w.settings_page.clear_btns["study"].click()
+    assert pw.ex.study.session_stats()["sessions"] == 0

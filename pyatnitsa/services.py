@@ -77,3 +77,17 @@ def weather(city: str, fetch=get_json) -> dict:
                 "code": int(cur["weather_code"]), "time": str(cur["time"])}
     except (KeyError, TypeError, ValueError, AttributeError) as e:
         raise DataError("Ob-havo ma'lumoti topilmadi") from e
+
+
+def internet_check(timeout: float = 4.0) -> tuple[str, int]:
+    """Internetga chiqish mumkinmi: ommaviy DNS/HTTPS portiga TCP ulanish (hech qanday ma'lumot yuborilmaydi). (host, ms) yoki NetworkError."""
+    import time
+    last = "no route"
+    for host, port in (("1.1.1.1", 443), ("8.8.8.8", 53)):
+        t0 = time.monotonic()
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return host, int((time.monotonic() - t0) * 1000)
+        except OSError as e:
+            last = str(e) or type(e).__name__
+    raise NetworkError(last)

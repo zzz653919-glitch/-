@@ -33,10 +33,15 @@ APPS: dict[str, AppSpec] = {a.id: a for a in (
     AppSpec("youtube", "YouTube", "url"),
     AppSpec("search", "Google'da qidiruv", "url"),
     AppSpec("winsettings", "Windows Sozlamalari", "uri"),
+    AppSpec("vscode", "Visual Studio Code", "exe"),
+    AppSpec("music", "Music papkasi", "folder"),
+    AppSpec("pictures", "Pictures papkasi", "folder"),
+    AppSpec("videos", "Videos papkasi", "folder"),
 )}
 URIS = {"winsettings": "ms-settings:"}                       # qat'iy: faqat shu URI sxemasi ochiladi
 MEDIA_KEYS = {"play_pause": 0xB3, "next": 0xB0, "prev": 0xB1, "stop": 0xB2, "vol_up": 0xAF, "vol_down": 0xAE, "mute": 0xAD}   # Windows virtual-key kodlari
 
+WINDOW_OPS = ("minimize", "maximize", "next", "prev")
 URLS = {"youtube": "https://www.youtube.com/", "browser": "https://www.google.com/"}
 _FOLDER_GUIDS = {  # Windows Known Folder ID
     "downloads": "{374DE290-123F-4565-9164-39C4925E467B}",
@@ -85,6 +90,10 @@ class Platform:
             cands = [sysroot / "System32" / "notepad.exe"]
         elif app_id == "explorer":
             cands = [sysroot / "explorer.exe"]
+        elif app_id == "vscode":
+            local = os.environ.get("LocalAppData")
+            roots = [Path(local) / "Programs" if local else None, *(Path(r) for r in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)")) if r)]
+            cands = [r / "Microsoft VS Code" / "Code.exe" for r in roots if r]
         else:
             return None
         return next((c for c in cands if c.is_file()), None)
@@ -139,6 +148,26 @@ class Platform:
         user32 = ctypes.windll.user32
         user32.keybd_event(vk, 0, 0, 0)
         user32.keybd_event(vk, 0, 2, 0)       # KEYEVENTF_KEYUP
+
+    def window_op(self, op: str) -> None:
+        """Faol oynani boshqaradi (kichraytirish/kattalashtirish) yoki oynalar orasida o'tadi (Alt+Tab). Shell yo'q, faqat Windows API."""
+        if op not in WINDOW_OPS:
+            raise ValueError("Noma'lum oyna buyrug'i")
+        if sys.platform != "win32":
+            raise OSError("Oynalarni boshqarish faqat Windows'da ishlaydi")
+        import ctypes
+        u = ctypes.windll.user32
+        if op in ("minimize", "maximize"):
+            hwnd = u.GetForegroundWindow()
+            if not hwnd:
+                raise OSError("Faol oyna topilmadi")
+            u.ShowWindow(hwnd, 6 if op == "minimize" else 3)      # SW_MINIMIZE / SW_MAXIMIZE
+            return
+        keys = [0x12, 0x09] if op == "next" else [0x12, 0x10, 0x09]   # Alt+Tab / Alt+Shift+Tab
+        for k in keys:
+            u.keybd_event(k, 0, 0, 0)
+        for k in reversed(keys):
+            u.keybd_event(k, 0, 2, 0)
 
     def open_in_notepad(self, path: Path) -> None:
         """Kod/matn faylini Notepad'da ko'rish uchun ochadi (hech qachon ishga tushirmaydi)."""

@@ -291,7 +291,7 @@ _NUMW = {"bir": 1, "ikki": 2, "uch": 3, "tort": 4, "besh": 5, "olti": 6, "yetti"
          "odin": 1, "dva": 2, "tri": 3, "chetire": 4, "shest": 6, "sem": 7, "vosem": 8, "devyat": 9, "desyat": 10,
          "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10}
 _CANCEL = {"bekor", "bekorqil", "cancel", "otmena", "otmeni", "stop", "yoq", "hechqaysi", "hech", "no", "net", "nevermind", "qolsin", "kerakemas"}
-_CHOICE_FILLER = {"raqam", "raqamli", "nomer", "nomerom", "number", "no", "chisini", "ni", "ini", "isini", "sini", "one", "ones", "file", "fayl", "faylni", "video", "videoni",
+_CHOICE_FILLER = {"selected", "chosen", "tanlangan", "tanlanganni", "tanlangani", "vibranniy", "vibrannuyu", "vibrannyy", "fayli", "fayla", "raqam", "raqamli", "nomer", "nomerom", "number", "no", "chisini", "ni", "ini", "isini", "sini", "one", "ones", "file", "fayl", "faylni", "video", "videoni",
                   "iltimos", "pozhaluysta", "please", "the", "a", "ber", "bering", "uni", "shuni", "ega", "it", "that", "this", "ega", "etot", "ga", "da", "va"}
 
 

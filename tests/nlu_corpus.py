@@ -173,7 +173,7 @@ HELDOUT = [
     ("Qaysi dastur eng ko'p protsessorni yeyapti", "h:top:cpu|uz"), ("Batareya necha foiz", "h:battery|uz"), ("Kompyuter sekin ishlayapti, tezlashtirib ber", "h:speedup|uz"),
     # --- ruscha
     ("Запусти калькулятор пожалуйста", "open:calculator|ru"), ("Открой пожалуйста блокнот", "open:notepad|ru"), ("Включи Chrome", "NOEXEC"),
-    ("Открой папку с загрузками", "open:downloads|ru"), ("Открой мои документы", "open:documents|ru"), ("Зайди на ютуб", "NOEXEC"),
+    ("Открой папку с загрузками", "open:downloads|ru"), ("Открой мои документы", "open:documents|ru"), ("Зайди на ютуб", "open:youtube|ru"),
     ("Найди в гугле рецепт плова", "search:рецепт|ru"), ("Погугли как установить Python", "search:как|ru"), ("Покажи мне курс доллара сегодня", "rate|ru"),
     ("Сколько стоит доллар", "rate|ru"), ("Переведи 50 долларов в сумы", "convert:50|ru"), ("Какая сейчас погода", "weather|ru"),
     ("Сколько сейчас времени", "time|ru"), ("Насколько загружен процессор", "h:cpu|ru"), ("Сколько оперативной памяти занято", "h:ram|ru"),

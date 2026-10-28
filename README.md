@@ -101,6 +101,36 @@ Qidirish faqat **o'qiydi** va tasdiq so'ramaydi; **ochish** har doim tasdiqlanad
 - Fayl ma'lumotlari AI'ga yuborilmaydi: fayl buyruqlari AI suhbat yo'liga umuman kirmaydi.
 - Administrator huquqi so'ralmaydi.
 
+## Faqat ovozli boshqaruv (Voice-only)
+**Har bir amal faqat ovozli buyruqdan boshlanadi.** Mikrofon faqat **Space ni bosib turganingizda** yoqiladi; qo'yib yuborsangiz yozuv to'xtaydi va gap qayta ishlanadi. Ilova ochilganda, jim turganda yoki fon musiqasi/video eshitilganda hech narsa bajarilmaydi (doimiy tinglash yo'q; kompyuter ichki tovushi — loopback/Stereo Mix — mikrofon sifatida ishlatilmaydi). Holat chiziqda ko'rinadi: **READY → LISTENING → PROCESSING → EXECUTING → ERROR**; tanilgan matn chatda ko'rsatiladi, qaysi amal bajarilayotgani terminalda yoziladi. Gap tushunarsiz yoki ishonch past bo'lsa — «qayta ayting» deyiladi va hech narsa bajarilmaydi; noaniq bo'lsa — qisqa aniqlashtiruvchi savol beriladi.
+
+- **Yozma buyruq o'chirilgan** (Settings → «Voice-only», standart yoqilgan): kiritish maydoni yopiq, klaviaturadan buyruq qabul qilinmaydi. Xohlasangiz Settings'da o'chirib, avvalgi yozma kiritishni qaytarishingiz mumkin.
+- **Ovozli tasdiq:** xavfli/muhim amaldan oldin Пятница so'raydi. Space ni bosib turib **«ha / yes / да»** deng — bajariladi; **«yo'q / no / нет»** — bekor. Boshqa har qanday gap eski so'rovni bekor qiladi va yangi buyruq sifatida ishlanadi. Enter/Esc tugmalari ham ishlaydi (maxsus imkoniyatlar uchun).
+- Foydalanuvchi gapiradigan til: o'zbek, rus, ingliz (aralash ham). «Пятница,» deb boshlash shart emas.
+
+**Buyruqlar (misollar; to'liq ro'yxat uchun «show available commands» / «buyruqlarni ko'rsat» deng):**
+| Bo'lim | Misol |
+|---|---|
+| Ilovalar | «Open Chrome», «Chrome'ni och», «Открой Chrome», «VS Code ni och», «Brauzerni ishga tushir», «YouTube'ga kir», «Downloads papkasini och», «Open my music folder», «Windows sozlamalarini och» |
+| Oyna va ovoz | «minimize this window», «switch to the next window», «oynani kichraytir», «сверни окно», «turn the volume up», «mute the sound» |
+| Fayllar | «Find my latest video», «Find PDF files in Downloads», «Open the video about MDF doors», «Open the selected file» (faqat ruxsat berilgan papkalar; bir nechta bo'lsa ro'yxat + tanlash) |
+| Internet | «Search the web for Python tutorials», «Open YouTube and search for English lessons», «Open the website kun.uz» (sayt manzili ko'rsatilib ovozli tasdiq so'raladi) |
+| AI suhbat | «Explain this Python error», «Translate this sentence into Uzbek», «Help me write a prompt for Claude» (AI kaliti kerak; o'zi gapirmaydi) |
+| Ingliz tili | «Start my English lesson», «Ask me ten A1 vocabulary questions», «Test my pronunciation», «Translate the word ‘improve’», «Give me a short listening exercise», «Set my English level to A2», «Show my English learning progress» |
+| Kompyuter | «Show my CPU usage», «Check available RAM», «How much disk space is free?», «Show my battery status», «Check my internet connection», «Show my computer specifications» (faqat so'ralganda; doimiy kuzatuv/e'lon yo'q) |
+| Eslatma/vazifa/qayd | «Remind me to study English at 7 PM», «Add a task to finish my website», «Create a note: learn Python classes», «What tasks do I have today?» |
+| Media | «Pause the current video», «Skip to the next track», «Increase the volume» |
+| Skrinshot/clipboard | «Take a screenshot», «Read my clipboard», «Explain the copied Python code», «Summarize the copied text» |
+| Interfeys | «Open the app settings», «Close the settings panel», «Show microphone status», «Show available commands», «Switch to dark mode» |
+
+**Ingliz tili mashqlari** (standart daraja **A1**, ovoz bilan A2/B1 ga o'zgartiriladi): har bir javob — alohida ovozli buyruq (Space bosib turib variant raqamini ayting: «ikki», «2», «B» yoki tarjimaning o'zi; «repeat/qaytar», «stop/bekor»). Natija **faqat yakunlangan** mashq uchun mahalliy bazaga yoziladi; noto'g'ri javoblar «qiyin so'zlar» ro'yxatiga qo'shiladi; progress «Show my English learning progress» yoki English Study sahifasida. Talaffuz mashqi nutqni tanish dvigatelining natijasiga tayanadi (u noaniq so'zni «tuzatib» yuborishi mumkin) — baho taxminiy. Tinglash mashqida gap inglizcha ovozda aytiladi (ovoz o'chiq bo'lsa matn ko'rsatiladi). Bu mashqlar IELTS yoki boshqa imtihon balini baholamaydi.
+
+**Skrinshot va clipboard maxfiyligi:** skrinshot `Pictures\Pyatnitsa\` ga saqlanadi (haqiqatan yozilgandan keyingina «saqlandi» deyiladi). Clipboard faqat buyruq + ovozli tasdiqdan keyin o'qiladi; matn jurnalga, tarixga yozilmaydi va ovozda o'qilmaydi; parol/API kalit/token/karta raqamiga o'xshasa ko'rsatilmaydi va yuborilmaydi. «Explain/Summarize copied …» matnni **AI xizmatiga yuboradi** — shu sababli har safar alohida tasdiq so'raladi (6000 belgigacha).
+
+**To'liq bo'lmagan / cheklovlar (ochiq aytilgan):** (1) interfeysda faqat qorong'i mavzu bor — «dark mode» buyrug'i buni aytadi, yorug' mavzu yo'q; (2) «bu oynani kichraytir» — hozir faol oyna, ya'ni Space bosilgan paytda Пятница'ning o'zi; Windows buyruq qabul qilganini bilib bo'lmaydi, shuning uchun «yuborildi» deyiladi, «bajarildi» emas; (3) «tanlangan fayl» — oxirgi ro'yxatdan tanlash (ro'yxatda bittadan ko'p bo'lsa, qaysi biri so'raladi); matn tanlash (selection) o'qilmaydi, «selected/copied» uchun avval Ctrl+C qiling; (4) talaffuz mashqi ovoz tahlili emas, matn solishtirish; (5) eslatmalar faqat ilova ochiq bo'lganda chiqadi; (6) veb qidiruv natijalarini Пятница o'qib bermaydi — brauzer ochiladi; (7) haqiqiy mikrofon va Windows'da sinalmagan qismlar yuqorida ro'yxatlangan.
+
+**Xavfsizlik:** barcha buyruqlar `ALLOWED_ACTIONS` ro'yxatidan; shell/`eval`/AI yaratgan kod bajarilmaydi. O'chirish, ko'chirish, yuborish, o'rnatish, tizimni o'chirish kabi so'zlar har qanday buyruqda rad etiladi. Veb-sayt faqat aniq domen nomi aytilganda, https bilan va tasdiqdan keyin ochiladi (IP, localhost, `xn--`, fayl kengaytmali nomlar rad etiladi).
+
 ## Mahsuldorlik moduli: eslatmalar, vazifalar, qaydlar, ingliz tili rejasi, Home paneli
 Chap menyu: **Home · Assistant · File Finder · Reminders · Tasks · Notes · English Study · History · Monitor · Diagnostics · Settings & Permissions · About**. Hammasi lokal SQLite bazada (`pyatnitsa.db`, foydalanuvchi papkasida); yangi pip bog'liqlik yo'q (`sqlite3` — standart kutubxona).
 
@@ -211,7 +241,7 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 | Oxirgi tizim xatolari | PowerShell `Get-WinEvent` (System, Critical/Error, 24 soat; faqat manba, ID, vaqt) | Odatda oddiy foydalanuvchida ishlaydi; ruxsat bo'lmasa «Ma'lumot mavjud emas» |
 
 ## Test holati
-`pip install -r requirements-dev.txt && python -m pytest` — 776 ta avtomatik test (Linux, offscreen Qt).
+`pip install -r requirements-dev.txt && python -m pytest` — 980+ avtomatik test (Linux, offscreen Qt).
 
 **Haqiqatan sinovdan o'tgan (avtomatik):**
 - Buyruq tahlili: barcha ro'yxatdagi buyruqlar (lotin/kirill/ruscha variantlar), noma'lum buyruq hech narsa qilmaydi, xavfli buyruqlar rad etiladi, ikki buyruq aralashsa rad etiladi.
@@ -249,6 +279,8 @@ Dashboard «Kompyuter holati» bo'limida (faqat shu bo'lim ochiq bo'lganda 2/3/5
 - Avtomatik ochilish (reestr), `build.bat` bilan .exe yig'ish, Windows batareya/PowerShell/nvidia-smi sensorlari, tizim jurnali.
 - Interfeysning Windows'dagi ko'rinishi (skrinshotlar Linux offscreen'da olingan).
 
+**Ovozli boshqaruv testlari (soxta mikrofon/nutq tanish, soxta Windows qatlami):** ~190 ta — uz/ru/en ibora jadvali (80+ ibora → kutilgan amal), xavfli iboralar bloki, eslatma matni buyruq bo'la olmasligi, ishga tushganda hech narsa bajarilmasligi, Space bosib turish/qo'yib yuborish, yozma buyruq rad etilishi, ovozli ha/yo'q tasdiq (eski so'rov boshqa gapda bekor bo'ladi, past ishonchli «yes» tasdiqlamaydi), clipboard maxfiyligi (tasdiqsiz o'qilmaydi, parol ko'rsatilmaydi, AI'ga faqat tasdiqdan keyin, jurnalda yo'q), sayt tekshiruvi, ingliz mashqlari (faqat yakunlangan mashq yoziladi, daraja, talaffuz tili, tinglash), fon musiqasi/tasodifiy nutq hech narsa bajarmasligi. Xavfsizlik mantig'ining 5 qismi mutatsiya bilan tekshirilgan (4 tasi darhol ushlandi; sayt tekshiruvi uchun alohida test qo'shildi). **Sinalmagan (Windows va haqiqiy mikrofon kerak):** haqiqiy mikrofondan o'zbekcha/ruscha/inglizcha gapni tanish aniqligi, Windows oyna/Alt+Tab/ovoz tugmalarining haqiqatan ishlashi, VS Code'ning haqiqiy yo'li, brauzer ochilishi, tinglash mashqidagi ingliz TTS ovozi (internet/Windows ovozi kerak).
+
 **Mahsuldorlik moduli testlari (haqiqiy SQLite, offscreen Qt):** migratsiya/zaxira/buzilgan baza, barcha omborlar, vaqt tahlili (uz/ru/en, noaniqlik, takrorlanish), buyruq→amal→sahifa yangilanishi, tasdiq va aniqlashtirish davomi, eslatma banneri (Done/Snooze/Dismiss, 3 tadan ko'p emas, tray yo'q/o'chiq holat), dialog tekshiruvi, qaydlar avto-saqlash va nom to'qnashuvi, o'quv streak'i faqat yozuvdan, ma'lumotni tozalash/eksport. Testlar ikkita haqiqiy xatoni topdi va tuzatildi (reja dialogi yaratilishda qulashi; vazifa tahririda ustuvorlik rad etilishi) va dialog sana konstruktori xatosini. **Sinalmagan (Windows'da):** haqiqiy tray bildirishnomasi ko'rinishi, ilova yopiq paytda eslatma (qo'llab-quvvatlanmaydi), haqiqiy ovoz bilan buyruq aytish, papka tanlash oynasi.
 
 ## Loyiha tuzilishi
@@ -268,6 +300,9 @@ pyatnitsa/files.py       ruxsat etilgan papkalar, xavfsiz qidirish, ochishdan ol
 pyatnitsa/fileintent.py  fayl buyruqlarini tushunish (uz/ru/en), ro'yxatdan tanlash
 pyatnitsa/db.py          SQLite: migratsiya, zaxira, buzilgan bazani karantin, xotira zaxirasi
 pyatnitsa/reminders.py, tasks.py, notes.py, study.py   mahsuldorlik omborlari
+pyatnitsa/sysintent.py   oyna/skrinshot/clipboard/veb/YouTube/VS Code/interfeys/ingliz buyruqlarini tushunish
+pyatnitsa/english.py     ingliz tili mashqlari (viktorina, talaffuz, tinglash)
+pyatnitsa/desktop.py     clipboard o'qish, skrinshot, parol/kalitni aniqlash
 pyatnitsa/timeparse.py   sana/vaqt/takrorlanishni tushunish (uz/ru/en), noaniqlikda so'rash
 pyatnitsa/taskintent.py, toolsintent.py   eslatma/vazifa/qayd/o'quv va media buyruqlarini tushunish
 pyatnitsa/apps.py        ruxsat etilgan dasturlar, Windows qatlami

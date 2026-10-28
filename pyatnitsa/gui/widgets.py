@@ -114,6 +114,15 @@ class ChatInput(QPlainTextEdit):
         self.document().contentsChanged.connect(self._resize)
         self._resize()
 
+    def set_voice_only(self, on: bool) -> None:
+        """«Faqat ovoz» rejimi: maydon yozishga yopiq (Space hamon mikrofon tugmasi), buyruqlar faqat ovozdan."""
+        self.setReadOnly(bool(on))
+        if on:
+            self.clear()
+            self.setPlaceholderText("Voice-only mode — hold SPACE, speak your command, release SPACE.   (Enter confirms a pending action)")
+        else:
+            self.setPlaceholderText("Пятница ga buyruq yozing...   (Enter — send · Shift+Enter — new line)")
+
     def _resize(self) -> None:
         lines = min(5, max(1, self.document().blockCount()))
         self.setFixedHeight(int(self.fontMetrics().lineSpacing() * lines + 24))

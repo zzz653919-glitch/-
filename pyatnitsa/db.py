@@ -19,7 +19,7 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 KEEP_BACKUPS = 5
 
 # --- migratsiyalar: har biri `(sqlite3.Connection)` oladi va bitta tranzaksiya ichida bajariladi ---
@@ -53,6 +53,13 @@ CREATE TABLE study_items (
     added TEXT NOT NULL DEFAULT '', reviews INTEGER NOT NULL DEFAULT 0, last_review TEXT NOT NULL DEFAULT '');
 """
 
+_V3 = """
+CREATE TABLE english_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, level TEXT NOT NULL DEFAULT 'A1', total INTEGER NOT NULL DEFAULT 0,
+    correct INTEGER NOT NULL DEFAULT 0, finished_at TEXT NOT NULL, day TEXT NOT NULL);
+CREATE INDEX idx_english_day ON english_sessions(day);
+"""
+
 
 # Yangi (bo'sh) baza uchun to'liq joriy sxema — migratsiya yo'lidan MUSTAQIL (migratsiyadagi xato yangi/xotiradagi bazani buzmasin).
 # Migratsiya natijasi bilan bir xilligi testda tekshiriladi.
@@ -80,6 +87,10 @@ CREATE INDEX idx_study_day ON study_log(day);
 CREATE TABLE study_items (
     id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('word','grammar')), text TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
     added TEXT NOT NULL DEFAULT '', reviews INTEGER NOT NULL DEFAULT 0, last_review TEXT NOT NULL DEFAULT '');
+CREATE TABLE english_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, level TEXT NOT NULL DEFAULT 'A1', total INTEGER NOT NULL DEFAULT 0,
+    correct INTEGER NOT NULL DEFAULT 0, finished_at TEXT NOT NULL, day TEXT NOT NULL);
+CREATE INDEX idx_english_day ON english_sessions(day);
 """
 
 
@@ -90,7 +101,7 @@ def _script(sql: str):
     return run
 
 
-MIGRATIONS = {1: _script(_V1), 2: _script(_V2)}      # versiya -> funksiya (1 dan SCHEMA_VERSION gacha)
+MIGRATIONS = {1: _script(_V1), 2: _script(_V2), 3: _script(_V3)}      # versiya -> funksiya (1 dan SCHEMA_VERSION gacha)
 
 
 class Database:
@@ -228,7 +239,7 @@ class Database:
 
     def clear(self, *tables: str) -> int:
         """Berilgan jadvallardagi BARCHA yozuvlarni o'chiradi (foydalanuvchi sozlamalarda tasdiqlagandan keyin)."""
-        allowed = {"reminders", "tasks", "notes", "study_log", "study_items", "study_activities"}
+        allowed = {"reminders", "tasks", "notes", "study_log", "study_items", "study_activities", "english_sessions"}
         n = 0
         with self.transaction() as c:
             for t in tables:
@@ -249,7 +260,7 @@ class Database:
         return dest
 
     def counts(self) -> dict[str, int]:
-        return {t: self.query(f"SELECT COUNT(*) FROM {t}")[0][0] for t in ("reminders", "tasks", "notes", "study_log", "study_items")}
+        return {t: self.query(f"SELECT COUNT(*) FROM {t}")[0][0] for t in ("reminders", "tasks", "notes", "study_log", "study_items", "english_sessions")}
 
     def user_version(self) -> int:
         return self.query("PRAGMA user_version")[0][0]

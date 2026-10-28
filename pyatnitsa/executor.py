@@ -14,6 +14,7 @@ from .notes import NoteStore
 from .reminders import FMT as REM_FMT, ReminderStore, describe_recur
 from .study import StudyStore
 from .tasks import TaskStore
+from . import english
 from .commands import ALLOWED_ACTIONS, Command
 from .i18n import T, app_title
 from .settings import Settings, data_dir
@@ -33,6 +34,9 @@ class Result:
     fuzzy: bool = False            # aniq nom topilmadi, o'xshashlar — hech qachon avtomatik ochilmaydi
     changed: str = ""              # "reminders" | "tasks" | "notes" | "study" — interfeys ro'yxatni yangilasin
     nav: str = ""                  # interfeysda ochiladigan sahifa kaliti (masalan "study")
+    ui: str = ""                   # asosiy oqimda bajariladigan amal: "screenshot" | "clipboard:read|explain|summarize" | "mic_status"
+    lesson: tuple | None = None    # ("quiz"|"pronunciation"|"listening", daraja, soni) — boshqaruvchi mashqni boshlaydi
+    ai_prompt: str = ""            # AI'ga yuboriladigan savol (masalan, lug'atda yo'q so'z tarjimasi)
 
 
 @dataclass
@@ -50,7 +54,8 @@ def fmt_num(x: float, digits: int = 2) -> str:
 class Executor:
     def __init__(self, settings: Settings, platform: apps.Platform | None = None,
                  monitor: health.HealthMonitor | None = None, fetch=services.get_json, now=datetime.now, files: fs.FileAccess | None = None,
-                 db: Database | None = None):
+                 db: Database | None = None, net=services.internet_check):
+        self.net = net
         self.settings, self.platform = settings, platform or apps.Platform()
         self.monitor = monitor or health.HealthMonitor()
         self.fetch, self.now = fetch, now
@@ -64,6 +69,8 @@ class Executor:
             "task_add": self._task_add, "tasks_show": self._tasks_show, "task_complete": self._task_complete,
             "study_show": self._study_show, "study_done": self._study_done, "study_progress": self._study_progress,
             "media": self._media,
+            "window": self._window, "screenshot": self._screenshot, "clipboard": self._clipboard, "ui": self._ui,
+            "youtube_search": self._youtube_search, "open_site": self._open_site, "net_check": self._net_check, "specs": self._specs, "english": self._english,
             "open_app": self._open_app, "new_window": self._new_window, "search": self._search,
             "rate_usd": self._rate, "convert_usd": self._convert, "weather": self._weather, "time": self._time,
             "health_status": lambda c, l: h(l, health.status_text),
@@ -487,7 +494,11 @@ class Executor:
 
     def _study_progress(self, cmd: Command, lang: str) -> Result:
         week = self.study.week_minutes(self.now().date())
-        lines = [self._study_summary(lang), T("study.week", lang, mins=sum(m for _d, m in week), days=sum(1 for _d, m in week if m)), T("study.disclaimer", lang)]
+        lines = [self._study_summary(lang), T("study.week", lang, mins=sum(m for _d, m in week), days=sum(1 for _d, m in week if m))]
+        st = self.study.session_stats()
+        if st["sessions"]:
+            lines.append(T("eng.progress", lang, s=st["sessions"], q=st["questions"], c=st["correct"]))
+        lines.append(T("study.disclaimer", lang))
         return Result(True, "\n".join(lines), lines[0])
 
     # ---- media (tugma yuboriladi; dastur javob berganini bilib bo'lmaydi — shuning uchun «bajarildi» deb aytilmaydi)
@@ -500,3 +511,115 @@ class Executor:
             return Result(False, T("media.failed", lang, err=e))
         msg = T("media.sent", lang, what=what)
         return Result(True, msg, msg[:160])
+
+    # ---- oyna, skrinshot, clipboard, interfeys
+    def _window(self, cmd: Command, lang: str) -> Result:
+        op = cmd.args.get("op", "")
+        what = T(f"win.{op}", lang)
+        try:
+            self.platform.window_op(op)
+        except (OSError, ValueError) as e:
+            return Result(False, T("win.failed", lang, err=e))
+        msg = T("win.sent", lang, what=what)
+        return Result(True, msg, msg.split(".")[0][:160])
+
+    def _screenshot(self, cmd: Command, lang: str) -> Result:
+        return Result(True, T("shot.pending", lang), ui="screenshot")      # Qt oynasi bilan ishlash asosiy oqimda (boshqaruvchida)
+
+    def _clipboard(self, cmd: Command, lang: str) -> Result:
+        mode = cmd.args.get("mode", "read")
+        if mode not in ("read", "explain", "summarize"):
+            return Result(False, T("not_allowed", lang))
+        return Result(True, "", ui=f"clipboard:{mode}")
+
+    def _ui(self, cmd: Command, lang: str) -> Result:
+        op = cmd.args.get("op", "")
+        if op == "settings_open":
+            return Result(True, T("ui.settings", lang), nav="settings")
+        if op == "settings_close":
+            return Result(True, T("ui.closed", lang), nav="assistant")
+        if op == "dark_mode":
+            return Result(True, T("ui.dark" if cmd.args.get("theme", "dark") == "dark" else "ui.light", lang))
+        if op == "commands":
+            return Result(True, T("ui.commands", lang), T("ui.commands", lang).split("\n")[0])
+        if op == "mic_status":
+            return Result(True, "", ui="mic_status")
+        return Result(False, T("not_allowed", lang))
+
+    # ---- veb
+    def _youtube_search(self, cmd: Command, lang: str) -> Result:
+        q = " ".join(str(cmd.args.get("query", "")).split())[:200]
+        if not q:
+            return Result(False, T("cl.yt", lang))
+        try:
+            self.platform.open_url("https://www.youtube.com/results?" + urllib.parse.urlencode({"search_query": q}))
+        except Exception as e:  # noqa: BLE001
+            return Result(False, T("open.failed", lang, title="YouTube", err=e))
+        return Result(True, T("yt.ok", lang, q=q))
+
+    def _open_site(self, cmd: Command, lang: str) -> Result:
+        from .sysintent import _valid_host
+        host = str(cmd.args.get("host", "")).lower()
+        if not _valid_host(host):
+            return Result(False, T("site.bad", lang, what=host[:60]))
+        try:
+            self.platform.open_url(f"https://{host}/")
+        except Exception as e:  # noqa: BLE001
+            return Result(False, T("open.failed", lang, title=host, err=e))
+        return Result(True, T("site.ok", lang, host=host))
+
+    # ---- kompyuter
+    def _net_check(self, cmd: Command, lang: str) -> Result:
+        try:
+            host, ms = self.net()
+        except services.NetworkError as e:
+            msg = T("net.fail", lang, err=str(e)[:80])
+            return Result(False, msg)
+        return Result(True, T("net.ok", lang, host=host, ms=ms))
+
+    def _specs(self, cmd: Command, lang: str) -> Result:
+        s = self.monitor.sample(force_slow=True)
+        na = T("specs.na", lang)
+        cpu = health.cpu_name() or na
+        threads = s.cpu_count or "?"
+        disks = "; ".join(f"{d.mount} {health.gb(d.total)}" for d in s.disks[:6]) or na
+        gpus = ", ".join(g.name for g in (s.gpus or []) if g.name) or na
+        lines = [T("specs.title", lang), f"• {T('specs.os', lang)}: {s.os_name}", f"• {T('specs.cpu', lang)}: {cpu} ({threads} {T('specs.cores', lang).split('/')[-1]})",
+                 f"• {T('specs.ram', lang)}: {health.gb(s.ram_total)}", f"• {T('specs.disk', lang)}: {disks}", f"• {T('specs.gpu', lang)}: {gpus}"]
+        return Result(True, "\n".join(lines), T("specs.title", lang) + ": " + s.os_name + ", " + health.gb(s.ram_total) + " RAM")
+
+    # ---- ingliz tili
+    def _english(self, cmd: Command, lang: str) -> Result:
+        a = cmd.args
+        op = a.get("op", "")
+        level = a.get("level") or self.settings.english_level
+        if level not in english.LEVELS:
+            level = english.DEFAULT_LEVEL
+        if op == "lesson":
+            plan = ", ".join(f"{x.name} {x.minutes}" for x in self.study.plan())
+            return Result(True, T("eng.lesson", lang, level=self.settings.english_level, plan=plan), nav="study")
+        if op in ("quiz", "pronunciation", "listening"):
+            return Result(True, "", lesson=(op, level, int(a.get("n", 10))))
+        if op == "translate":
+            word = str(a.get("word", "")).strip()
+            hit = english.lookup(word)
+            if hit:
+                lvl = next(l for l in english.LEVELS if hit in english.VOCAB[l])
+                msg = T("eng.translate", lang, w=hit[0], uz=hit[1], ru=hit[2], lvl=lvl)
+                return Result(True, msg, msg)
+            return Result(True, T("eng.notfound", lang, w=word), ai_prompt=T("eng.p.translate", lang, w=word, language=T("lang.name", lang)))
+        if op == "level":
+            cur = self.settings.english_level
+            if a.get("level") in english.LEVELS:
+                new = a["level"]
+            else:
+                i = english.LEVELS.index(cur if cur in english.LEVELS else english.DEFAULT_LEVEL) + int(a.get("shift", 0))
+                if not 0 <= i < len(english.LEVELS):
+                    return Result(False, T("eng.level.limit", lang, level=cur))
+                new = english.LEVELS[i]
+            if new == cur:
+                return Result(True, T("eng.level.same", lang, level=cur))
+            self.settings.english_level = new
+            self.settings.save()
+            return Result(True, T("eng.level.set", lang, level=new), changed="study")
+        return Result(False, T("not_allowed", lang))

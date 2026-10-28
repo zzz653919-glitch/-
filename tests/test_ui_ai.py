@@ -27,7 +27,7 @@ def env(tmp_path, monkeypatch):
     if not app.styleSheet():
         app.setStyleSheet(STYLE)
     FakeRecorder.instances.clear()
-    st = Settings(); st.reduce_motion = "on"; st.voice_enabled = False; st.ai_notice_shown = True; st.confirm_commands = False
+    st = Settings(); st.voice_only = False; st.reduce_motion = "on"; st.voice_enabled = False; st.ai_notice_shown = True; st.confirm_commands = False
     mon = health.HealthMonitor()
     client = FakeClient()
     spk = FakeSpeaker()

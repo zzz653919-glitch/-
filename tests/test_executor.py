@@ -33,6 +33,11 @@ class FakePlatform(apps.Platform):
             raise self.open_error
         self.calls.append(("file", str(path)))
 
+    def window_op(self, op):
+        if getattr(self, "win_error", None):
+            raise self.win_error
+        self.calls.append(("window", op))
+
     def start_player(self, player, path):
         if getattr(self, "open_error", None):
             raise self.open_error

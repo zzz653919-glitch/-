@@ -48,7 +48,7 @@ def make_v1(path: Path):
 def test_migration_v1_to_v2_preserves_data_and_makes_a_backup(path):
     make_v1(path)
     d = Database(path, now=lambda: NOW)
-    assert d.user_version() == 2 and d.persistent and "yangilandi" in d.notice
+    assert d.user_version() == SCHEMA_VERSION and d.persistent and "yangilandi" in d.notice
     assert [r["title"] for r in d.query("SELECT title FROM reminders")] == ["dori ichish"]
     n = NoteStore(d, lambda: NOW).get("n1")
     assert n.title == "Bozor" and n.body == "non, sut" and n.tags == ["uy"] and n.category == ""          # yangi ustun standart qiymat bilan
@@ -410,3 +410,17 @@ def test_fresh_schema_is_identical_to_the_migrated_schema(path, tmp_path):
     migrated = Database(path, now=lambda: NOW)
     assert _schema(fresh._conn) == _schema(migrated._conn)                      # ikki yo'l bir xil sxema beradi (drift yo'q)
     fresh.close(); migrated.close()
+
+
+def test_migration_v2_to_v3_adds_english_sessions_and_keeps_data(path):
+    d = Database(path)
+    d.execute("INSERT INTO notes(id,title,body,created,updated) VALUES('n1','Saqlangan','matn','x','x')")
+    d.close()
+    c = sqlite3.connect(path); c.execute("DROP TABLE english_sessions"); c.execute("PRAGMA user_version=2"); c.commit(); c.close()
+    d2 = Database(path)
+    assert d2.user_version() == SCHEMA_VERSION == 3 and d2.persistent and "yangilandi" in d2.notice
+    assert d2.query("SELECT title FROM notes")[0][0] == "Saqlangan" and d2.counts()["english_sessions"] == 0
+    assert any(".bak-v2" in p.name for p in path.parent.iterdir())
+    d2.execute("INSERT INTO english_sessions(kind,level,total,correct,finished_at,day) VALUES('quiz','A1',5,4,'x','2026-10-28')")
+    assert d2.counts()["english_sessions"] == 1
+    d2.close()

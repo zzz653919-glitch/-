@@ -27,7 +27,7 @@ def win(tmp_path):
     if not app.styleSheet():
         app.setStyleSheet(STYLE)
     FakeRecorder.instances.clear()
-    st = Settings(); st.reduce_motion = "on"
+    st = Settings(); st.voice_only = False; st.reduce_motion = "on"
     mon = health.HealthMonitor()
     plat = FakePlatform({"chrome": Path("/x/chrome.exe")}, tmp_path)
     ctrl = C.Controller(st, Executor(st, plat, mon), FakeSpeaker(), FakeRecorder, lambda r, l: "Chrome'ni och", post_roll_ms=0)
@@ -93,7 +93,7 @@ def test_space_outside_inputs_toggles_mic(win):
 
 def test_core_state_follows_controller_and_confirm_bar(win):
     app, w, ctrl, plat = win
-    assert w.core.state == "standby" and "STANDBY" in w.status.text() and "MIC OFF" in w.mic_pill.text()
+    assert w.core.state == "standby" and "READY" in w.status.text() and "MIC OFF" in w.mic_pill.text()
     ctrl.submit_text("Open Chrome")
     assert w.core.state == "confirm" and not w.confirm_box.isHidden() and "Open" in w.confirm_lbl.text()
     QTest.keyClick(w.stack, Qt.Key_Escape)

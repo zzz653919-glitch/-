@@ -136,9 +136,12 @@ def test_conversation_phrases_are_not_media(text):
 
 
 def test_windows_settings_app_is_understood():
-    for t in ("Open Windows settings", "Sozlamalarni och", "открой настройки"):
+    for t in ("Open Windows settings", "Windows sozlamalarini och", "открой настройки Windows", "open system settings"):
         r, c = P(t)
         assert r.kind == "ok" and c.action == "open_app" and c.args["app"] == "winsettings", t
+    for t in ("Open Settings", "Sozlamalarni och", "открой настройки"):          # Windows yoki ilova sozlamalari? — aniqlashtiriladi, taxmin qilinmaydi
+        r = commands.parse(t)
+        assert r.kind == "clarify" and r.draft, t
 
 
 # ================================================================== ijrochi va boshqaruvchi

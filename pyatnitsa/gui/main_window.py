@@ -231,6 +231,7 @@ class MainWindow(QMainWindow):
         self.speaker.note.connect(lambda m: self.add_message("system", m))
         self.speaker.speakingChanged.connect(lambda _on: self._on_state())
         self.mic_btn.clicked.connect(c.toggle_listening)
+        self.input.set_voice_only(self.settings.voice_only)
         self.send_btn.clicked.connect(self.send_text)
         self.input.sendRequested.connect(self.send_text)
         self.input.micToggleRequested.connect(c.space_pressed)
@@ -454,7 +455,7 @@ class MainWindow(QMainWindow):
             self.add_message("system", "Busy right now — please wait a moment or stop listening first.")
             return
         self.input.clear()
-        self.ctrl.submit_text(text)
+        self.ctrl.submit_typed(text)
 
     def clear_chat(self) -> None:
         self.ctrl.clear_conversation()             # AI kontekstini ham tozalaydi (buyruqlar tarixi saqlanadi)
@@ -511,6 +512,7 @@ class MainWindow(QMainWindow):
         self.reduced = motion.reduced(s.reduce_motion)
         self.core.set_reduced(self.reduced); self.voice.reduced = self.reduced
         self.terminal.setVisible(s.show_terminal); self.term_btn.setChecked(s.show_terminal)
+        self.input.set_voice_only(s.voice_only)
         if self.ctrl.ai:
             self.ctrl.ai.apply_settings()
         s.save()

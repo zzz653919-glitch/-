@@ -306,9 +306,13 @@ def INTENT_OF(action: str, args: dict) -> str:
             "health_report": "get_pc_health"}.get(action, "get_pc_health")
 
 
+_Q_FILLER = {"web", "internet", "internetda", "internete", "interneta", "onlayn", "online", "veb", "information", "info", "informatsiya", "informatsiyu", "informatsii",
+             "malumot", "malumotlar", "malumotni", "tarmoqda", "seti", "setyah", "find", "search"}
+
+
 def _query(cl: Clause) -> str:
     skip = {"SEARCH", "GOOGLE", "FUNC", "GREET", "SHOW"}
-    words = [t.raw.strip("'") for t in cl.toks if t.concept not in skip and t.norm not in CONJ]
+    words = [t.raw.strip("'") for t in cl.toks if t.concept not in skip and t.norm not in CONJ and normalize(t.raw).replace(" ", "") not in _Q_FILLER]
     return " ".join(w for w in words if w)[:200]
 
 

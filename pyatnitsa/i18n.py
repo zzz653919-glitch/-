@@ -32,8 +32,9 @@ _S: dict[str, tuple[str, str, str]] = {   # kalit: (uz, ru, en)
     "inactive": ("Ilova oynasi faol emas, shuning uchun buyruq qabul qilinmadi. Ilovaga qaytib, qayta urinib ko'ring.",
                  "Окно приложения неактивно, поэтому команда не принята. Вернитесь в приложение и повторите.",
                  "The app window is not active, so the command was not accepted. Return to the app and try again."),
-    "confirm_hint": ("Tasdiqlash: Enter yoki «Ha, bajar», bekor qilish: Esc.",
-                     "Подтвердить: Enter или «Да», отменить: Esc.", "Confirm: Enter or “Yes”, cancel: Esc."),
+    "confirm_hint": ("Tasdiqlash: Space ni bosib turib «ha» deng (yoki Enter), bekor qilish: «yo'q» (yoki Esc).",
+                     "Подтвердить: удерживая Пробел, скажите «да» (или Enter); отменить: «нет» (или Esc).",
+                     "Confirm: hold SPACE and say “yes” (or press Enter); cancel: say “no” (or Esc)."),
     "plan": ("{n} ta amal: {items}", "Действий: {n}: {items}", "{n} actions: {items}"),
     "disabled": ("«{title}» Sozlamalarda o'chirilgan, shuning uchun bajarilmaydi.",
                  "«{title}» отключено в настройках, поэтому не будет выполнено.",
@@ -505,8 +506,12 @@ _APP_TITLES = {   # app_id: (uz, ru, en)
     "notepad": ("Notepad",) * 3, "explorer": ("Fayl menejeri", "Проводник", "File Explorer"), "youtube": ("YouTube",) * 3,
     "search": ("Google'da qidiruv", "Поиск в Google", "Google search"),
     "winsettings": ("Windows Sozlamalari", "Параметры Windows", "Windows Settings"),
+    "vscode": ("Visual Studio Code",) * 3, "music": ("Music papkasi", "Папка Music", "Music folder"),
+    "pictures": ("Pictures papkasi", "Папка Pictures", "Pictures folder"), "videos": ("Videos papkasi", "Папка Videos", "Videos folder"),
 }
 _IDX = {"uz": 0, "ru": 1, "en": 2}
+from .i18n_voice import S as _VOICE_S  # noqa: E402
+_S.update(_VOICE_S)
 
 
 def T(key: str, lang: str = "uz", **kw) -> str:

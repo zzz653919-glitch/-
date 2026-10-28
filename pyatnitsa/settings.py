@@ -59,6 +59,8 @@ class Settings:
     file_roots: list[str] = field(default_factory=list)   # foydalanuvchi AYNAN ruxsat bergan papkalar/disklar (qolgan hech narsaga kirilmaydi)
     video_player: str = ""                 # ixtiyoriy: videolarni ochadigan dastur (.exe); bo'sh = Windows standarti
     notifications: bool = True             # eslatma bildirishnomalari (oyna ichida va tizim trayida)
+    voice_only: bool = True                # buyruqlar FAQAT ovozdan (Space ushlab turib); yozma buyruq kiritish o'chiq
+    english_level: str = "A1"              # ingliz tili mashqlari darajasi: A1 | A2 | B1 (ovoz bilan o'zgartiriladi)
 
     # ---- saqlash / yuklash -------------------------------------------------
     @staticmethod

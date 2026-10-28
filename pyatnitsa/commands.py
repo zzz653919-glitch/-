@@ -19,6 +19,7 @@ ALLOWED_ACTIONS = frozenset({
     "find_files", "list_files", "open_file",
     "reminder_add", "reminders_show", "note_add", "notes_show", "media",
     "task_add", "tasks_show", "task_complete", "study_show", "study_done", "study_progress",
+    "window", "screenshot", "clipboard", "ui", "youtube_search", "open_site", "net_check", "specs", "english",
 })
 FILE_ACTIONS = frozenset({"find_files", "list_files", "open_file"})
 
@@ -113,6 +114,25 @@ def extract_amount(text: str) -> float | None:
     return val
 
 
+# ---------------------------------------------------------------- ovozli tasdiq: «ha» / «yo'q» (uz · ru · en)
+_YES = {"yes", "yeah", "yep", "ok", "okay", "confirm", "confirmed", "sure", "go", "ahead", "proceed", "please", "do", "it",
+        "ha", "xop", "hop", "mayli", "tasdiqlayman", "tasdiqla", "tasdiq", "bajar", "ruxsat",
+        "da", "konechno", "podtverzhdayu", "podtverdi", "davay", "horosho", "khorosho"}
+_NO = {"no", "nope", "cancel", "stop", "dont", "never", "yoq", "yoqq", "bekor", "kerak", "emas", "net", "otmena", "otmeni", "ne", "nelzya"}
+
+
+def yes_no(text: str) -> str:
+    """«yes» | «no» | «» — qisqa (<=4 so'z) tasdiq yoki rad javobi. Boshqa har qanday gap tasdiq HISOBLANMAYDI."""
+    words = [w for w in normalize(text).split() if w]
+    if not words or len(words) > 4:
+        return ""
+    if any(w in _NO for w in words):
+        return "no"
+    if all(w in _YES for w in words):
+        return "yes"
+    return ""
+
+
 # Tahlil konteksti: joriy vaqt (testlarda almashtiriladi).
 _CTX: dict = {"now": None}
 
@@ -123,12 +143,12 @@ def set_context(now=None) -> None:
 
 def parse(text: str) -> ParseResult:
     """Matn (ovoz yoki klaviatura) -> xavfsiz buyruqlar ro'yxati yoki aniqlashtiruvchi savol.
-    Tartib: NLU (xavfli so'z bloki) -> fayllar -> eslatma/vazifa/qayd/o'quv -> media. Xavfli fe'l hamma yerda to'xtatadi."""
+    Tartib: NLU (xavfli so'z bloki) -> eslatma/vazifa/qayd/o'quv (ularning matni «ma'lumot») -> tizim/oyna/veb/ingliz -> fayllar -> media. Xavfli fe'l hamma yerda to'xtatadi."""
     from datetime import datetime
-    from . import fileintent, nlu, taskintent, toolsintent
+    from . import fileintent, nlu, sysintent, taskintent, toolsintent
     res = nlu.parse(text)
     now = (_CTX["now"] or datetime.now)()
-    for fn in (lambda: fileintent.parse(text, res), lambda: taskintent.parse(text, now, res), lambda: toolsintent.parse(text, res)):
+    for fn in (lambda: taskintent.parse(text, now, res), lambda: sysintent.parse(text, res), lambda: fileintent.parse(text, res), lambda: toolsintent.parse(text, res)):
         r = fn()
         if r is not None:
             res = r

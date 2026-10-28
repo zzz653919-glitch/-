@@ -12,7 +12,7 @@ STATE_COLORS = {   # AI Core holatlari
     "standby": "#00bcd4", "listening": "#00e5ff", "processing": "#6c7bff", "interpreting": "#9d7bff", "thinking": "#8b5cf6", "speaking": "#2ee6a6", "confirm": "#a78bfa",
     "executing": "#38bdf8", "responding": "#22d3ee", "error": "#ff4d6d",
 }
-STATE_LABELS = {"standby": "STANDBY", "listening": "LISTENING", "processing": "PROCESSING", "interpreting": "INTERPRETING", "thinking": "THINKING", "speaking": "SPEAKING", "confirm": "AWAITING CONFIRMATION",
+STATE_LABELS = {"standby": "READY", "listening": "LISTENING", "processing": "PROCESSING", "interpreting": "PROCESSING", "thinking": "THINKING", "speaking": "SPEAKING", "confirm": "AWAITING CONFIRMATION",
                 "executing": "EXECUTING", "responding": "RESPONDING", "error": "ERROR"}
 LEVEL_COLORS = {"info": "#8aa0bd", "active": "#8b9dff", "success": "#2ee6a6", "warn": "#ffb020", "error": "#ff4d6d"}
 FONT_UI = "'Bahnschrift','Segoe UI Variable Text','Segoe UI','Inter','Noto Sans',sans-serif"

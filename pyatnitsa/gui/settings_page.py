@@ -87,6 +87,10 @@ class SettingsPage(QWidget):
             lb.setObjectName("sub"); lb.setWordWrap(True); form.addRow(lb)
         self.notify = QCheckBox("Show desktop notifications for reminders (Windows system tray; in-app banners always appear)")
         form.addRow("", self.notify)
+        self.voice_only = QCheckBox("Voice-only: commands are accepted only from speech (hold SPACE). Typing commands is disabled.")
+        form.addRow("", self.voice_only)
+        self.eng_level = QComboBox(); self.eng_level.addItems(["A1", "A2", "B1"])
+        form.addRow("English exercise level", self.eng_level)
         # ---- Mahalliy ma'lumotlar
         dl = QLabel("LOCAL DATA"); dl.setObjectName("section"); form.addRow(dl)
         self.data_info = QLabel(); self.data_info.setObjectName("sub"); self.data_info.setWordWrap(True); self.data_info.setTextFormat(Qt.PlainText)
@@ -158,7 +162,7 @@ class SettingsPage(QWidget):
         self.voice.setChecked(s.voice_enabled); self.gender.setCurrentIndex(max(0, self.gender.findData(s.voice_gender)))
         self.tts.setCurrentIndex(max(0, self.tts.findData(s.tts_engine))); self.confirm.setChecked(s.confirm_commands)
         self.motion.setCurrentIndex(max(0, self.motion.findData(s.reduce_motion))); self.terminal.setChecked(s.show_terminal)
-        self.auto.setChecked(s.autostart); self.city.setText(s.city); self.notify.setChecked(s.notifications)
+        self.auto.setChecked(s.autostart); self.city.setText(s.city); self.notify.setChecked(s.notifications); self.voice_only.setChecked(s.voice_only); self.eng_level.setCurrentText(s.english_level if s.english_level in ("A1", "A2", "B1") else "A1")
         self.ai_on.setChecked(s.ai_enabled); self.ai_model.setCurrentText(s.ai_model or ai_chat.DEFAULT_MODEL)
         self.ai_effort.setCurrentIndex(max(0, self.ai_effort.findData(s.ai_effort))); self.ai_ctx.setValue(s.ai_context_messages)
         self.ai_tokens.setValue(s.ai_max_tokens); self.ai_timeout.setValue(s.ai_timeout_s); self.ai_fb.setChecked(s.ai_fallback)
@@ -180,6 +184,8 @@ class SettingsPage(QWidget):
         s.ai_model = "" if model == ai_chat.DEFAULT_MODEL else model
         s.ai_max_tokens, s.ai_timeout_s, s.ai_fallback, s.voice_rate = self.ai_tokens.value(), self.ai_timeout.value(), self.ai_fb.isChecked(), self.rate.value()
         s.notifications = self.notify.isChecked()
+        s.voice_only = self.voice_only.isChecked()
+        s.english_level = self.eng_level.currentText()
         s.allowed_apps = {self.apps.item(i).data(Qt.UserRole): self.apps.item(i).checkState() == Qt.Checked for i in range(self.apps.count())}
         return s
 
@@ -248,7 +254,7 @@ class SettingsPage(QWidget):
             return
         ex = self._ex
         label, n, run = {"reminders": ("reminders", len(ex.reminders.all()), ex.reminders.clear), "tasks": ("tasks", len(ex.tasks.all()), ex.tasks.clear),
-                         "notes": ("notes", len(ex.notes.all()), ex.notes.clear), "study": ("study records and difficult-word items", len(ex.study.history(100000)) + len(ex.study.items()), ex.study.clear_progress)}[key]
+                         "notes": ("notes", len(ex.notes.all()), ex.notes.clear), "study": ("study records, exercise history and difficult-word items", len(ex.study.history(100000)) + len(ex.study.items()) + ex.study.session_stats()["sessions"], ex.study.clear_progress)}[key]
         if n == 0:
             common.status_style(self.data_msg, f"There are no {label} to clear.", "neutral")
             return
