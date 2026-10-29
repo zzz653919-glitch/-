@@ -54,14 +54,27 @@ def test_dangerous_is_blocked(text):
     assert r.kind == "blocked" and r.command is None
 
 
-@pytest.mark.parametrize("text", ["", "   ", "blah blah", "Salom", "Ochish", "rm -rf /", "powershell -c calc", "cmd /c del x"])
+@pytest.mark.parametrize("text", ["", "   ", "blah blah", "Salom"])
 def test_unknown_does_nothing(text):
     r = parse(text)
-    assert r.kind == "unknown" and r.command is None and "tushunmadim" in r.message
+    assert r.kind == "unknown" and r.command is None and not r.commands and "tushunmadim" in r.message
 
 
-def test_multiple_commands_ambiguous():
-    assert parse("Chrome'ni och va Notepad'ni och").kind == "ambiguous"
+@pytest.mark.parametrize("text", ["Ochish", "rm -rf /", "powershell -c calc", "cmd /c del x", "calc.exe", "cmd", "&& format c:"])
+def test_shell_like_or_incomplete_input_never_executes(text):
+    r = parse(text)
+    assert r.kind != "ok" and not r.commands
+
+
+def test_multiple_commands_become_one_plan():
+    r = parse("Chrome'ni och va Notepad'ni och")
+    assert r.kind == "ok" and [c.args["app"] for c in r.commands] == ["chrome", "notepad"]
+
+
+def test_every_command_is_from_the_allowed_list():
+    from pyatnitsa.commands import ALLOWED_ACTIONS
+    for text in ("Chrome'ni och", "RAM va disk", "dollar kursi", "Google'da x qidir"):
+        assert all(c.action in ALLOWED_ACTIONS for c in parse(text).commands)
 
 
 def test_clarifying_question_for_partial_commands():

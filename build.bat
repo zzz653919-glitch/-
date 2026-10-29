@@ -2,8 +2,18 @@
 setlocal
 cd /d "%~dp0"
 chcp 65001 >nul
-where py >nul 2>nul
-if %errorlevel%==0 (set PY=py -3) else (set PY=python)
+set PY=
+for %%V in (3.13 3.12 3.11 3.10) do (
+    if not defined PY (
+        py -%%V -c "import sys" >nul 2>nul && set PY=py -%%V
+    )
+)
+if not defined PY (
+    echo Python 3.10-3.13 topilmadi. 3.14 hali to'liq sinalmagan. https://www.python.org/downloads/ dan Python 3.13 ni o'rnating.
+    pause
+    exit /b 1
+)
+echo Ishlatiladigan Python: %PY%
 if not exist ".venv\Scripts\python.exe" (%PY% -m venv .venv || goto :error)
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt pyinstaller || goto :error
 ".venv\Scripts\pyinstaller.exe" --noconfirm --clean --windowed --name Pyatnitsa ^
