@@ -1,8 +1,8 @@
 // Node bilan: node web/tests/logic.test.js  (brauzersiz mantiq testlari)
 var assert = require('assert'), fs = require('fs'), path = require('path'), vm = require('vm');
 var store = {}; var win = { localStorage: { getItem: function (k) { return k in store ? store[k] : null; }, setItem: function (k, v) { store[k] = String(v); }, removeItem: function (k) { delete store[k]; } }, crypto: require('crypto').webcrypto, TextEncoder: TextEncoder };
-win.window = win; vm.createContext(win);
-['data', 'store', 'engine'].forEach(function (f) { vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/' + f + '.js'), 'utf8'), win); });
+win.window = win; win.addEventListener = function () {}; win.document = { addEventListener: function () {} }; vm.createContext(win);
+['data', 'content', 'store', 'engine'].forEach(function (f) { vm.runInContext(fs.readFileSync(path.join(__dirname, f + '.js'), 'utf8'), win); });
 var TY = win.TY, G = TY.Game, n = 0;
 function t(name, fn) { return Promise.resolve().then(fn).then(function () { n++; console.log('ok  ' + name); }); }
 

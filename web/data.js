@@ -241,25 +241,33 @@ renewable|qayta tiklanadigan||Solar power is renewable energy.|Quyosh quvvati �
 
   // Matnni tuzilmaga aylantirish; id = daraja.mavzu.indeks (barqaror)
   L.forEach(function (lv, li) {
-    lv.index = li;
     lv.topics.forEach(function (tp, ti) {
-      tp.id = 'L' + li + 'T' + ti;
       tp.words = tp.words.trim().split('\n').map(function (line, wi) {
         var p = line.split('|');
         return { id: li + '.' + ti + '.' + wi, en: p[0].trim(), uz: p[1].split(';').map(function (s) { return s.trim(); }),
-                 emoji: (p[2] || '').trim(), sent: p[3].trim(), sentUz: p[4].trim(), level: li, topic: ti };
+                 emoji: (p[2] || '').trim(), sent: p[3].trim(), sentUz: p[4].trim() };
       });
     });
-    // Tugunlar ketma-ketligi: mavzu darslari, takrorlash, sinov
-    lv.nodes = lv.topics.map(function (tp, ti) { return { id: 'L' + li + 'T' + ti, kind: 'lesson', level: li, topic: ti, title: tp.title, icon: tp.icon }; });
-    lv.nodes.push({ id: 'L' + li + 'R', kind: 'review', level: li, title: 'Takrorlash', icon: '🔁' });
-    lv.nodes.push({ id: 'L' + li + 'X', kind: 'test', level: li, title: 'Sinov', icon: '🏆' });
   });
+  TY.baseLevels = JSON.parse(JSON.stringify(L));   // admin o'zgartirishlari shu asosga qo'llanadi
+  TY.MIN_WORDS = 4;                                  // mavzu darsi bo'lishi uchun kamida shuncha ko'rinadigan so'z
 
-  TY.LEVELS = L;
-  TY.NODES = [];
-  L.forEach(function (lv) { lv.nodes.forEach(function (n) { n.order = TY.NODES.length; TY.NODES.push(n); }); });
-  TY.nodeById = {}; TY.NODES.forEach(function (n) { TY.nodeById[n.id] = n; });
-  TY.wordById = {}; TY.allWords = [];
-  L.forEach(function (lv) { lv.topics.forEach(function (tp) { tp.words.forEach(function (w) { TY.wordById[w.id] = w; TY.allWords.push(w); }); }); });
-})(window.TY = window.TY || {});
+  // Indekslar va tugunlar (LEVELS o'zgarganda qayta chaqiriladi)
+  TY.reindex = function () {
+    var LV = TY.LEVELS;
+    TY.NODES = []; TY.nodeById = {}; TY.wordById = {}; TY.allWords = [];
+    LV.forEach(function (lv, li) {
+      lv.index = li; lv.nodes = [];
+      lv.topics.forEach(function (tp, ti) {
+        tp.id = 'L' + li + 'T' + ti;
+        tp.words.forEach(function (w) { w.level = li; w.topic = ti; if (!w.hidden) { TY.wordById[w.id] = w; TY.allWords.push(w); } });
+        if (tp.words.filter(function (w) { return !w.hidden; }).length >= TY.MIN_WORDS) lv.nodes.push({ id: tp.id, kind: 'lesson', level: li, topic: ti, title: tp.title, icon: tp.icon });
+      });
+      lv.nodes.push({ id: 'L' + li + 'R', kind: 'review', level: li, title: 'Takrorlash', icon: '🔁' });
+      lv.nodes.push({ id: 'L' + li + 'X', kind: 'test', level: li, title: 'Sinov', icon: '🏆' });
+      lv.nodes.forEach(function (n) { n.order = TY.NODES.length; TY.NODES.push(n); TY.nodeById[n.id] = n; });
+    });
+  };
+  TY.LEVELS = JSON.parse(JSON.stringify(L));
+  TY.reindex();
+})(typeof window !== 'undefined' ? (window.TY = window.TY || {}) : (globalThis.TY = globalThis.TY || {}));

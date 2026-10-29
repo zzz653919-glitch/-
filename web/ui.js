@@ -35,10 +35,17 @@
   var LOGO = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M16 20h32M32 20v28" stroke="#fff" stroke-width="9" stroke-linecap="round"/></svg>';
   var session = null, cleanupLesson = null;
 
+  function Storage_noauto() { try { return !!localStorage.getItem('tilyoli:noauto'); } catch (e) { return false; } }
   function route() {
     var h = location.hash || '#/', parts = h.slice(2).split('/'), name = parts[0] || 'home';
     closeModal();
-    if (!A.state) { if (!A.restore()) { renderAuth(); return; } applyTheme(); }
+    if (!A.state) {
+      if (!A.restore()) {
+        // Serversiz rejimda sayt kirishsiz, darhol ochiladi (avtomatik «Mehmon»); chiqish bosilsa kirish oynasi chiqadi
+        if (!TY.Server.on && !Storage_noauto()) A.guest(); else { renderAuth(); return; }
+      }
+      applyTheme();
+    }
     G.regen();
     if (name === 'lesson' || name === 'practice') { startRoute(name, parts[1]); return; }
     stopLesson();
@@ -82,10 +89,10 @@
         '<div class="card"><form class="form" id="af" novalidate><label for="u">Foydalanuvchi nomi</label><input class="inp" id="u" autocomplete="username" required>' +
         '<label for="p">Parol</label><input class="inp" id="p" type="password" autocomplete="' + (mode === 'login' ? 'current-password' : 'new-password') + '" required>' +
         '<p class="err" role="alert" id="err">' + esc(err || '') + '</p><button class="btn block" type="submit">' + (mode === 'login' ? 'Kirish' : 'Ro\'yxatdan o\'tish') + '</button></form></div>' +
-        '<div class="row" style="justify-content:center"><button class="btn ghost small" id="sw">' + (mode === 'login' ? 'Hisobim yo\'q' : 'Hisobim bor') + '</button><button class="btn ghost small" id="gst">Mehmon sifatida</button></div>' +
-        '<p class="mute center" style="margin-top:1rem;font-size:.85rem">Ma\'lumotlar faqat shu qurilma brauzerida saqlanadi (server yo\'q).</p></main>';
+        '<div class="row" style="justify-content:center"><button class="btn ghost small" id="sw">' + (mode === 'login' ? 'Hisobim yo\'q' : 'Hisobim bor') + '</button>' + (TY.Server.on ? '' : '<button class="btn ghost small" id="gst">Mehmon sifatida</button>') + '</div>' +
+        '<p class="mute center" style="margin-top:1rem;font-size:.85rem">' + (TY.Server.on ? 'Hisobingiz va natijalaringiz serverda saqlanadi.' : 'Ma\'lumotlar faqat shu qurilma brauzerida saqlanadi (server yo\'q).') + '</p></main>';
       $('#sw').onclick = function () { mode = mode === 'login' ? 'reg' : 'login'; draw(); };
-      $('#gst').onclick = function () { A.guest(); applyTheme(); location.hash = '#/'; route(); };
+      if ($('#gst')) $('#gst').onclick = function () { A.guest(); applyTheme(); location.hash = '#/'; route(); };
       $('#af').onsubmit = function (e) {
         e.preventDefault();
         var p = (mode === 'login' ? A.login : A.register)($('#u').value, $('#p').value);
@@ -108,7 +115,8 @@
     var hero = cur ? '<section class="card hero"><div><h2>' + (G.learnedCount(s) ? 'Davom etamiz' : 'Boshlaymiz') + '</h2><p>' + esc(TY.LEVELS[cur.level].sub) + ' · ' + esc(cur.title) + '</p></div><a class="btn" href="#/lesson/' + cur.id + '">' + cur.icon + ' ' + (s.done[cur.id] ? 'Takrorlash' : 'Boshlash') + '</a></section>'
       : '<section class="card hero"><div><h2>Barcha darslar tugadi!</h2><p>Takrorlash markazida bilimingizni mustahkamlang.</p></div><a class="btn" href="#/review">Takrorlash</a></section>';
     var qs = G.quests(), done = qs.filter(function (q) { return q.cur >= q.goal; }).length;
-    return '<h1>' + hello + '</h1>' + hero +
+    var ann = (TY.Server.announcements || []).map(function (a) { return '<section class="card" style="background:var(--blue-l)"><b>📣 ' + esc(a.title) + '</b><p style="margin:.3rem 0 0">' + esc(a.body) + '</p></section>'; }).join('');
+    return '<h1>' + hello + '</h1>' + ann + hero +
       '<div class="grid g2"><section class="card row" aria-labelledby="gh"><div><h3 id="gh">Kunlik maqsad</h3><p class="mute">' + Math.floor(d.secs / 60) + ' / ' + s.goalMin + ' daqiqa</p><a href="#/profile">Maqsadni o\'zgartirish</a></div>' + ringSVG(p, 'Kunlik maqsad ' + Math.round(p * 100) + ' foiz') + '</section>' +
       '<section class="card"><h3>Daraja ' + b.lvl + '</h3><div class="bar yellow" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(100 * (s.xp - b.from) / (b.to - b.from)) + '"><i style="width:' + (100 * (s.xp - b.from) / (b.to - b.from)) + '%"></i></div><p class="mute" style="margin-top:.5rem">' + (b.to - s.xp) + ' XP keyingi darajagacha</p></section></div>' +
       '<div class="grid g3"><div class="card stat"><b>🔥 ' + G.streakNow() + '</b>kunlik seriya</div><div class="card stat"><b>⚡ ' + d.xp + '</b>bugungi XP</div><div class="card stat"><b>📖 ' + G.learnedCount(s) + '</b>o\'rganilgan so\'z</div></div>' +
@@ -211,7 +219,7 @@
       '<section class="card"><h3>Ko\'rinish</h3>' + seg('theme', [['auto', 'Avto'], ['light', '☀️ Yorug\''], ['dark', '🌙 Qorong\'i']], s.theme) + '</section>' +
       '<section class="card"><h3>Ovoz</h3><div class="seg"><button data-act="tog" data-k="sound" aria-pressed="' + s.sound + '">🔔 Effektlar: ' + (s.sound ? 'yoqiq' : 'o\'chiq') + '</button><button data-act="tog" data-k="speech" aria-pressed="' + s.speech + '">🔊 Talaffuz: ' + (s.speech ? 'yoqiq' : 'o\'chiq') + '</button></div>' + (TY.canSpeak() ? '' : '<p class="mute">Bu brauzerda talaffuz (TTS) yo\'q — eshitish mashqlari o\'tkazib yuboriladi.</p>') + '</section>' +
       '<section class="card"><h3>Ma\'lumotlar</h3><p class="mute">Barcha natijalar shu brauzerda (localStorage) saqlanadi. Boshqa qurilmaga ko\'chirish uchun eksport qiling.</p><div class="seg"><button data-act="export">⬇️ Eksport</button><label class="btn ghost small" style="cursor:pointer">⬆️ Import<input type="file" accept="application/json" id="imp" hidden></label><button data-act="reset">♻️ Progressni tozalash</button></div></section>' +
-      '<section class="card"><div class="seg"><button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
+      '<section class="card"><div class="seg">' + (TY.Server.on ? '<a class="btn ghost small" href="/admin">🛠️ Admin panel</a>' : (window.TY_SINGLE ? '<a class="btn ghost small" href="?admin">🛠️ Admin panel</a>' : '')) + '<button data-act="logout">Chiqish</button><button data-act="del">Hisobni o\'chirish</button></div></section>';
   }
 
   // ---- Dars oynasi ----
@@ -390,5 +398,6 @@
   matchMedia('(prefers-color-scheme: dark)').addEventListener && matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () { if (st() && st().theme === 'auto') applyTheme(); });
 
   TY._debug = { get session() { return session; }, route: route };
-  route();
+  TY.onAuthLost = function () { toast('Sessiya tugadi yoki hisob bloklandi. Qayta kiring.'); A.logout(); location.hash = '#/'; route(); };
+  TY.ready.then(function () { route(); });
 })(window.TY = window.TY || {});

@@ -58,34 +58,77 @@
   function saveUsers(u) { Storage.set('users', JSON.stringify(u)); }
   function ukey(name) { return name.trim().toLowerCase(); }
 
+  // ---- Server rejimi: server bor bo'lsa hisoblar va progress serverda (SQLite), aks holda localStorage ----
+  var Server = TY.Server = { on: false, csrf: null, timer: null, announcements: [], registrationOpen: true };
+  function api(method, url, body) {
+    return fetch(url, { method: method, credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': Server.csrf || '' }, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) { var e = new Error(j.error || ('Server xatosi ' + r.status)); e.status = r.status; throw e; } return j; }); });
+  }
+  TY.api = api;
+  Server.flush = function () {
+    if (!Server.on || !Auth.state || !Server.dirty) return Promise.resolve();
+    Server.dirty = false; clearTimeout(Server.timer);
+    return api('PUT', 'api/state', { state: Auth.state }).catch(function (e) { Server.dirty = true; if ((e.status === 401 || e.status === 403) && TY.onAuthLost) TY.onAuthLost(e); });
+  };
+  Server.event = function (ev) { if (Server.on && Auth.current) api('POST', 'api/event', ev).catch(function () {}); };
+  window.addEventListener('pagehide', function () { Server.flush(); });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') Server.flush(); });
+  TY.ready = (function () {
+    var local = function (on) { if (!on && TY.localRows) { TY.applyContent(TY.localRows()); Server.announcements = TY.localAnnouncements(); } return on; };
+    if (!window.fetch || location.protocol === 'file:') return Promise.resolve(local(false));
+    return fetch('api/ping', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (p) {
+      if (!p || !p.server) return local(false);
+      Server.on = true; Server.registrationOpen = p.registrationOpen;
+      return api('GET', 'api/content').then(function (c) { TY.applyContent(c.rows); Server.announcements = c.announcements || []; }).catch(function () {})
+        .then(function () { return api('GET', 'api/me'); }).then(function (me) { Auth.openServer(me.user.name, me.state, me.csrf); }).catch(function () {}).then(function () { return true; });
+    });
+  })();
+
   var Auth = {
     current: null, state: null,
+    openServer: function (name, state, csrf) {
+      Server.csrf = csrf; Auth.current = { name: name }; Auth.key = 'data:' + ukey(name);
+      var s = state;
+      if (!s) { var raw = Storage.get(Auth.key); try { s = raw ? JSON.parse(raw) : null; } catch (e) { s = null; } }  // mavjud lokal progressni yo'qotmaslik
+      Auth.state = s ? migrate(s, Auth.key) : newState(); Server.dirty = true; Game.regen(); Game.rollStreak(); Auth.save();
+    },
     register: function (name, pass) {
+      if (Server.on) return api('POST', 'api/register', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       name = (name || '').trim();
       if (name.length < 2) return Promise.reject(new Error("Ism kamida 2 belgi bo'lsin"));
       if (!pass || pass.length < 4) return Promise.reject(new Error("Parol kamida 4 belgi bo'lsin"));
+      var lset = null; try { lset = JSON.parse(Storage.get('local-settings') || 'null'); } catch (e) {}
+      if (lset && lset.registrationOpen === false) return Promise.reject(new Error("Ro'yxatdan o'tish vaqtincha yopiq"));
       var u = users(); if (u[ukey(name)]) return Promise.reject(new Error('Bu ism band'));
       return hash(ukey(name) + ':' + pass).then(function (h) { u[ukey(name)] = { name: name, h: h, created: Date.now() }; saveUsers(u); Auth.open(name); });
     },
     login: function (name, pass) {
+      if (Server.on) return api('POST', 'api/login', { name: name, pass: pass }).then(function (r) { Auth.openServer(r.user.name, r.state, r.csrf); });
       var u = users()[ukey(name || '')];
       if (!u) return Promise.reject(new Error('Foydalanuvchi topilmadi'));
+      if (u.disabled) return Promise.reject(new Error('Hisob bloklangan. Administratorga murojaat qiling.'));
       return hash(ukey(name) + ':' + pass).then(function (h) { if (h !== u.h) throw new Error("Parol noto'g'ri"); Auth.open(u.name); });
     },
     guest: function () { var u = users(); if (!u['mehmon']) { u['mehmon'] = { name: 'Mehmon', h: null, created: Date.now() }; saveUsers(u); } Auth.open('Mehmon'); },
     open: function (name) {
-      Storage.set('session', ukey(name)); Auth.current = users()[ukey(name)];
+      Storage.remove('noauto'); Storage.set('session', ukey(name)); Auth.current = users()[ukey(name)];
       var key = 'data:' + ukey(name), raw = Storage.get(key), s;
       try { s = raw ? migrate(JSON.parse(raw), key) : newState(); } catch (e) { Storage.set(key + ':corrupt', raw); s = newState(); }
       Auth.state = s; Auth.key = key; Game.regen(); Game.rollStreak(); Auth.save();
     },
-    restore: function () { var k = Storage.get('session'); if (k && users()[k]) { Auth.open(users()[k].name); return true; } return false; },
-    logout: function () { Storage.remove('session'); Auth.current = null; Auth.state = null; },
-    save: function () { if (Auth.state) Storage.set(Auth.key, JSON.stringify(Auth.state)); },
+    restore: function () { if (Server.on) return false; var k = Storage.get('session'); if (k && users()[k] && !users()[k].disabled) { Auth.open(users()[k].name); return true; } return false; },
+    logout: function () {
+      if (Server.on && Auth.current) { var p = Server.flush(); p = (p || Promise.resolve()).then(function () { return api('POST', 'api/logout').catch(function () {}); }); Auth.pending = p; }
+      Storage.remove('session'); Storage.set('noauto', '1'); Auth.current = null; Auth.state = null; Server.csrf = null;
+    },
+    save: function () {
+      if (!Auth.state) return; Storage.set(Auth.key, JSON.stringify(Auth.state));
+      if (Server.on && Auth.current) { Server.dirty = true; clearTimeout(Server.timer); Server.timer = setTimeout(Server.flush, 1200); }
+    },
     exportData: function () { return JSON.stringify({ user: Auth.current && Auth.current.name, data: Auth.state }, null, 2); },
     importData: function (text) { var o = JSON.parse(text); if (!o || !o.data || typeof o.data.xp !== 'number') throw new Error("Noto'g'ri fayl"); Auth.state = migrate(o.data, Auth.key); Auth.save(); },
     resetProgress: function () { Auth.state = newState(); Auth.save(); },
-    deleteAccount: function () { var u = users(); delete u[ukey(Auth.current.name)]; saveUsers(u); Storage.remove(Auth.key); Auth.logout(); }
+    deleteAccount: function () { if (Server.on) { api('DELETE', 'api/me').catch(function () {}); Storage.remove(Auth.key); Auth.logout(); return; } var u = users(); delete u[ukey(Auth.current.name)]; saveUsers(u); Storage.remove(Auth.key); Auth.logout(); }
   };
   TY.Auth = Auth;
 

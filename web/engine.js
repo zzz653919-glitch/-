@@ -80,7 +80,8 @@
 
   function make(kind, w) { return MAKERS[kind] ? MAKERS[kind](w) : null; }
   function makeAny(w, kinds, avoid) {
-    var order = shuffle(kinds);
+    var on = kinds.filter(function (k) { return !TY.disabledKinds || !TY.disabledKinds[k]; });
+    var order = shuffle(on.length ? on : kinds);
     if (avoid) order.sort(function (a, b) { return (a === avoid) - (b === avoid); });
     for (var i = 0; i < order.length; i++) { var q = make(order[i], w); if (q) { q.kind = order[i]; return q; } }
     return null;
@@ -178,6 +179,7 @@
     } else { TY.Auth.save(); }
     this.tick(); TY.Auth.save();
     var st = TY.Auth.state; st.history.unshift({ ts: Date.now(), mode: m, node: this.node && this.node.id, pct: pct, xp: this.xp, ok: out.passed }); st.history = st.history.slice(0, 50); TY.Auth.save();
+    if (TY.Server) TY.Server.event({ mode: m, node: this.node && this.node.id, pct: pct, xp: this.xp, ok: out.passed });
     out.xp = this.xp; return out;
   };
   TY.Session = Session;

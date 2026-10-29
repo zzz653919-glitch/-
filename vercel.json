@@ -1,0 +1,11 @@
+{
+  "builds": [
+    { "src": "vocab/lugat.html", "use": "@vercel/static" },
+    { "src": "web/tilyoli.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/vocab/lugat.html" },
+    { "src": "/lugat", "dest": "/vocab/lugat.html" },
+    { "src": "/til-yoli", "dest": "/web/tilyoli.html" }
+  ]
+}

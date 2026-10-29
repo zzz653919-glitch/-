@@ -29,7 +29,7 @@ async function solveCurrent(page, wrong) {
   const browser = await chromium.launch();
   for (const [name, vp] of [['desktop', { width: 1280, height: 800 }], ['mobile', { width: 390, height: 780 }]]) {
     const ctx = await browser.newContext({ viewport: vp, hasTouch: name === 'mobile' });
-    const page = await ctx.newPage(); const errs = [];
+    const page = await ctx.newPage(); await page.addInitScript(() => { try { localStorage.setItem('tilyoli:noauto', '1'); } catch (e) {} }); const errs = [];
     page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); }); page.on('pageerror', e => errs.push(String(e)));
     await page.goto(BASE); await page.waitForSelector('#af');
     ok(true, `[${name}] kirish oynasi ochildi`);
