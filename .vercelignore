@@ -1,0 +1,8 @@
+# Vercel faqat statik saytni joylaydi; Windows ovozli yordamchi (Python) va testlar kerak emas
+main.py
+pyatnitsa
+requirements.txt
+requirements-dev.txt
+tests
+build.bat
+run.bat
