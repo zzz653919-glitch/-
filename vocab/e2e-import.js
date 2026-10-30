@@ -86,6 +86,12 @@ const counts = async (page) => page.evaluate(() => { const o = {}; document.quer
     const eo = await counts(page); ok(eo["xato / to'liq emas"] === 3 && eo['importga tayyor'] === 0, `[${name}] faqat inglizcha rasm: tarjima to'qilmadi, importga tayyor emas ${JSON.stringify(eo)}`);
     await page.fill('#wtable tbody tr:nth-child(1) .w-in[data-k="tr"]', 'qal\'a'); await page.keyboard.press('Tab'); ok((await counts(page))['importga tayyor'] === 1, `[${name}] tarjimani qo'lda qo'shgach tayyor bo'ladi`);
     await page.click('[data-act="w-cancel"]'); await page.click('#cy'); await page.waitForSelector('[data-act="start"]'); ok(await page.evaluate((a) => !V.words(a).some((w) => w.en === 'castle'), A), `[${name}] Cancel: hech narsa saqlanmadi`);
+    // --- yangi sessiya oynasidan ko'p so'z (sessiya import tasdiqlangandan keyin yaratiladi)
+    await page.goto(BASE + '#/'); await page.waitForSelector('[data-act="new"]'); await page.click('[data-act="new"]'); await page.fill('#nn', 'From Modal');
+    await page.fill('#nt', 'castle — qasr\nlamp — chiroq\nmoon - oy'); ok(/Davom etish/.test(await page.textContent('#nsub')), `[${name}] yangi sessiya oynasida so'z yozilsa tugma «Davom etish» bo'ladi`);
+    await page.click('#nsub'); await page.waitForSelector('#wtable'); const cm = await counts(page); ok(cm.aniqlangan === 3 && cm["to'g'ri"] === 3, `[${name}] oynadan kiritilgan so'zlar avval jadvalda ko'rsatildi ${JSON.stringify(cm)}`);
+    ok(await page.inputValue('#wnew') === 'From Modal' && await page.evaluate(() => !V.list().some((s) => s.name === 'From Modal')), `[${name}] tasdiqlanmaguncha sessiya yaratilmadi`);
+    await page.click('[data-act="w-import"]'); await page.waitForSelector('[data-act="start"]'); ok(await page.evaluate(() => { const s = V.list().find((x) => x.name === 'From Modal'); return s && V.words(s.id).map((w) => w.en).join() === 'castle,lamp,moon'; }), `[${name}] tasdiqlangach sessiya yaratilib so'zlar qo'shildi`);
     // --- 6. katta ro'yxat (600 qator): UI qotmaydi
     await page.goto(BASE + '#/import'); await page.waitForSelector('#wdest'); await page.selectOption('#wdest', B);
     const big = Array.from({ length: 600 }, (_, i) => `bigword${i} /bɪɡ/ – tarjima${i} qilmoq izoh${i}`).join('\n');

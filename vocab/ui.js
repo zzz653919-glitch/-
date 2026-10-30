@@ -129,8 +129,8 @@
       foot = '<button class="btn p" id="primary" data-act="study-next">Tushundim →</button>';
     } else if (t === 'flash') {
       var front = qn.dir === 'en-tr' ? w.en : w.tr[0];
-      body = '<p class="q-hint">' + (qn.dir === 'en-tr' ? 'Tarjimasini eslang' : 'Inglizchasini eslang') + '</p><div class="fcard"><div class="q-word">' + esc(front) + (qn.dir === 'en-tr' ? spk(w.en) : '') + '</div><div id="ans" hidden><p style="font-size:1.4rem;font-weight:800;margin:.3rem 0">' + esc(qn.dir === 'en-tr' ? w.tr.join('; ') : w.en) + '</p>' + (w.example ? '<p class="mute">«' + esc(w.example) + '»</p>' : '') + '</div><button class="btn s" data-act="reveal" id="rv">Javobni ko\'rsatish</button></div>';
-      foot = '<div class="row" id="selfgrade" hidden><button class="btn p" data-act="know">✅ Bilardim</button><button class="btn d" data-act="dunno">❌ Bilmadim</button></div>';
+      body = '<p class="q-hint">' + (qn.dir === 'en-tr' ? 'Tarjimasini eslang' : 'Inglizchasini eslang') + '</p><div class="fcard"><div class="q-word">' + esc(front) + (qn.dir === 'en-tr' ? spk(w.en) : '') + '</div><div id="ans" hidden><p style="font-size:1.4rem;font-weight:800;margin:.3rem 0">' + esc(qn.dir === 'en-tr' ? w.tr.join('; ') : w.en) + '</p>' + (w.example ? '<p class="mute">«' + esc(w.example) + '»</p>' : '') + '</div><div id="fin"><label class="sr" for="ti">Javobingiz</label><input class="inp" id="ti" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="' + (qn.dir === 'en-tr' ? 'Tarjimasini yozing…' : 'Inglizcha yozing…') + '" style="margin:.2rem 0 .7rem"></div><button class="btn s" data-act="reveal" id="rv">Javobni ko\'rsatish</button></div>';
+      foot = '<button class="btn p" id="primary" data-act="check" disabled>Tekshirish</button><div class="row" id="selfgrade" hidden><button class="btn p" data-act="know">✅ Bilardim</button><button class="btn d" data-act="dunno">❌ Bilmadim</button></div>';
     } else if (t === 'mc') {
       body = '<p class="q-hint">' + (qn.dir === 'en-tr' ? 'Tarjimasini tanlang' : 'Inglizcha so\'zni tanlang') + '</p><div class="q-word">' + esc(qn.dir === 'en-tr' ? w.en : w.tr.join('; ')) + (qn.dir === 'en-tr' ? spk(w.en) : '') + '</div><div class="opts" role="radiogroup" aria-label="Javob variantlari">' + qn.options.map(function (o, i) { return '<button class="opt" role="radio" aria-checked="false" data-act="opt" data-i="' + i + '"><kbd>' + (i + 1) + '</kbd>' + esc(o) + '</button>'; }).join('') + '</div>';
       foot = '<button class="btn p" id="primary" data-act="check" disabled>Tekshirish</button>';
@@ -146,7 +146,7 @@
     }
     var tag = qn.retry ? '<p class="mute">↩️ Qayta urinib ko\'ring</p>' : '';
     app.innerHTML = rhead(sid) + '<div class="r-body" id="rbody">' + tag + body + '</div><div class="fb" id="fb"><div class="fb-in"><span class="msg" id="msg" role="status" aria-live="polite"></span><span id="fbtn">' + foot + '</span></div></div></div>';
-    if (t === 'type' || t === 'spell') { var ti = $('#ti'); ti.focus(); ti.oninput = function () { $('#primary').disabled = !ti.value.trim(); }; }
+    if (t === 'type' || t === 'spell' || t === 'flash') { var ti = $('#ti'); ti.focus(); ti.oninput = function () { $('#primary').disabled = !ti.value.trim(); }; }
     if (t === 'mc' && qn.dir === 'en-tr') speak(w.en);
   }
   function feedback(ok, res) {
@@ -162,12 +162,12 @@
   function check() {
     var qn = cur.q, sid = run.sid, input; if (cur.checked) return;
     if (qn.type === 'mc') { if (cur.sel == null) return; input = qn.options[cur.sel]; }
-    else if (qn.type === 'type' || qn.type === 'spell') input = $('#ti').value;
+    else if (qn.type === 'type' || qn.type === 'spell' || qn.type === 'flash') input = $('#ti').value;
     else input = cur.picked.map(function (i) { return qn.letters[i]; }).join('');
     var res = V.grade(sid, qn, input); if (res.empty) return; cur.checked = true;
     V.answer(sid, qn, res.ok, [qn.w], input);
     if (qn.type === 'mc') document.querySelectorAll('.opt').forEach(function (b) { var o = qn.options[+b.dataset.i]; b.disabled = true; if (V.grade(sid, qn, o).ok) b.classList.add('good'); else if (+b.dataset.i === cur.sel) b.classList.add('bad'); });
-    if ($('#ti')) $('#ti').disabled = true;
+    if ($('#ti')) $('#ti').disabled = true; var rvb = $('#rv'); if (rvb) rvb.hidden = true;
     feedback(res.ok, res); cont(res.ok);
   }
   function matchClick(btn) {
@@ -210,8 +210,18 @@
     if (location.hash === '#/run/' + sid) route(); else location.hash = '#/run/' + sid;
   }
   function newSessionForm() {
-    modal('<h2>Yangi sessiya</h2><form id="nf"><label for="nn">Sessiya nomi</label><input id="nn" maxlength="60" required placeholder="Masalan: English Unit 1" style="width:100%"><label for="nl">Tarjima tili</label><input id="nl" value="O\'zbekcha" maxlength="30" style="width:100%"><p class="err" id="ne" role="alert"></p><div class="row"><button class="btn p">Yaratish</button><button type="button" class="btn" data-act="close">Bekor qilish</button></div></form>');
-    $('#nf').onsubmit = function (e) { e.preventDefault(); try { var id = V.createSession($('#nn').value, { lang: $('#nl').value.trim() || "O'zbekcha" }); closeModal(); location.hash = '#/s/' + id; } catch (er) { $('#ne').textContent = er.message; } };
+    modal('<h2>Yangi sessiya</h2><form id="nf"><label for="nn">Sessiya nomi</label><input id="nn" maxlength="60" required placeholder="Masalan: English Unit 1" style="width:100%"><label for="nl">Tarjima tili</label><input id="nl" value="O\'zbekcha" maxlength="30" style="width:100%"><label for="nt">So\'zlar (ixtiyoriy) — ro\'yxatni shu yerga yopishtiring</label><textarea id="nt" style="min-height:130px" placeholder="take a photo /teɪk ə ˈfəʊtəʊ/ – suratga olmoq&#10;tomorrow — ertaga&#10;apple&#9;olma"></textarea><p class="mute" style="font-size:.85rem;margin:.3rem 0 0">So\'z yozsangiz, avval jadvalda ko\'rsatiladi va tasdiqlaganingizdan keyin saqlanadi. Rasmdan ham import qilish mumkin (keyingi oynada).</p><p class="err" id="ne" role="alert"></p><div class="row"><button class="btn p" id="nsub">Yaratish</button><button type="button" class="btn" data-act="close">Bekor qilish</button></div></form>');
+    var nt = $('#nt'), sub = $('#nsub'); nt.oninput = function () { sub.textContent = nt.value.trim() ? 'Davom etish → ko\'rib chiqish' : 'Yaratish'; };
+    $('#nf').onsubmit = function (e) {
+      e.preventDefault(); var name = $('#nn').value, lang = $('#nl').value.trim() || "O'zbekcha", text = nt.value;
+      try {
+        if (!text.trim()) { var id = V.createSession(name, { lang: lang }); closeModal(); location.hash = '#/s/' + id; return; }
+        if (!name.trim()) throw new Error('Sessiya nomini kiriting');
+        // Sessiya import tasdiqlangandan keyin yaratiladi (bekor qilsangiz bo'sh sessiya qolmaydi)
+        wiz = newWiz(''); wiz.dest = '__new'; wiz.newName = name.trim(); wiz.lang = lang; wiz.text = text; wiz.autoParse = true; closeModal();
+        if (location.hash === '#/import') route(); else location.hash = '#/import';
+      } catch (er) { $('#ne').textContent = er.message; }
+    };
   }
   function wordForm(sid, wid) {
     var w = wid ? V.session(sid).words[wid] : null;
@@ -236,6 +246,7 @@
     if (!wiz || (sid && wiz.dest !== sid && !wiz.entries.length)) wiz = newWiz(sid);
     if (sid) { wiz.dest = sid; wiz.existing = I().existingMap(sid); }
     wizPage();
+    if (wiz.autoParse) { wiz.autoParse = false; parseInto(wiz.text, 'text'); }
   }
   function I() { return V.imp; }
   function destSid() { return wiz.dest && wiz.dest !== '__new' ? wiz.dest : null; }
@@ -348,7 +359,7 @@
     if (wiz.busy || !destReady()) return;
     var c = I().counts(wiz.entries); if (!c.ready) return;
     var sid = destSid();
-    try { if (!sid) sid = V.createSession(wiz.newName); } catch (er) { wiz.error = er.message; wizRender(); return; }
+    try { if (!sid) sid = V.createSession(wiz.newName, { lang: wiz.lang || "O'zbekcha" }); } catch (er) { wiz.error = er.message; wizRender(); return; }
     I().revalidate(wiz.entries, I().existingMap(sid));   // yaratilgan/tanlangan sessiyaga qarab oxirgi tekshiruv
     setBusy('Saqlanmoqda…', 0);
     I().commit(sid, wiz.entries, function (p, n) { setBusy('Saqlanmoqda… ' + n + ' ta', p); }).then(function (r) {
@@ -376,7 +387,7 @@
     else if (act === 'say') speak(b.dataset.t);
     else if (act === 'toggle-tr') { var t = $('#trv'); t.hidden = !t.hidden; b.textContent = t.hidden ? 'Tarjimani ko\'rsatish' : 'Tarjimani yashirish'; }
     else if (act === 'study-next') { V.studyDone(run.sid, cur.q); V.next(run.sid); nextQuestion(); }
-    else if (act === 'reveal') { $('#ans').hidden = false; b.hidden = true; $('#selfgrade').hidden = false; var f = $('#selfgrade button'); if (f) f.focus(); }
+    else if (act === 'reveal') { $('#ans').hidden = false; b.hidden = true; var fin = $('#fin'); if (fin) fin.hidden = true; var pc = $('#primary'); if (pc) pc.hidden = true; $('#selfgrade').hidden = false; var f = $('#selfgrade button'); if (f) f.focus(); }
     else if (act === 'know' || act === 'dunno') { if (cur.checked) return; cur.checked = true; var ok = act === 'know', res = V.grade(run.sid, cur.q, ok); V.answer(run.sid, cur.q, ok, [cur.q.w], ok ? 'bilardim' : 'bilmadim'); feedback(ok, res); cont(ok); }
     else if (act === 'opt') { if (cur.checked) return; cur.sel = +b.dataset.i; document.querySelectorAll('.opt').forEach(function (o) { var on = o === b; o.classList.toggle('sel', on); o.setAttribute('aria-checked', on); }); $('#primary').disabled = false; }
     else if (act === 'check') check();

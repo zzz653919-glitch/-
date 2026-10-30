@@ -45,3 +45,10 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.55rem .
 .status-new{color:var(--mute)}.status-learning{color:var(--y)}.status-mastered{color:var(--g)}
 @media(max-width:700px){.page{padding:1rem .9rem 5rem}h1{font-size:1.55rem}.q-word{font-size:2rem}.top{padding:.55rem .8rem}.hide-sm{display:none}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* Flash karta: chiroyli ko'rinish */
+.fcard{background:linear-gradient(180deg,color-mix(in srgb,var(--sc) 7%,var(--card)),var(--card));border:2px solid color-mix(in srgb,var(--sc) 30%,var(--line));border-style:solid;border-radius:24px;padding:1.4rem 1.4rem 1.2rem;box-shadow:0 10px 30px -18px var(--sc)}
+.fcard .q-word{font-size:2.6rem;margin:.1rem 0 1.1rem}.fcard .inp{background:var(--bg);border-width:2px}.fcard .inp:focus{border-color:var(--sc);box-shadow:0 0 0 4px color-mix(in srgb,var(--sc) 18%,transparent)}
+#ans{margin:.2rem 0 .6rem;padding:.9rem 1rem;border-radius:16px;background:var(--gl)}#ans p:first-child{margin-top:0}
+.fcard .btn.s{opacity:.9}.q-hint{letter-spacing:.01em}
+@media(max-width:700px){.fcard{padding:1.1rem}.fcard .q-word{font-size:2.1rem}}
