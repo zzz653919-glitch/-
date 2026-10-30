@@ -25,6 +25,7 @@
     closeModal(); var h = (location.hash || '#/').slice(2).split('/'), name = h[0] || 'home', sid = h[1];
     if ((name === 's' || name === 'run') && !V.db().sessions[sid]) { location.hash = '#/'; return; }
     if (name === 'run') return openRun(sid);
+    if (name === 'import') return openWizard(sid);
     run = null;
     if (name === 's') { V.setActive(sid); return page(vSession(sid), sid); }
     if (name === 'settings') return page(vSettings());
@@ -60,7 +61,7 @@
   }
   function vHome() {
     var mig = V.db().migrations.filter(function (m) { return m.id.indexOf('legacy-') === 0 && !m.dismissed; });
-    return '<div class="row sb"><div><h1>Lug\'at sessiyalari</h1><p class="mute">Har bir sessiya faqat o\'z so\'zlari bilan ishlaydi.</p></div><button class="btn p" data-act="new">＋ Yangi sessiya</button></div>' +
+    return '<div class="row sb"><div><h1>Lug\'at sessiyalari</h1><p class="mute">Har bir sessiya faqat o\'z so\'zlari bilan ishlaydi.</p></div><div class="row"><a class="btn" href="#/import">⬆ Ko\'p so\'z import</a><button class="btn p" data-act="new">＋ Yangi sessiya</button></div></div>' +
       mig.map(function (m) { return '<div class="card" style="background:var(--yl)"><div class="row sb"><span>🔁 <b>Migratsiya:</b> eski Til Yo\'li kursidan <b>' + m.words + '</b> ta so\'z va ularning progressi «' + esc(V.session(m.sessionId) ? V.session(m.sessionId).name : '') + '» sessiyasiga ko\'chirildi. Eski ma\'lumot o\'zgarmadi.</span><button class="btn s" data-act="dismiss" data-id="' + esc(m.id) + '">Yopish</button></div></div>'; }).join('') +
       '<div class="row" style="margin-bottom:1rem"><label class="sr" for="sq">Sessiya qidirish</label><input id="sq" type="search" placeholder="Sessiya qidirish…" value="' + esc(q.text) + '" style="flex:1;min-width:180px"><label class="sr" for="ss">Saralash</label><select id="ss">' + [['recent', 'Oxirgi faollik'], ['name', 'Nom'], ['words', "So'zlar soni"], ['progress', 'Progress'], ['created', 'Yaratilgan sana']].map(function (o) { return '<option value="' + o[0] + '"' + (q.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div><div id="slist">' + sessionsHTML() + '</div>';
   }
@@ -89,7 +90,7 @@
       (empty ? '<div class="card empty"><b>Bu sessiyada hali so\'z yo\'q.</b><br>Mashq boshlash uchun avval so\'z qo\'shing yoki import qiling.</div>' : '') +
       '<div class="card"><h2>Mashq</h2><div class="row">' + start + '<button class="btn" data-act="start" data-m="review"' + (empty || paused ? ' disabled' : '') + '>🔁 Takrorlash (' + x.dueNow + ')</button><button class="btn" data-act="start" data-m="mistakes"' + (empty || paused || !x.mistakes ? ' disabled' : '') + '>🧩 Xato so\'zlar (' + x.mistakes + ')</button><button class="btn" data-act="start" data-m="test"' + (empty || paused ? ' disabled' : '') + '>🏁 Yakuniy test</button></div></div>' +
       (sum ? '<div class="card"><h3>Oxirgi raund (' + modeName[sum.mode] + ', ' + fdate(sum.ts) + ')</h3><p class="mute" style="margin:0">Aniqlik ' + sum.accuracy + '% · ' + sum.correct + '/' + sum.total + ' birinchi urinishda to\'g\'ri' + (sum.passed === true ? ' · ✅ test topshirildi' : sum.passed === false ? ' · ❌ test topshirilmadi' : '') + '</p></div>' : '') +
-      '<div class="card"><div class="row sb"><h2 style="margin:0">So\'zlar</h2><button class="btn s" data-act="import">⬆ Ko\'p so\'z import</button></div>' +
+      '<div class="card"><div class="row sb"><h2 style="margin:0">So\'zlar</h2><a class="btn s" href="#/import/' + sid + '">⬆ Ko\'p so\'z import</a></div>' +
       '<form id="wform" class="row" style="align-items:end;margin-top:.6rem"><div style="flex:1;min-width:140px"><label for="w_en">Inglizcha</label><input id="w_en" name="en" required maxlength="80" style="width:100%" autocomplete="off"></div><div style="flex:1;min-width:140px"><label for="w_tr">Tarjima (; bilan bir nechta)</label><input id="w_tr" name="tr" required style="width:100%" autocomplete="off"></div><div style="flex:1;min-width:140px"><label for="w_ex">Misol gap (ixtiyoriy)</label><input id="w_ex" name="example" style="width:100%" autocomplete="off"></div><button class="btn p" type="submit">＋ Qo\'shish</button></form><p class="err" id="werr" role="alert"></p>' +
       '<label class="sr" for="wq">So\'z qidirish</label><input id="wq" type="search" placeholder="So\'z qidirish…" value="' + esc(wf) + '" style="width:100%;margin:.4rem 0"><div id="wlist">' + wordRows(sid) + '</div></div>';
   }
@@ -226,8 +227,138 @@
     $('#iap').onclick = function () { var r = V.importInto(sid, $('#it').value, $('#im').value); show(r, r.applied); if (r.applied) { toast(r.added.length + " ta so'z qo'shildi"); closeModal(); route(); } };
   }
 
+
+  // ================= Ko'p so'z import (wizard) =================
+  var wiz = null, PAGE = 50;
+  function newWiz(sid) { return { dest: sid || '', newName: '', tab: 'text', mode: 'input', text: '', entries: [], page: 0, filter: 'all', busy: null, files: [], raw: [], error: '', existing: new Map(), nextId: 1 }; }
+  function openWizard(sid) {
+    if (sid && !V.db().sessions[sid]) { location.hash = '#/import'; return; }
+    if (!wiz || (sid && wiz.dest !== sid && !wiz.entries.length)) wiz = newWiz(sid);
+    if (sid) { wiz.dest = sid; wiz.existing = I().existingMap(sid); }
+    wizPage();
+  }
+  function I() { return V.imp; }
+  function destSid() { return wiz.dest && wiz.dest !== '__new' ? wiz.dest : null; }
+  function destReady() { return !!destSid() || (wiz.dest === '__new' && wiz.newName.trim().length > 0); }
+  function wizPage() { page('<div id="wiz"></div>', destSid()); wizRender(); }
+  function revalidate() { I().revalidate(wiz.entries, wiz.existing); }
+  function statusChip(e) {
+    var m = { valid: ['g', "To'g'ri"], review: ['y', 'Tekshirish'], duplicate: ['r', 'Takror'], incomplete: ['r', "To'liq emas"], invalid: ['r', 'Xato'] }[e.status];
+    return '<span class="chip ' + m[0] + '">' + m[1] + '</span>' + (e.ok && e.status !== 'valid' ? ' <span class="chip g">tasdiqlangan</span>' : '');
+  }
+  function countsHTML() {
+    var c = I().counts(wiz.entries), ch = function (v, l, cls) { return '<span class="chip ' + (cls || '') + '"><b>' + v + '</b> ' + l + '</span>'; };
+    return '<div class="row" id="wcounts" aria-live="polite">' + ch(c.total, 'aniqlangan') + ch(c.valid, "to'g'ri", 'g') + ch(c.duplicates, 'takror', c.duplicates ? 'r' : '') + ch(c.review, 'tekshirish kerak', c.review ? 'y' : '') + ch(c.bad, "xato / to'liq emas", c.bad ? 'r' : '') + '<span class="chip g" style="margin-left:auto"><b>' + c.ready + '</b> importga tayyor</span></div>';
+  }
+  function filtered() { var f = wiz.filter; return wiz.entries.filter(function (e) { return f === 'all' || (f === 'bad' ? (e.status === 'invalid' || e.status === 'incomplete') : e.status === f); }); }
+  function rowHTML(e, n) {
+    var inp = function (k, ph, w) { return '<input class="w-in" data-id="' + e.id + '" data-k="' + k + '" value="' + esc(e[k]) + '" placeholder="' + ph + '" aria-label="' + ph + ', ' + n + '-qator" style="width:100%;min-width:' + w + 'px">'; };
+    return '<tr data-row="' + e.id + '"><td class="mute">' + n + '</td><td>' + inp('en', 'Inglizcha', 120) + '</td><td>' + inp('tr', 'Tarjima', 140) + (e.removed ? '<div class="mute" style="font-size:.8rem">olib tashlandi: «' + esc(e.removed) + '» <button class="btn s" data-act="w-restore" data-id="' + e.id + '">qaytarish</button></div>' : '') + '</td><td>' + inp('pron', 'Talaffuz', 90) + '</td><td>' + statusChip(e) + (e.reasons.length ? '<div class="mute" style="font-size:.8rem">' + e.reasons.map(esc).join('<br>') + '</div>' : '') + '</td><td style="white-space:nowrap">' +
+      (e.status === 'review' && !e.confirmed ? '<button class="btn s" data-act="w-confirm" data-id="' + e.id + '" title="Qanday bo\'lsa shunday tasdiqlash">✓ Tasdiqlash</button> ' : '') + (e.status === 'duplicate' && e.dup && e.dup.kind && !e.allowDup && e.tr && /\p{L}/u.test(e.en) ? '<button class="btn s" data-act="w-allowdup" data-id="' + e.id + '">Baribir qo\'shish</button> ' : '') +
+      '<button class="btn s" data-act="w-del" data-id="' + e.id + '" aria-label="O\'chirish">🗑</button></td></tr>';
+  }
+  function tableHTML() {
+    var list = filtered(), pages = Math.max(1, Math.ceil(list.length / PAGE)); if (wiz.page >= pages) wiz.page = pages - 1;
+    var from = wiz.page * PAGE, slice = list.slice(from, from + PAGE);
+    if (!list.length) return '<div class="empty">Bu filtr bo\'yicha yozuv yo\'q.</div>';
+    return '<div class="tw"><table id="wtable"><thead><tr><th>#</th><th>Inglizcha</th><th>Tarjima (o\'zbekcha)</th><th>Talaffuz</th><th>Holat</th><th></th></tr></thead><tbody>' + slice.map(function (e, i) { return rowHTML(e, from + i + 1); }).join('') + '</tbody></table></div>' +
+      (pages > 1 ? '<div class="row" style="margin-top:.6rem"><button class="btn s" data-act="w-prev"' + (wiz.page === 0 ? ' disabled' : '') + '>← Oldingi</button><span class="mute">' + (wiz.page + 1) + ' / ' + pages + ' (' + list.length + ' qator)</span><button class="btn s" data-act="w-next"' + (wiz.page >= pages - 1 ? ' disabled' : '') + '>Keyingi →</button></div>' : '');
+  }
+  function progressHTML() { var b = wiz.busy; return b ? '<div class="card" role="status" aria-live="polite"><b>' + esc(b.label) + '</b><div class="bar" style="margin-top:.5rem"><i style="width:' + Math.round(100 * b.p) + '%"></i></div></div>' : ''; }
+  function wizRender() {
+    var el = $('#wiz'); if (!el) return;
+    var sessions = V.list(), canGo = destReady(), c = I().counts(wiz.entries), busy = !!wiz.busy;
+    var destHTML = '<div class="card"><h2>1. Qaysi sessiyaga import qilinadi?</h2><div class="row"><div style="flex:1;min-width:220px"><label for="wdest">Maqsad sessiya (majburiy)</label><select id="wdest" style="width:100%"' + (busy ? ' disabled' : '') + '><option value="">— sessiyani tanlang —</option>' + sessions.map(function (s) { return '<option value="' + s.id + '"' + (wiz.dest === s.id ? ' selected' : '') + '>' + esc(s.name) + ' (' + s.order.length + ' ta so\'z)</option>'; }).join('') + '<option value="__new"' + (wiz.dest === '__new' ? ' selected' : '') + '>＋ Yangi sessiya yaratish…</option></select></div>' +
+      (wiz.dest === '__new' ? '<div style="flex:1;min-width:220px"><label for="wnew">Yangi sessiya nomi</label><input id="wnew" value="' + esc(wiz.newName) + '" maxlength="60" placeholder="Masalan: IELTS Words" style="width:100%"></div>' : '') + '</div>' +
+      (canGo ? '<p class="mute" style="margin:.6rem 0 0">Barcha so\'zlar <b>faqat shu sessiyaga</b> qo\'shiladi. Boshqa sessiyalar va ularning progressiga tegilmaydi.</p>' : '<p class="mute" style="margin:.6rem 0 0">Davom etish uchun sessiyani tanlang yoki yangisini yarating.</p>') + '</div>';
+    var inputHTML = '';
+    if (wiz.mode === 'rawedit') {
+      inputHTML = '<div class="card"><h2>Yozuvlarni matn sifatida tahrirlash</h2><p class="mute">Har qatorda bitta yozuv: <code>inglizcha /talaffuz/ — tarjima</code>. «Qayta tahlil» jadvalni yangilaydi.</p><label class="sr" for="wraw">Matn</label><textarea id="wraw" style="min-height:260px">' + esc(wiz.rawText) + '</textarea><div class="row" style="margin-top:.6rem"><button class="btn p" data-act="w-reparse">Qayta tahlil</button><button class="btn" data-act="w-backraw">Orqaga</button></div></div>';
+    } else {
+      var tabs = '<div class="row" role="tablist" style="margin-bottom:.6rem"><button class="btn s' + (wiz.tab === 'text' ? ' p' : '') + '" role="tab" aria-selected="' + (wiz.tab === 'text') + '" data-act="w-tab" data-t="text">📝 Matn</button><button class="btn s' + (wiz.tab === 'image' ? ' p' : '') + '" role="tab" aria-selected="' + (wiz.tab === 'image') + '" data-act="w-tab" data-t="image">📷 Rasm (OCR)</button></div>';
+      var body = wiz.tab === 'text'
+        ? '<label for="wtext">So\'zlar ro\'yxati (50, 100, 500 va undan ko\'p qator)</label><textarea id="wtext" style="min-height:240px" placeholder="take a photo /teɪk ə ˈfəʊtəʊ/ – suratga olmoq sunday qilib&#10;tomorrow — ertaga&#10;look after&#9;g\'amxo\'rlik qilmoq" ' + (canGo && !busy ? '' : 'disabled') + '>' + esc(wiz.text) + '</textarea><div class="row" style="margin-top:.5rem"><button class="btn p" data-act="w-parse"' + (canGo && !busy ? '' : ' disabled') + '>Tahlil qilish</button><button class="btn s" data-act="w-sample"' + (busy ? ' disabled' : '') + '>Namuna qo\'yish</button><span class="mute" id="wlines">' + lineCount(wiz.text) + ' qator</span></div><p class="mute" style="font-size:.85rem">Ajratuvchilar: <code>—</code> <code>–</code> <code>-</code> <code>:</code> <code>=</code> <code>|</code>, TAB yoki 2+ bo\'shliq. Talaffuz <code>/…/</code> avtomatik olib tashlanadi. Ajratuvchi bo\'lmasa ham («take a photo suratga olmoq») taxminan ajratiladi va tekshirishga qo\'yiladi.</p>'
+        : '<div class="card" style="background:var(--yl);margin-bottom:.8rem"><b>⚠ Internet kerak.</b> Rasm matni brauzerda o\'qiladi (rasm serverga yuborilmaydi), lekin OCR kutubxonasi va til ma\'lumoti ' + (V.ocr.needsInternet() ? 'internetdan (CDN) yuklanadi' : 'sozlangan manzildan yuklanadi') + '. Offlayn ishlashi kafolatlanmaydi.' + (navigator.onLine === false ? ' <b style="color:var(--r)">Hozir internet yo\'q ko\'rinadi.</b>' : '') + '</div><label for="wfiles">Rasmlar (JPG, JPEG, PNG, WebP — bir nechtasini tanlash mumkin)</label><input type="file" id="wfiles" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" multiple' + (canGo && !busy ? '' : ' disabled') + '><div id="wfl" class="mute" style="margin:.4rem 0">' + (wiz.files.length ? wiz.files.map(function (f) { return esc(f.name); }).join(', ') : 'Rasm tanlanmagan') + '</div><button class="btn p" data-act="w-ocr"' + (canGo && wiz.files.length && !busy ? '' : ' disabled') + '>Rasmlardan o\'qish</button><p class="mute" style="font-size:.85rem">Faqat inglizcha so\'zlar bo\'lsa, tarjima bo\'sh qoladi (to\'qib chiqarilmaydi) — jadvalda o\'zingiz kiritasiz. OCR xatolari mumkin: import qilishdan oldin jadvalda tuzating.</p>' + (wiz.raw.length ? '<details style="margin-top:.6rem"><summary>O\'qilgan xom matn (' + wiz.raw.length + ' ta rasm)</summary>' + wiz.raw.map(function (r) { return '<p class="mute" style="margin:.4rem 0 .1rem"><b>' + esc(r.name) + '</b>' + (r.conf != null ? ' · ishonch ' + Math.round(r.conf) + '%' : '') + '</p><pre style="white-space:pre-wrap;margin:0">' + esc(r.text) + '</pre>'; }).join('') + '</details>' : '');
+      inputHTML = '<div class="card"><h2>2. Manba</h2>' + tabs + body + '</div>';
+    }
+    var prev = '';
+    if (wiz.entries.length && wiz.mode !== 'rawedit') {
+      prev = '<div class="card"><div class="row sb"><h2 style="margin:0">3. Oldindan ko\'rish</h2><div class="row"><label class="sr" for="wf">Filtr</label><select id="wf" aria-label="Filtr">' + [['all', 'Hammasi'], ['valid', "To'g'ri"], ['review', 'Tekshirish kerak'], ['duplicate', 'Takrorlar'], ['bad', "Xato / to'liq emas"]].map(function (o) { return '<option value="' + o[0] + '"' + (wiz.filter === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div><div style="margin:.6rem 0">' + countsHTML() + '</div><div id="wtablebox">' + tableHTML() + '</div>' +
+        '<p class="mute" style="font-size:.85rem">Saqlash tasdiqlanmaguncha hech narsa saqlanmaydi. «Tekshirish» holatidagi qatorni tuzating yoki ✓ bilan tasdiqlang; takrorlar standart bo\'yicha import qilinmaydi.</p>' +
+        '<div class="row" style="margin-top:.6rem"><button class="btn p" id="wimport" data-act="w-import"' + (c.ready && canGo && !busy ? '' : ' disabled') + '>Import All Valid Words (' + c.ready + ')</button><button class="btn" data-act="w-edit"' + (busy ? ' disabled' : '') + '>Edit Entries</button><button class="btn" data-act="w-cancel">Cancel</button></div></div>';
+    } else if (!wiz.entries.length && wiz.mode !== 'rawedit') prev = '<div class="row"><button class="btn" data-act="w-cancel">Cancel</button></div>';
+    el.innerHTML = '<p><a href="' + (destSid() ? '#/s/' + destSid() : '#/') + '" data-act="w-cancel-link">← Orqaga</a></p><h1>Ko\'p so\'z import</h1><p class="mute">Ro\'yxatni yopishtiring yoki rasm yuklang. Natija avval jadvalda ko\'rsatiladi, siz tasdiqlamaguncha hech narsa saqlanmaydi.</p>' + destHTML + progressHTML() + (wiz.error ? '<p class="err" role="alert">' + esc(wiz.error) + '</p>' : '') + inputHTML + prev;
+  }
+  function lineCount(t) { return String(t || '').split(/\r?\n/).filter(function (l) { return l.trim(); }).length; }
+  function setBusy(label, p) { wiz.busy = label ? { label: label, p: p || 0 } : null; var el = $('#wiz'); if (!el) return; var old = el.querySelector('[role="status"].card'); if (wiz.busy && old) { old.querySelector('b').textContent = label; old.querySelector('.bar i').style.width = Math.round(100 * (p || 0)) + '%'; } else wizRender(); }
+  function parseInto(text, src) {
+    wiz.error = ''; wiz.existing = I().existingMap(destSid());
+    var n = lineCount(text); if (!n) { wiz.error = "Matn bo'sh."; wizRender(); return Promise.resolve(); }
+    setBusy('Tahlil qilinmoqda… (' + n + ' qator)', 0);
+    return I().parseAsync(text, { existing: wiz.existing, src: src, startId: wiz.nextId }, function (p) { setBusy('Tahlil qilinmoqda… (' + n + ' qator)', p); }).then(function (rows) {
+      wiz.nextId += rows.length + 1; wiz.entries = wiz.entries.concat(rows); revalidate(); wiz.busy = null; wiz.page = 0; wizRender();
+    });
+  }
+  function wizClick(b) {
+    var act = b.dataset.act, id = +b.dataset.id, e = wiz.entries.filter(function (x) { return x.id === id; })[0];
+    if (act === 'w-tab') { saveText(); wiz.tab = b.dataset.t; wizRender(); }
+    else if (act === 'w-sample') { wiz.text = "take a photo /teɪk ə ˈfəʊtəʊ/ – suratga olmoq sunday qilib\nlook after /lʊk ˈɑːftə/ – g'amxo'rlik qilmoq biror kishiga qarash\ngive up /ɡɪv ʌp/ – taslim bo'lmoq\ntomorrow — ertaga\napple — olma\nimprove — yaxshilamoq\ntake a photo\tsuratga olmoq\ntomorrow ertaga\nlook after g'amxo'rlik qilmoq"; wizRender(); }
+    else if (act === 'w-parse') { saveText(); parseInto(wiz.text, 'text'); }
+    else if (act === 'w-ocr') ocrRun();
+    else if (act === 'w-confirm' && e) { e.confirmed = true; revalidate(); refreshTable(); }
+    else if (act === 'w-allowdup' && e) { e.allowDup = true; revalidate(); refreshTable(); }
+    else if (act === 'w-restore' && e) { e.tr = (e.tr ? e.tr + ' ' : '') + e.removed; e.removed = ''; e._parseReasons = []; revalidate(); refreshTable(); }
+    else if (act === 'w-del' && e) { wiz.entries = wiz.entries.filter(function (x) { return x.id !== id; }); revalidate(); refreshTable(); }
+    else if (act === 'w-prev') { wiz.page--; refreshTable(); } else if (act === 'w-next') { wiz.page++; refreshTable(); }
+    else if (act === 'w-edit') { wiz.rawText = I().toText(wiz.entries); wiz.mode = 'rawedit'; wizRender(); }
+    else if (act === 'w-backraw') { wiz.mode = 'input'; wizRender(); }
+    else if (act === 'w-reparse') { var t = $('#wraw').value; wiz.entries = []; wiz.mode = 'input'; wiz.text = ''; parseInto(t, 'text'); }
+    else if (act === 'w-import') doImport();
+    else if (act === 'w-cancel' || act === 'w-cancel-link') {
+      var go = function () { var back = destSid(); wiz = null; location.hash = back ? '#/s/' + back : '#/'; };
+      if (act === 'w-cancel-link' && !(wiz.entries.length || wiz.text.trim())) return;
+      if (act === 'w-cancel-link') { event.preventDefault(); }
+      if (wiz.entries.length) { confirmBox('Tahlil qilingan ' + wiz.entries.length + ' ta yozuv saqlanmasdan bekor qilinadi.', 'Bekor qilish').then(function (y) { if (y) go(); }); } else go();
+    }
+  }
+  function saveText() { var t = $('#wtext'); if (t) wiz.text = t.value; }
+  function refreshTable() { var box = $('#wtablebox'); if (!box) return wizRender(); box.innerHTML = tableHTML(); var cc = $('#wcounts'); if (cc) cc.outerHTML = countsHTML(); var bt = $('#wimport'); if (bt) { var c = I().counts(wiz.entries); bt.textContent = 'Import All Valid Words (' + c.ready + ')'; bt.disabled = !c.ready || !destReady(); } }
+  function wizEdit(inp) {
+    var e = wiz.entries.filter(function (x) { return x.id === +inp.dataset.id; })[0]; if (!e) return;
+    var k = inp.dataset.k, v = inp.value.replace(/\s+/g, ' ').trim(); if (e[k] === v) return;
+    e[k] = v; e._parseReasons = []; if (e.status === 'review') e.confirmed = true;   // qo'lda tuzatish = ko'rib chiqilgan
+    revalidate(); refreshTable();
+  }
+  function ocrRun() {
+    wiz.error = ''; var files = wiz.files.slice(), i = 0;
+    if (V.ocr.needsInternet() && navigator.onLine === false) { wiz.error = 'Internet yo\'q — rasmdan o\'qish uchun ulanish kerak.'; wizRender(); return; }
+    wiz.existing = I().existingMap(destSid());
+    (function next() {
+      if (i >= files.length) { wiz.files = []; wiz.busy = null; wiz.page = 0; wizRender(); return; }
+      var f = files[i++];
+      setBusy('Rasm o\'qilmoqda (' + i + '/' + files.length + '): ' + f.name, (i - 1) / files.length);
+      V.ocr.recognize(f, function (st, p) { setBusy('Rasm o\'qilmoqda (' + i + '/' + files.length + '): ' + f.name + ' — ' + st, (i - 1 + p) / files.length); }).then(function (r) {
+        wiz.raw.push({ name: f.name, text: r.text, conf: r.confidence });
+        return I().parseAsync(r.text, { existing: wiz.existing, src: 'rasm: ' + f.name, startId: wiz.nextId });
+      }).then(function (rows) { wiz.nextId += rows.length + 1; wiz.entries = wiz.entries.concat(rows); revalidate(); next(); })
+        .catch(function (er) { wiz.error = f.name + ': ' + er.message; wiz.busy = null; wizRender(); });
+    })();
+  }
+  function doImport() {
+    if (wiz.busy || !destReady()) return;
+    var c = I().counts(wiz.entries); if (!c.ready) return;
+    var sid = destSid();
+    try { if (!sid) sid = V.createSession(wiz.newName); } catch (er) { wiz.error = er.message; wizRender(); return; }
+    I().revalidate(wiz.entries, I().existingMap(sid));   // yaratilgan/tanlangan sessiyaga qarab oxirgi tekshiruv
+    setBusy('Saqlanmoqda…', 0);
+    I().commit(sid, wiz.entries, function (p, n) { setBusy('Saqlanmoqda… ' + n + ' ta', p); }).then(function (r) {
+      var skipped = wiz.entries.length - r.added; wiz = null; toast(r.added + " ta so'z qo'shildi" + (skipped ? ' · ' + skipped + ' ta o\'tkazildi' : '') + (r.failed.length ? ' · ' + r.failed.length + ' ta xato' : '')); location.hash = '#/s/' + sid;
+    });
+  }
+
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]'); if (!b) return; var act = b.dataset.act, sid = curSid();
+    if (act.indexOf('w-') === 0) { if (wiz) wizClick(b); return; }
     if (act === 'new') newSessionForm();
     else if (act === 'close') closeModal();
     else if (act === 'theme') { var d = settings(); d.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; V.save(); applyTheme(); }
@@ -266,10 +397,16 @@
     if (dup) confirmBox('«' + en.trim() + '» bu sessiyada allaqachon bor. Baribir qo\'shasizmi?', "Ha, qo'shish").then(function (y) { if (y) add(); }); else add();
   });
   document.addEventListener('input', function (e) {
+    if (wiz && e.target.id === 'wnew') { wiz.newName = e.target.value; var ok = destReady() && !wiz.busy, bt = $('#wimport'); if (bt) bt.disabled = !ok || !I().counts(wiz.entries).ready; ['#wtext', '[data-act="w-parse"]', '#wfiles'].forEach(function (q) { var x = $(q); if (x) x.disabled = !ok; }); var go = $('[data-act="w-ocr"]'); if (go) go.disabled = !ok || !wiz.files.length; return; }
+    if (wiz && e.target.id === 'wtext') { wiz.text = e.target.value; var l = $('#wlines'); if (l) l.textContent = lineCount(wiz.text) + ' qator'; return; }
     if (e.target.id === 'sq') { q.text = e.target.value; $('#slist').innerHTML = sessionsHTML(); }
     else if (e.target.id === 'wq') { wf = e.target.value; $('#wlist').innerHTML = wordRows(curSid()); }
   });
   document.addEventListener('change', function (e) {
+    if (wiz && e.target.id === 'wdest') { saveText(); wiz.dest = e.target.value; wiz.existing = I().existingMap(destSid()); wiz.error = ''; if (wiz.entries.length) revalidate(); wizRender(); if (destSid()) { try { history.replaceState(null, '', '#/import/' + destSid()); } catch (er) {} } return; }
+    if (wiz && e.target.id === 'wf') { wiz.filter = e.target.value; wiz.page = 0; refreshTable(); return; }
+    if (wiz && e.target.id === 'wfiles') { wiz.files = Array.prototype.slice.call(e.target.files).filter(function (f) { var okk = V.ocr.accepted(f); if (!okk) wiz.error = 'Qabul qilinmadi (faqat JPG, PNG, WebP): ' + f.name; return okk; }); wizRender(); return; }
+    if (wiz && e.target.classList && e.target.classList.contains('w-in')) { wizEdit(e.target); return; }
     if (e.target.id === 'ss') { q.sort = e.target.value; $('#slist').innerHTML = sessionsHTML(); }
     else if (e.target.id === 'imp' && e.target.files[0]) { var r = new FileReader(); r.onload = function () { try { V.importJSON(r.result); applyTheme(); toast('Import qilindi (oldingi ma\'lumot zaxiraga olindi)'); route(); } catch (er) { toast('Xato: ' + er.message); } }; r.readAsText(e.target.files[0]); }
   });
