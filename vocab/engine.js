@@ -171,10 +171,7 @@
     if (q.type === 'mc') { r = V.checkText(input, q.dir === 'en-tr' ? V.acceptedTr(w) : V.acceptedEn(w)); r.correct = q.dir === 'en-tr' ? w.tr[0] : w.en; }
     else if (q.type === 'type') { r = V.checkText(input, q.dir === 'en-tr' ? V.acceptedTr(w) : V.acceptedEn(w)); r.correct = q.dir === 'en-tr' ? w.tr[0] : w.en; }
     else if (q.type === 'spell' || q.type === 'scramble') { r = V.checkText(input, V.acceptedEn(w)); r.correct = w.en; }
-    else if (q.type === 'flash') {   // yozma javob (matn) yoki o'zini baholash (true/false)
-      var corr = q.dir === 'en-tr' ? w.tr.join('; ') : w.en;
-      if (typeof input === 'string') { r = V.checkText(input, q.dir === 'en-tr' ? V.acceptedTr(w) : V.acceptedEn(w)); r.correct = corr; } else r = { ok: !!input, correct: corr };
-    }
+    else if (q.type === 'flash') { r = { ok: !!input, correct: q.dir === 'en-tr' ? w.tr.join('; ') : w.en }; }
     else r = { ok: false };
     r.explain = V.explain(s, q, w, input, r); return r;
   };

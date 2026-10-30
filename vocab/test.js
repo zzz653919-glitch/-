@@ -145,11 +145,4 @@ t('Boshqarish: nomini o\'zgartirish, to\'xtatish/davom, qayta boshlash, o\'chiri
   V.restartSession(a); assert.equal(V.stats(a).rounds, 0); assert.equal(V.words(a).length, 4);
   V.deleteSession(a); assert.equal(V.list().length, 1); assert.throws(() => V.session(a));
 });
-t('Flash karta: yozma javob tekshiriladi, o\'zini baholash ham ishlaydi', () => {
-  const { V, a } = setup(); const id = V.words(a)[0].id, w = V.words(a)[0];
-  const qe = { type: 'flash', dir: 'en-tr', w: id }, qt = { type: 'flash', dir: 'tr-en', w: id };
-  assert(V.grade(a, qe, '  ' + w.tr[0].toUpperCase() + ' ').ok); assert(!V.grade(a, qe, 'noto\'g\'ri').ok); assert(V.grade(a, qe, 'noto\'g\'ri').correct === w.tr.join('; '));
-  assert(V.grade(a, qt, ' ' + w.en.toUpperCase()).ok); assert(!V.grade(a, qt, w.en + 'x').ok);
-  assert(V.grade(a, qe, true).ok && !V.grade(a, qe, false).ok, 'o\'zini baholash saqlandi');
-});
 console.log('\n' + n + " ta test o'tdi");

@@ -11,13 +11,7 @@ async function answerCurrent(page) {
   const w = await page.evaluate(({ sid, id }) => V.session(sid).words[id], { sid: q.sid, id: q.q.w });
   const t = q.q.type;
   if (t === 'study') { await page.click('[data-act="study-next"]'); return; }
-  if (t === 'flash') {
-    if (q.q.n % 2 === 0) {   // yozma javob
-      ok(await page.locator('#ti').count() === 1, `flash karta: javob yozish maydoni bor`);
-      await page.fill('#ti', q.q.dir === 'en-tr' ? w.tr[0] : w.en); await page.click('[data-act="check"]'); await page.click('[data-act="next"]'); return;
-    }
-    await page.click('[data-act="reveal"]'); await page.click('[data-act="know"]'); await page.click('[data-act="next"]'); return;   // ko'rsatib, o'zini baholash
-  }
+  if (t === 'flash') { await page.click('[data-act="reveal"]'); await page.click('[data-act="know"]'); await page.click('[data-act="next"]'); return; }
   if (t === 'mc') { const i = await page.evaluate(({ sid, qn }) => qn.options.findIndex((o) => V.grade(sid, qn, o).ok), { sid: q.sid, qn: q.q }); await page.click(`.opt[data-i="${i}"]`); }
   else if (t === 'type') await page.fill('#ti', q.q.dir === 'en-tr' ? w.tr[0] : w.en);
   else if (t === 'spell') await page.fill('#ti', w.en);
