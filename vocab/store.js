@@ -95,6 +95,14 @@
     return { id: uid('w'), en: en, tr: tr, example: String(w.example || '').trim().slice(0, 200), exampleTr: String(w.exampleTr || '').trim().slice(0, 200), pron: String(w.pron || '').trim().slice(0, 60), variants: cleanTr(w.variants), emoji: String(w.emoji || '').slice(0, 8), createdAt: Date.now() };
   }
   V.addWord = function (sid, w) { var s = need(sid), x = mkWord(w); s.words[x.id] = x; s.order.push(x.id); s.updatedAt = Date.now(); V.save(); return x.id; };
+  // Ommaviy qo'shish: bitta saqlash. Faqat shu sessiya; mavjud so'zlar va progress o'zgarmaydi.
+  V.addWords = function (sid, arr, opts) {
+    var s = need(sid), added = [], failed = [];
+    arr.forEach(function (w, i) { try { var x = mkWord(w); s.words[x.id] = x; s.order.push(x.id); added.push(x.id); } catch (e) { failed.push({ index: i, en: w && w.en, error: e.message }); } });
+    if (added.length) s.updatedAt = Date.now();
+    if (!opts || opts.save !== false) V.save();
+    return { added: added, failed: failed };
+  };
   V.updateWord = function (sid, wid, patch) {
     var s = need(sid), w = s.words[wid]; if (!w) throw new Error("So'z topilmadi");
     var n = mkWord(Object.assign({}, w, patch)); n.id = w.id; n.createdAt = w.createdAt; s.words[wid] = n; s.updatedAt = Date.now(); V.save();

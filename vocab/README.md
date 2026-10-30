@@ -50,3 +50,29 @@ Izolyatsiya testi A/B sessiyalarida barcha rejimlarni (o'rganish, takrorlash, xa
 - Talaffuz va «eshitish» brauzer TTS'iga bog'liq; audio fayllar yo'q. Talaffuz (IPA) avtomatik berilmaydi, qo'lda kiritiladi.
 - Mashqlar tartibi tasodifiy, lekin bir raundda 11 tagacha so'z ishlatiladi (5 tagacha yangi).
 - Eski kursning boshqa qismlari (darajalar xaritasi, XP/yurakchalar, admin panel, o'quvchilar hisoblari) bu ilovada yo'q — ular `web/` papkasida daxlsiz turibdi.
+
+## Ko'p so'z import va rasmdan o'qish (OCR)
+`#/import` (panel yoki sessiya sahifasidagi «Ko'p so'z import»). Tartib: **1) maqsad sessiyani tanlash yoki yangisini yaratish (majburiy)** → **2) matn yoki rasm** → **3) jadvalda oldindan ko'rish va tahrirlash** → **Import All Valid Words**. Tasdiqlanmaguncha hech narsa saqlanmaydi (yangi sessiya ham yaratilmaydi). Tugmalar: *Import All Valid Words*, *Edit Entries* (yozuvlarni matn sifatida tahrirlab qayta tahlil), *Cancel*.
+
+### Tahlil qoidalari (`importer.js`)
+1. Qator tozalanadi (NBSP/nol kenglikli belgilar, `1.`/`2)`/`•` raqamlash, ortiqcha bo'shliq). Apostroflar va `o‘ g‘ ʻ ’` aynan saqlanadi; tekshiruvda barcha variantlar teng.
+2. **Talaffuz**: `/…/` va IPA belgili `[…]` olib tashlanib, alohida «Talaffuz» ustunida saqlanadi (`and/or` kabi so'z ichidagi `/` talaffuz emas). OCR yopuvchi `/` ni tushirib qoldirsa — «tekshirish».
+3. **Ajratuvchi**: eng chapdagi tanlanadi: TAB, `—`, `–`, ` - `, `=`, `|`, `:`; keyin 2+ bo'shliq; keyin `;`/`,` (ishonchsiz → «tekshirish»).
+4. **Ajratuvchisiz** («take a photo suratga olmoq»): har so'z inglizcha/o'zbekcha ballanadi (o'zbekcha: `moq`, `lik`, `siz`, `chi`, `q`, `o'/g'`, apostrofli so'zlar, ro'yxatdagi aniq ajratuvchili qatorlar va maqsad sessiyadagi so'zlar «ko'rsatma» bo'ladi; inglizcha: `w`, `th`, `ph`, `ing`, funksiya so'zlari). Eng yaxshi chegara tanlanadi; ishonch past bo'lsa «tekshirish». O'ng tomon ham inglizcha ko'rinsa («to give up») — butun qator inglizcha ibora, tarjima bo'sh.
+5. **Tavsifni olib tashlash**: faqat ishonchli holatlarda — fe'l (`…moq`) dan keyingi so'zlar, birinchi gapdan keyingi gaplar (`. `), inglizcha tomondagi `(v)`, `n.` kabi belgilar. Olib tashlangan matn jadvalda «olib tashlandi: …» deb ko'rinadi va «qaytarish» tugmasi bor. Tarjima 4+ so'z bo'lib fe'l-anchor topilmasa, ikkinchi ajratuvchi bo'lsa yoki bir nechta variant orasida kesish bo'lsa — hech narsa o'chirilmaydi, qator «tekshirish»ga tushadi. Qavs ichidagi izoh (`ulashmoq (bo'lishmoq)`) va `;`/`,` bilan berilgan muqobil tarjimalar saqlanadi. Ko'p so'zli iboralar (`take a photo`, `look after`, `give up`, `to be or not to be`) to'liq saqlanadi.
+6. **Holatlar**: *To'g'ri*, *Tekshirish* (✓ bilan tasdiqlang yoki tahrirlang), *Takror* (importda yoki maqsad sessiyada; «Baribir qo'shish» bilan qo'shiladi), *To'liq emas* (tarjima yo'q — to'qilmaydi, qo'lda kiritiladi), *Xato* (inglizcha yo'q/juda uzun). Hech qator jimgina tashlab yuborilmaydi.
+7. Takrorlar faqat **maqsad sessiya** ichida tekshiriladi: bir xil inglizcha so'z boshqa sessiyaga erkin qo'shiladi; mavjud so'zlar va progress hech qachon o'zgarmaydi/qayta yozilmaydi.
+
+### Rasm (OCR)
+- **Tesseract.js 5.1.1 (WebAssembly)**: JPG, JPEG, PNG, WebP; bir nechta rasm ketma-ket, tartib saqlanadi. Matn **brauzerda** o'qiladi (rasm serverga yuborilmaydi), **lekin kutubxona, worker, wasm yadro va `eng` til ma'lumoti CDN'dan (jsDelivr) yuklanadi — birinchi marta INTERNET kerak**; oflayn ishlashi kafolatlanmaydi (interfeys buni aniq yozadi). Boshqa manzil uchun `window.OCR_CONFIG = { script, options: { workerPath, corePath, langPath, gzip } }`.
+- Natija o'sha jadvalga tushadi (tahrirlanadigan), xom OCR matni ham ko'rinadi. Faqat inglizcha rasmda tarjima bo'sh qoladi.
+- OCR sifati cheklangan: IPA belgilari odatda buziladi (talaffuz maydoni shunga qaramay ajratiladi), `o‘/g‘/q` kabi harflar adashishi mumkin (`g'amxa'rlik gilmoq`) — import qilishdan oldin jadvalda tuzating. Ustunlari aralashib ketgan yoki bir yozuv ikki qatorga bo'lingan rasmlar «To'liq emas/Tekshirish» bo'ladi. Faqat `eng` modeli ishlatiladi (o'zbekcha uchun alohida model yuklanmaydi).
+
+### Katta ro'yxatlar
+Tahlil 300 qatorlik bo'laklarda (UI qotmaydi, progress ko'rsatiladi), jadval 50 qatorlik sahifalarda, saqlash bo'laklab va bitta yozuv bilan (`V.addWords`): 2000 qator ≈ 0,1 s tahlil. Import tugmasi bosilgach o'chadi (ikki marta bosish himoyasi); qayta import qilinsa, so'zlar «Takror» bo'ladi.
+
+### Testlar
+```
+node test-import.js                                   # parser, tavsif/talaffuz, o'zbek harflari, takrorlar, katta ro'yxat, OCR (mock), izolyatsiya, saqlanish (16)
+OCR_ASSETS=<node_modules> node e2e-import.js          # brauzer + HAQIQIY Tesseract (Playwright); OCR_ASSETS: tesseract.js, tesseract.js-core, @tesseract.js-data/eng
+```

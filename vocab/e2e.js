@@ -21,7 +21,7 @@ async function answerCurrent(page) {
 }
 async function createSession(page, name, text) {
   await page.goto(URL_ + '#/'); await page.click('[data-act="new"]'); await page.fill('#nn', name); await page.click('#nf .btn.p'); await page.waitForSelector('#wform');
-  await page.click('[data-act="import"]'); await page.fill('#it', text); await page.selectOption('#im', 'skip'); await page.click('#iap'); await page.waitForSelector('#wlist table');
+  await page.click('a[href^="#/import/"]'); await page.waitForSelector('#wtext:not([disabled])'); await page.fill('#wtext', text); await page.click('[data-act="w-parse"]'); await page.waitForSelector('#wtable'); await page.click('[data-act="w-import"]'); await page.waitForSelector('#wlist table');
 }
 (async () => {
   const browser = await chromium.launch();
